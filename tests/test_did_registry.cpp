@@ -149,13 +149,68 @@ ecus:
         encoding: "ASCII"
         length: 16
 )");
-    
+
     registry->reload();
-    
+
     EXPECT_EQ(registry->getRegistryVersion(), "2026.07.1");
     EXPECT_EQ(registry->getBaselineDids().size(), 1);
     EXPECT_TRUE(registry->isEcuRegistered("NEW_ECU"));
     EXPECT_FALSE(registry->isEcuRegistered("BMS"));
+}
+
+TEST_F(DidRegistryTest, ConstructorInvalidPath) {
+    EXPECT_THROW(DidRegistry("nonexistent.yaml"), std::runtime_error);
+}
+
+TEST_F(DidRegistryTest, ReloadMalformedYaml) {
+    writeFile(configPath(), "invalid: [yaml: {broken");
+    EXPECT_THROW(registry->reload(), std::runtime_error);
+}
+
+TEST_F(DidRegistryTest, ReloadDuplicateEcuId) {
+    writeFile(configPath(), R"(
+registryVersion: "2026.07.0"
+baselineDids: []
+ecus:
+  - ecuId: "BMS"
+    logicalAddress: 0x1A
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+  - ecuId: "BMS"
+    logicalAddress: 0x20
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+)");
+    EXPECT_THROW(registry->reload(), std::runtime_error);
+}
+
+TEST_F(DidRegistryTest, ReloadDuplicateLogicalAddress) {
+    writeFile(configPath(), R"(
+registryVersion: "2026.07.0"
+baselineDids: []
+ecus:
+  - ecuId: "BMS"
+    logicalAddress: 0x1A
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+  - ecuId: "IDCM"
+    logicalAddress: 0x1A
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+)");
+    EXPECT_THROW(registry->reload(), std::runtime_error);
+}
+
+TEST_F(DidRegistryTest, ReloadPreservesStateOnFailure) {
+    auto orig_version = registry->getRegistryVersion();
+    auto orig_ecus = registry->getAllEcus().size();
+
+    writeFile(configPath(), "invalid: [yaml: {broken");
+    EXPECT_THROW(registry->reload(), std::runtime_error);
+
+    EXPECT_EQ(registry->getRegistryVersion(), orig_version);
+    EXPECT_EQ(registry->getAllEcus().size(), orig_ecus);
+    EXPECT_TRUE(registry->isEcuRegistered("BMS"));
 }
 
 } // namespace tests

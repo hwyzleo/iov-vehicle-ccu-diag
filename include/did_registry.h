@@ -8,6 +8,9 @@
 
 namespace cgw_diag {
 
+// Thread safety: This class is NOT thread-safe.
+// Concurrent calls to const methods are safe after construction/reload completes.
+// Calls to reload() must be externally synchronized with all other method calls.
 class DidRegistry {
 public:
     explicit DidRegistry(const std::string& config_path);
