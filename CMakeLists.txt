@@ -36,6 +36,7 @@ set(LIB_SOURCES
     src/config_loader.cpp
     src/did_registry.cpp
     src/uds_client.cpp
+    src/diagnostic_router.cpp
     src/do_can_transport.cpp
     src/doip_transport.cpp
 )
@@ -52,6 +53,7 @@ add_executable(CgwDiagTests
     tests/test_config_loader.cpp
     tests/test_did_registry.cpp
     tests/test_uds_client.cpp
+    tests/test_diagnostic_router.cpp
     tests/test_transport_adapter.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)

@@ -1,0 +1,132 @@
+#include "diagnostic_router.h"
+#include "do_can_transport.h"
+#include "doip_transport.h"
+
+namespace cgw_diag {
+
+DiagnosticRouter::DiagnosticRouter(std::shared_ptr<DidRegistry> registry,
+                                   std::shared_ptr<UdsClient> uds_client)
+    : registry_(registry), uds_client_(uds_client) {
+    initializeTransports();
+}
+
+RoutingResult DiagnosticRouter::routeRequest(const std::string& ecu_id, uint16_t did) {
+    RoutingResult result;
+
+    if (!registry_->isEcuRegistered(ecu_id)) {
+        result.success = false;
+        result.error_code = ErrorCode::ECU_NOT_REGISTERED;
+        result.error_message = "ECU not registered in DID list: " + ecu_id;
+        return result;
+    }
+
+    auto ecu_config = registry_->findEcuById(ecu_id);
+    if (!ecu_config) {
+        result.success = false;
+        result.error_code = ErrorCode::ECU_NOT_REGISTERED;
+        result.error_message = "Failed to get ECU configuration: " + ecu_id;
+        return result;
+    }
+
+    if (ecu_config->read_method == ReadMethod::UDS_0x22) {
+        bool did_found = false;
+        for (const auto& did_entry : ecu_config->dids) {
+            if (did_entry.did == did) {
+                did_found = true;
+                break;
+            }
+        }
+
+        if (!did_found) {
+            result.success = false;
+            result.error_code = ErrorCode::DID_NOT_SUPPORTED;
+            result.error_message = "DID not supported by ECU";
+            return result;
+        }
+    }
+
+    auto transport = selectTransport(ecu_config->transport);
+    if (!transport) {
+        result.success = false;
+        result.error_code = ErrorCode::ECU_UNREACHABLE;
+        result.error_message = "No transport available for ECU";
+        return result;
+    }
+
+    if (!transport->isReachable(ecu_config->logical_address)) {
+        result.success = false;
+        result.error_code = ErrorCode::ECU_UNREACHABLE;
+        result.error_message = "ECU is not reachable";
+        return result;
+    }
+
+    auto uds_response = uds_client_->readDataByIdentifier(ecu_config->logical_address, did);
+
+    if (uds_response.success) {
+        result.success = true;
+        result.response_data = uds_response.data;
+        result.error_code = ErrorCode::SUCCESS;
+    } else {
+        result.success = false;
+        result.response_data = uds_response.data;
+
+        if (uds_response.nrc != 0) {
+            result.error_code = ErrorCodeMapper::fromNrc(uds_response.nrc);
+        } else {
+            result.error_code = ErrorCode::REQUEST_TIMEOUT;
+        }
+
+        result.error_message = uds_response.error_message;
+    }
+
+    return result;
+}
+
+bool DiagnosticRouter::isEcuReachable(const std::string& ecu_id) {
+    if (!registry_->isEcuRegistered(ecu_id)) {
+        return false;
+    }
+
+    auto ecu_config = registry_->findEcuById(ecu_id);
+    if (!ecu_config) {
+        return false;
+    }
+
+    auto transport = selectTransport(ecu_config->transport);
+    if (!transport) {
+        return false;
+    }
+
+    return transport->isReachable(ecu_config->logical_address);
+}
+
+std::shared_ptr<TransportAdapter> DiagnosticRouter::getTransportForEcu(const std::string& ecu_id) {
+    if (!registry_->isEcuRegistered(ecu_id)) {
+        return nullptr;
+    }
+
+    auto ecu_config = registry_->findEcuById(ecu_id);
+    if (!ecu_config) {
+        return nullptr;
+    }
+
+    return selectTransport(ecu_config->transport);
+}
+
+void DiagnosticRouter::initializeTransports() {
+    docan_transport_ = std::make_shared<DoCanTransport>("can0", 500000);
+    doip_transport_ = std::make_shared<DoIpTransport>("192.168.1.1", 13400);
+}
+
+std::shared_ptr<TransportAdapter> DiagnosticRouter::selectTransport(TransportType type) {
+    switch (type) {
+        case TransportType::DOCAN:
+            return docan_transport_;
+        case TransportType::DOIP:
+            return doip_transport_;
+        default:
+            return nullptr;
+    }
+}
+
+} // namespace cgw_diag
