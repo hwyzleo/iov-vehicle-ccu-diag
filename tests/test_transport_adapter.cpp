@@ -68,5 +68,16 @@ TEST(TransportAdapterTest, UnsupportedRequest) {
     EXPECT_FALSE(response.error_message.empty());
 }
 
+TEST(TransportAdapterTest, DoIpUnsupportedRequest) {
+    DoIpTransport transport("192.168.1.1", 13400);
+    
+    // Test unsupported request
+    std::vector<uint8_t> request = {0x10, 0x01};  // DiagnosticSessionControl
+    auto response = transport.sendRequest(0x20, request);
+    
+    EXPECT_FALSE(response.success);
+    EXPECT_FALSE(response.error_message.empty());
+}
+
 } // namespace tests
 } // namespace cgw_diag

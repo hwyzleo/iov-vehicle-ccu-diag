@@ -1,0 +1,82 @@
+{
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/include/constants.h": {
+    "mtime": 1784552966.7419348,
+    "hash": "1e2d9f19a9cbf44325b00b11e59468bf"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/include/error_codes.h": {
+    "mtime": 1784553005.885845,
+    "hash": "19628f9c7a4b71cb8e25eee1f4824b5e"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/include/data_models.h": {
+    "mtime": 1784553624.1480541,
+    "hash": "c3da039e6d979b08b5ef7c49623d9ab4"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/include/did_registry.h": {
+    "mtime": 1784554220.5792885,
+    "hash": "3542db3309dcfe8323c61793a516b228"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/include/config_loader.h": {
+    "mtime": 1784553631.4839497,
+    "hash": "a6932434a05ced4eb25f376510baf5a9"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/tests/test_error_codes.cpp": {
+    "mtime": 1784552994.9435132,
+    "hash": "ae87d3a8d4d48cd2953f4a8ff57cfc9a"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/tests/test_did_registry.cpp": {
+    "mtime": 1784554246.2257566,
+    "hash": "96e3183e8d643f48015b253d5adf463c"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/tests/test_data_models.cpp": {
+    "mtime": 1784553212.871346,
+    "hash": "3ad1073a7ca3ebc64a14ca090f694bcc"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/tests/test_config_loader.cpp": {
+    "mtime": 1784553710.2982304,
+    "hash": "61dc93dc657189dcd8ff1a648cac9a8a"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/src/did_registry.cpp": {
+    "mtime": 1784554215.5839324,
+    "hash": "f382e07edb72f36093eff065324d5a90"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/src/config_loader.cpp": {
+    "mtime": 1784553670.1873329,
+    "hash": "90dc5831c9e743278bb11fbf70f95cc7"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/src/data_models.cpp": {
+    "mtime": 1784553267.8861594,
+    "hash": "ba716cccb84df15a6e3e7d8849e4783a"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/src/error_codes.cpp": {
+    "mtime": 1784552978.7157574,
+    "hash": "473812141b80a57400cd922c814e0c6e"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/CMakeLists.txt": {
+    "mtime": 1784553937.8418684,
+    "hash": "9d4deba2b7a48701da42efcba32ade6f"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/README.md": {
+    "mtime": 1784549695.3471813,
+    "hash": "84abc01317eadd44d7c754125df9cf31"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/AGENTS.md": {
+    "mtime": 1784551627.4230933,
+    "hash": "ae0896ebeeeded5158706d01c16eea06"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/config/did_registry.yaml": {
+    "mtime": 1784553314.8237538,
+    "hash": "cae72660c968d63fa39e3c4edfbcaca3"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/config/diag_config.yaml": {
+    "mtime": 1784553317.3183036,
+    "hash": "e0548b5879d4dd09e96254ec5a8ad202"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/docs/superpowers/plans/2026-07-20-cgw-diag-v1-implementation.md": {
+    "mtime": 1784552365.9581184,
+    "hash": "08a42da1197328cfd6af1498037cb6cf"
+  },
+  "/Users/hwyz_leo/Projects/open-iov/vehicle/cgw/iov-vehicle-cgw-diag/docs/superpowers/plans/2026-07-20-project-setup-and-error-codes.md": {
+    "mtime": 1784552608.9661562,
+    "hash": "664071896801d80741112acc249269b3"
+  }
+}

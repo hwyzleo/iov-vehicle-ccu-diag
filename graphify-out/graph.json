@@ -1,0 +1,665 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "constants.h",
+      "file_type": "code",
+      "source_file": "include/constants.h",
+      "source_location": "L1",
+      "id": "include_constants_h",
+      "community": 5,
+      "norm_label": "constants.h"
+    },
+    {
+      "label": "cgw_diag()",
+      "file_type": "code",
+      "source_file": "include/constants.h",
+      "source_location": "L6",
+      "id": "include_constants_cgw_diag",
+      "community": 5,
+      "norm_label": "cgw_diag()"
+    },
+    {
+      "label": "error_codes.h",
+      "file_type": "code",
+      "source_file": "include/error_codes.h",
+      "source_location": "L1",
+      "id": "include_error_codes_h",
+      "community": 6,
+      "norm_label": "error_codes.h"
+    },
+    {
+      "label": "cgw_diag()",
+      "file_type": "code",
+      "source_file": "include/error_codes.h",
+      "source_location": "L6",
+      "id": "include_error_codes_cgw_diag",
+      "community": 6,
+      "norm_label": "cgw_diag()"
+    },
+    {
+      "label": "data_models.h",
+      "file_type": "code",
+      "source_file": "include/data_models.h",
+      "source_location": "L1",
+      "id": "include_data_models_h",
+      "community": 7,
+      "norm_label": "data_models.h"
+    },
+    {
+      "label": "BaselineSource()",
+      "file_type": "code",
+      "source_file": "include/data_models.h",
+      "source_location": "L35",
+      "id": "include_data_models_baselinesource",
+      "community": 7,
+      "norm_label": "baselinesource()"
+    },
+    {
+      "label": "did_registry.h",
+      "file_type": "code",
+      "source_file": "include/did_registry.h",
+      "source_location": "L1",
+      "id": "include_did_registry_h",
+      "community": 8,
+      "norm_label": "did_registry.h"
+    },
+    {
+      "label": "cgw_diag()",
+      "file_type": "code",
+      "source_file": "include/did_registry.h",
+      "source_location": "L9",
+      "id": "include_did_registry_cgw_diag",
+      "community": 8,
+      "norm_label": "cgw_diag()"
+    },
+    {
+      "label": "config_loader.h",
+      "file_type": "code",
+      "source_file": "include/config_loader.h",
+      "source_location": "L1",
+      "id": "include_config_loader_h",
+      "community": 9,
+      "norm_label": "config_loader.h"
+    },
+    {
+      "label": "cgw_diag()",
+      "file_type": "code",
+      "source_file": "include/config_loader.h",
+      "source_location": "L7",
+      "id": "include_config_loader_cgw_diag",
+      "community": 9,
+      "norm_label": "cgw_diag()"
+    },
+    {
+      "label": "test_error_codes.cpp",
+      "file_type": "code",
+      "source_file": "tests/test_error_codes.cpp",
+      "source_location": "L1",
+      "id": "tests_test_error_codes_cpp",
+      "community": 10,
+      "norm_label": "test_error_codes.cpp"
+    },
+    {
+      "label": "TEST()",
+      "file_type": "code",
+      "source_file": "tests/test_error_codes.cpp",
+      "source_location": "L7",
+      "id": "tests_test_error_codes_test",
+      "community": 10,
+      "norm_label": "test()"
+    },
+    {
+      "label": "test_did_registry.cpp",
+      "file_type": "code",
+      "source_file": "tests/test_did_registry.cpp",
+      "source_location": "L1",
+      "id": "tests_test_did_registry_cpp",
+      "community": 3,
+      "norm_label": "test_did_registry.cpp"
+    },
+    {
+      "label": "DidRegistryTest",
+      "file_type": "code",
+      "source_file": "tests/test_did_registry.cpp",
+      "source_location": "L11",
+      "id": "tests_test_did_registry_didregistrytest",
+      "community": 3,
+      "norm_label": "didregistrytest"
+    },
+    {
+      "label": "TEST_F()",
+      "file_type": "code",
+      "source_file": "tests/test_did_registry.cpp",
+      "source_location": "L66",
+      "id": "tests_test_did_registry_test_f",
+      "community": 3,
+      "norm_label": "test_f()"
+    },
+    {
+      "label": "test_data_models.cpp",
+      "file_type": "code",
+      "source_file": "tests/test_data_models.cpp",
+      "source_location": "L1",
+      "id": "tests_test_data_models_cpp",
+      "community": 11,
+      "norm_label": "test_data_models.cpp"
+    },
+    {
+      "label": "TEST()",
+      "file_type": "code",
+      "source_file": "tests/test_data_models.cpp",
+      "source_location": "L7",
+      "id": "tests_test_data_models_test",
+      "community": 11,
+      "norm_label": "test()"
+    },
+    {
+      "label": "test_config_loader.cpp",
+      "file_type": "code",
+      "source_file": "tests/test_config_loader.cpp",
+      "source_location": "L1",
+      "id": "tests_test_config_loader_cpp",
+      "community": 4,
+      "norm_label": "test_config_loader.cpp"
+    },
+    {
+      "label": "ConfigLoaderTest",
+      "file_type": "code",
+      "source_file": "tests/test_config_loader.cpp",
+      "source_location": "L12",
+      "id": "tests_test_config_loader_configloadertest",
+      "community": 4,
+      "norm_label": "configloadertest"
+    },
+    {
+      "label": "TEST_F()",
+      "file_type": "code",
+      "source_file": "tests/test_config_loader.cpp",
+      "source_location": "L80",
+      "id": "tests_test_config_loader_test_f",
+      "community": 4,
+      "norm_label": "test_f()"
+    },
+    {
+      "label": "did_registry.cpp",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L1",
+      "id": "src_did_registry_cpp",
+      "community": 0,
+      "norm_label": "did_registry.cpp"
+    },
+    {
+      "label": "DidRegistry()",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L6",
+      "id": "src_did_registry_didregistry",
+      "community": 0,
+      "norm_label": "didregistry()"
+    },
+    {
+      "label": "getRegistryVersion()",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L11",
+      "id": "src_did_registry_getregistryversion",
+      "community": 0,
+      "norm_label": "getregistryversion()"
+    },
+    {
+      "label": "findEcuById()",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L19",
+      "id": "src_did_registry_findecubyid",
+      "community": 0,
+      "norm_label": "findecubyid()"
+    },
+    {
+      "label": "findEcuByLogicalAddress()",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L27",
+      "id": "src_did_registry_findecubylogicaladdress",
+      "community": 0,
+      "norm_label": "findecubylogicaladdress()"
+    },
+    {
+      "label": "isEcuRegistered()",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L39",
+      "id": "src_did_registry_isecuregistered",
+      "community": 0,
+      "norm_label": "isecuregistered()"
+    },
+    {
+      "label": "getDidsForEcu()",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L43",
+      "id": "src_did_registry_getdidsforecu",
+      "community": 0,
+      "norm_label": "getdidsforecu()"
+    },
+    {
+      "label": "reload()",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L51",
+      "id": "src_did_registry_reload",
+      "community": 0,
+      "norm_label": "reload()"
+    },
+    {
+      "label": "buildIndices()",
+      "file_type": "code",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L75",
+      "id": "src_did_registry_buildindices",
+      "community": 0,
+      "norm_label": "buildindices()"
+    },
+    {
+      "label": "config_loader.cpp",
+      "file_type": "code",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L1",
+      "id": "src_config_loader_cpp",
+      "community": 1,
+      "norm_label": "config_loader.cpp"
+    },
+    {
+      "label": "loadDidRegistry()",
+      "file_type": "code",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L7",
+      "id": "src_config_loader_loaddidregistry",
+      "community": 1,
+      "norm_label": "loaddidregistry()"
+    },
+    {
+      "label": "loadDiagConfig()",
+      "file_type": "code",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L40",
+      "id": "src_config_loader_loaddiagconfig",
+      "community": 1,
+      "norm_label": "loaddiagconfig()"
+    },
+    {
+      "label": "parseEcuConfig()",
+      "file_type": "code",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L67",
+      "id": "src_config_loader_parseecuconfig",
+      "community": 1,
+      "norm_label": "parseecuconfig()"
+    },
+    {
+      "label": "parseDidEntry()",
+      "file_type": "code",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L116",
+      "id": "src_config_loader_parsedidentry",
+      "community": 1,
+      "norm_label": "parsedidentry()"
+    },
+    {
+      "label": "data_models.cpp",
+      "file_type": "code",
+      "source_file": "src/data_models.cpp",
+      "source_location": "L1",
+      "id": "src_data_models_cpp",
+      "community": 12,
+      "norm_label": "data_models.cpp"
+    },
+    {
+      "label": "error_codes.cpp",
+      "file_type": "code",
+      "source_file": "src/error_codes.cpp",
+      "source_location": "L1",
+      "id": "src_error_codes_cpp",
+      "community": 2,
+      "norm_label": "error_codes.cpp"
+    },
+    {
+      "label": "toString()",
+      "file_type": "code",
+      "source_file": "src/error_codes.cpp",
+      "source_location": "L30",
+      "id": "src_error_codes_tostring",
+      "community": 2,
+      "norm_label": "tostring()"
+    },
+    {
+      "label": "toDiagCode()",
+      "file_type": "code",
+      "source_file": "src/error_codes.cpp",
+      "source_location": "L38",
+      "id": "src_error_codes_todiagcode",
+      "community": 2,
+      "norm_label": "todiagcode()"
+    },
+    {
+      "label": "fromNrc()",
+      "file_type": "code",
+      "source_file": "src/error_codes.cpp",
+      "source_location": "L46",
+      "id": "src_error_codes_fromnrc",
+      "community": 2,
+      "norm_label": "fromnrc()"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "include/constants.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "include_constants_h",
+      "target": "include_constants_cgw_diag",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "include/error_codes.h",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "include_error_codes_h",
+      "target": "include_error_codes_cgw_diag",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "include/data_models.h",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "include_data_models_h",
+      "target": "include_data_models_baselinesource",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "include/did_registry.h",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "include_did_registry_h",
+      "target": "include_did_registry_cgw_diag",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "include/config_loader.h",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "include_config_loader_h",
+      "target": "include_config_loader_cgw_diag",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_error_codes.cpp",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "tests_test_error_codes_cpp",
+      "target": "tests_test_error_codes_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_did_registry.cpp",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "tests_test_did_registry_cpp",
+      "target": "tests_test_did_registry_didregistrytest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_did_registry.cpp",
+      "source_location": "L204",
+      "weight": 1.0,
+      "source": "tests_test_did_registry_cpp",
+      "target": "tests_test_did_registry_test_f",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_did_registry.cpp",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "tests_test_did_registry_test_f",
+      "target": "src_did_registry_didregistry"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_data_models.cpp",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "tests_test_data_models_cpp",
+      "target": "tests_test_data_models_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config_loader.cpp",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "tests_test_config_loader_cpp",
+      "target": "tests_test_config_loader_configloadertest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config_loader.cpp",
+      "source_location": "L246",
+      "weight": 1.0,
+      "source": "tests_test_config_loader_cpp",
+      "target": "tests_test_config_loader_test_f",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "src_did_registry_cpp",
+      "target": "src_did_registry_didregistry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "src_did_registry_cpp",
+      "target": "src_did_registry_getregistryversion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "src_did_registry_cpp",
+      "target": "src_did_registry_findecubyid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "src_did_registry_cpp",
+      "target": "src_did_registry_findecubylogicaladdress",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "src_did_registry_cpp",
+      "target": "src_did_registry_isecuregistered",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "src_did_registry_cpp",
+      "target": "src_did_registry_getdidsforecu",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "src_did_registry_cpp",
+      "target": "src_did_registry_reload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "src_did_registry_cpp",
+      "target": "src_did_registry_buildindices",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/did_registry.cpp",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "src_did_registry_didregistry",
+      "target": "src_did_registry_reload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "src_config_loader_cpp",
+      "target": "src_config_loader_loaddidregistry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "src_config_loader_cpp",
+      "target": "src_config_loader_loaddiagconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "src_config_loader_cpp",
+      "target": "src_config_loader_parseecuconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L116",
+      "weight": 1.0,
+      "source": "src_config_loader_cpp",
+      "target": "src_config_loader_parsedidentry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "src_config_loader_loaddidregistry",
+      "target": "src_config_loader_parseecuconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/config_loader.cpp",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "src_config_loader_parseecuconfig",
+      "target": "src_config_loader_parsedidentry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/error_codes.cpp",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "src_error_codes_cpp",
+      "target": "src_error_codes_tostring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/error_codes.cpp",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "src_error_codes_cpp",
+      "target": "src_error_codes_todiagcode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/error_codes.cpp",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "src_error_codes_cpp",
+      "target": "src_error_codes_fromnrc",
+      "confidence_score": 1.0
+    }
+  ],
+  "hyperedges": []
+}

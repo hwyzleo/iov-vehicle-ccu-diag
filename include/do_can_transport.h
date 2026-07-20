@@ -1,7 +1,6 @@
 #pragma once
 
 #include "transport_adapter.h"
-#include <string>
 
 namespace cgw_diag {
 
@@ -21,7 +20,6 @@ private:
     
     // Helper methods for CAN-FD frame handling
     std::vector<uint8_t> createCanFrame(uint16_t can_id, const std::vector<uint8_t>& data);
-    std::vector<uint8_t> extractResponse(const std::vector<uint8_t>& frame);
 };
 
 } // namespace cgw_diag

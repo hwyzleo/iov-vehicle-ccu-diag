@@ -20,13 +20,13 @@ private:
     std::string ip_address_;
     uint16_t port_;
     int socket_fd_;
+    bool connected_;
     struct sockaddr_in server_addr_;
     
-    bool connect();
+    bool connectToServer();
     void disconnect();
     std::vector<uint8_t> createDoIpPacket(uint16_t logical_address, 
                                           const std::vector<uint8_t>& payload);
-    std::vector<uint8_t> extractDoIpResponse(const std::vector<uint8_t>& packet);
 };
 
 } // namespace cgw_diag

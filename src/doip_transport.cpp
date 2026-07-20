@@ -8,9 +8,7 @@
 namespace cgw_diag {
 
 DoIpTransport::DoIpTransport(const std::string& ip_address, uint16_t port)
-    : ip_address_(ip_address), port_(port), socket_fd_(-1) {
-    // Initialize DoIP connection
-    // Real implementation would establish TCP connection
+    : ip_address_(ip_address), port_(port), socket_fd_(-1), connected_(false) {
 }
 
 DoIpTransport::~DoIpTransport() {
@@ -75,10 +73,12 @@ std::string DoIpTransport::getTransportType() const {
     return "DoIP";
 }
 
-bool DoIpTransport::connect() {
-    // Simplified connection logic
-    // Real implementation would establish TCP connection to DoIP gateway
-    socket_fd_ = socket(AF_INET, SOCK_STREAM, 0);
+bool DoIpTransport::connectToServer() {
+    if (connected_) {
+        return true;
+    }
+
+    socket_fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd_ < 0) {
         return false;
     }
@@ -87,24 +87,28 @@ bool DoIpTransport::connect() {
     server_addr_.sin_family = AF_INET;
     server_addr_.sin_port = htons(port_);
     
-    // Convert IP address
     if (inet_pton(AF_INET, ip_address_.c_str(), &server_addr_.sin_addr) <= 0) {
-        close(socket_fd_);
+        ::close(socket_fd_);
         socket_fd_ = -1;
         return false;
     }
     
-    // Connect (simplified - would need proper error handling)
-    // connect(socket_fd_, (struct sockaddr*)&server_addr_, sizeof(server_addr_));
+    if (::connect(socket_fd_, (struct sockaddr*)&server_addr_, sizeof(server_addr_)) < 0) {
+        ::close(socket_fd_);
+        socket_fd_ = -1;
+        return false;
+    }
     
+    connected_ = true;
     return true;
 }
 
 void DoIpTransport::disconnect() {
     if (socket_fd_ >= 0) {
-        close(socket_fd_);
+        ::close(socket_fd_);
         socket_fd_ = -1;
     }
+    connected_ = false;
 }
 
 std::vector<uint8_t> DoIpTransport::createDoIpPacket(uint16_t logical_address, 
@@ -113,7 +117,7 @@ std::vector<uint8_t> DoIpTransport::createDoIpPacket(uint16_t logical_address,
     
     // DoIP header (simplified)
     packet.push_back(0x01);  // Protocol version
-    packet.push_back(0x00);  // Inverse protocol version
+    packet.push_back(0xFE);  // Inverse protocol version (0xFF - 0x01)
     
     // Payload type (Diagnostic Message)
     packet.push_back(0x80);
@@ -138,14 +142,6 @@ std::vector<uint8_t> DoIpTransport::createDoIpPacket(uint16_t logical_address,
     packet.insert(packet.end(), payload.begin(), payload.end());
     
     return packet;
-}
-
-std::vector<uint8_t> DoIpTransport::extractDoIpResponse(const std::vector<uint8_t>& packet) {
-    // Simplified extraction - real implementation would parse DoIP packet properly
-    if (packet.size() > 12) {
-        return std::vector<uint8_t>(packet.begin() + 12, packet.end());
-    }
-    return {};
 }
 
 } // namespace cgw_diag

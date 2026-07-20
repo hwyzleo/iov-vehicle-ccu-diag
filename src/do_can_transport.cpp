@@ -90,12 +90,4 @@ std::vector<uint8_t> DoCanTransport::createCanFrame(uint16_t can_id,
     return frame;
 }
 
-std::vector<uint8_t> DoCanTransport::extractResponse(const std::vector<uint8_t>& frame) {
-    // Simplified extraction - real implementation would parse CAN frame properly
-    if (frame.size() > 3) {
-        return std::vector<uint8_t>(frame.begin() + 3, frame.end());
-    }
-    return {};
-}
-
 } // namespace cgw_diag
