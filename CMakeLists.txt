@@ -40,6 +40,7 @@ set(LIB_SOURCES
     src/do_can_transport.cpp
     src/doip_transport.cpp
     src/version_collector.cpp
+    src/fota_facade.cpp
 )
 
 # Create cgw_diag library
@@ -57,6 +58,7 @@ add_executable(CgwDiagTests
     tests/test_diagnostic_router.cpp
     tests/test_transport_adapter.cpp
     tests/test_version_collector.cpp
+    tests/test_fota_facade.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)
