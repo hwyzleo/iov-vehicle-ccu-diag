@@ -50,13 +50,6 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
     EcuVersionEntry entry;
     entry.ecu_id = ecu_id;
 
-    if (!registry_->isEcuRegistered(ecu_id)) {
-        entry.status = EcuStatus::MISSING;
-        entry.error_code = ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED);
-        entry.source = ReadMethod::UDS_0x22;
-        return entry;
-    }
-
     auto ecu_config = registry_->findEcuById(ecu_id);
     if (!ecu_config) {
         entry.status = EcuStatus::MISSING;
@@ -113,8 +106,12 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
             }
         }
     } else if (ecu_config->read_method == ReadMethod::SOMEIP_GET_VERSION) {
-        entry.status = EcuStatus::OK;
-        entry.sw_version = "SOME/IP_VERSION";
+        // TODO: SOME/IP version collection not yet implemented
+        entry.status = EcuStatus::PARSE_ERROR;
+        entry.error_code = ErrorCodeMapper::toDiagCode(ErrorCode::PARSE_ERROR);
+    } else {
+        entry.status = EcuStatus::PARSE_ERROR;
+        entry.error_code = ErrorCodeMapper::toDiagCode(ErrorCode::PARSE_ERROR);
     }
 
     return entry;
@@ -124,8 +121,11 @@ std::string VersionCollector::getCurrentTimestamp() {
     auto now = std::chrono::system_clock::now();
     auto time = std::chrono::system_clock::to_time_t(now);
 
+    struct tm tm_buf;
+    gmtime_r(&time, &tm_buf);
+
     std::stringstream ss;
-    ss << std::put_time(std::localtime(&time), "%Y-%m-%dT%H:%M:%SZ");
+    ss << std::put_time(&tm_buf, "%Y-%m-%dT%H:%M:%SZ");
     return ss.str();
 }
 

@@ -3,6 +3,7 @@
 #include "did_registry.h"
 #include "diagnostic_router.h"
 #include "uds_client.h"
+#include "error_codes.h"
 #include "mock_transport.h"
 #include <fstream>
 #include <memory>
@@ -203,7 +204,7 @@ TEST_F(VersionCollectorTest, CollectEcuVersionNotRegistered) {
     EXPECT_EQ(entry.ecu_id, "UNKNOWN");
     EXPECT_EQ(entry.status, EcuStatus::MISSING);
     EXPECT_TRUE(entry.error_code.has_value());
-    EXPECT_EQ(entry.error_code.value(), "CGW-DIAG-1007");
+    EXPECT_EQ(entry.error_code.value(), ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED));
 }
 
 TEST_F(VersionCollectorTest, CollectEcuVersionTransportFailure) {

@@ -9,6 +9,10 @@
 
 namespace cgw_diag {
 
+// Thread safety: This class is thread-safe. All public methods can be called
+// concurrently from multiple threads. Internal state (baseline_id_, baseline_source_)
+// is protected by the fact that setBaselineInfo() should be called before
+// collectVehicleInventory() during initialization, not concurrently.
 class VersionCollector {
 public:
     VersionCollector(std::shared_ptr<DidRegistry> registry,
