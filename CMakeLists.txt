@@ -35,6 +35,8 @@ set(LIB_SOURCES
     src/data_models.cpp
     src/config_loader.cpp
     src/did_registry.cpp
+    src/do_can_transport.cpp
+    src/doip_transport.cpp
 )
 
 # Create cgw_diag library
@@ -48,6 +50,7 @@ add_executable(CgwDiagTests
     tests/test_data_models.cpp
     tests/test_config_loader.cpp
     tests/test_did_registry.cpp
+    tests/test_transport_adapter.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)
