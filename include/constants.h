@@ -29,8 +29,8 @@ constexpr uint32_t RETRY_INTERVAL_MS = 100;
 constexpr uint8_t MAX_RETRY_COUNT = 2;
 
 // Configuration file paths
-const std::string DEFAULT_DID_REGISTRY_PATH = "config/did_registry.yaml";
-const std::string DEFAULT_DIAG_CONFIG_PATH = "config/diag_config.yaml";
+inline const std::string DEFAULT_DID_REGISTRY_PATH = "config/did_registry.yaml";
+inline const std::string DEFAULT_DIAG_CONFIG_PATH = "config/diag_config.yaml";
 
 } // namespace constants
 } // namespace cgw_diag

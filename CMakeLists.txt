@@ -5,8 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_definitions("-Wall -lpthread -g")
+add_compile_options(-Wall -g)
 
+# LIB_DIR: reserved for platform-specific third-party libraries
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
     if (APPLE)
         set(LIB_DIR ${PROJECT_SOURCE_DIR}/third_party/lib/arm64-apple-darwin)

@@ -20,7 +20,9 @@ enum class ErrorCode {
     // CGW-DIAG-1006: Version data parsing failed
     PARSE_ERROR = 1006,
     // CGW-DIAG-1007: Target ECU not registered in DID list
-    ECU_NOT_REGISTERED = 1007
+    ECU_NOT_REGISTERED = 1007,
+    // CGW-DIAG-1008: Response pending (NRC 0x78), client should continue polling
+    RESPONSE_PENDING = 1008
 };
 
 class ErrorCodeMapper {

@@ -13,6 +13,7 @@ TEST(ErrorCodeMapperTest, ToStringReturnsCorrectString) {
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::BASELINE_MISSING), "Baseline tag missing or unknown");
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::PARSE_ERROR), "Version data parsing failed");
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::ECU_NOT_REGISTERED), "Target ECU not registered in DID list");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::RESPONSE_PENDING), "ECU response pending, continue polling");
 }
 
 TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
@@ -24,6 +25,17 @@ TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::BASELINE_MISSING), "CGW-DIAG-1005");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::PARSE_ERROR), "CGW-DIAG-1006");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED), "CGW-DIAG-1007");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::RESPONSE_PENDING), "CGW-DIAG-1008");
+}
+
+TEST(ErrorCodeMapperTest, ToStringUnknownCodeReturnsFallback) {
+    auto unknown = static_cast<ErrorCode>(9999);
+    EXPECT_EQ(ErrorCodeMapper::toString(unknown), "Unknown error");
+}
+
+TEST(ErrorCodeMapperTest, ToDiagCodeUnknownCodeReturnsFallback) {
+    auto unknown = static_cast<ErrorCode>(9999);
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(unknown), "UNKNOWN");
 }
 
 TEST(ErrorCodeMapperTest, FromNrcMapsCorrectly) {
@@ -33,8 +45,8 @@ TEST(ErrorCodeMapperTest, FromNrcMapsCorrectly) {
     // Test NRC 0x22 (ConditionsNotCorrect)
     EXPECT_EQ(ErrorCodeMapper::fromNrc(0x22), ErrorCode::NEGATIVE_RESPONSE);
     
-    // Test NRC 0x78 (ResponsePending) - should map to timeout
-    EXPECT_EQ(ErrorCodeMapper::fromNrc(0x78), ErrorCode::REQUEST_TIMEOUT);
+    // Test NRC 0x78 (ResponsePending) - should map to response pending
+    EXPECT_EQ(ErrorCodeMapper::fromNrc(0x78), ErrorCode::RESPONSE_PENDING);
     
     // Test unknown NRC
     EXPECT_EQ(ErrorCodeMapper::fromNrc(0xFF), ErrorCode::NEGATIVE_RESPONSE);

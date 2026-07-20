@@ -1,4 +1,5 @@
 #include "error_codes.h"
+#include <unordered_map>
 
 namespace cgw_diag {
 
@@ -10,7 +11,8 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::error_strings_
     {ErrorCode::DID_NOT_SUPPORTED, "Version DID not supported or missing"},
     {ErrorCode::BASELINE_MISSING, "Baseline tag missing or unknown"},
     {ErrorCode::PARSE_ERROR, "Version data parsing failed"},
-    {ErrorCode::ECU_NOT_REGISTERED, "Target ECU not registered in DID list"}
+    {ErrorCode::ECU_NOT_REGISTERED, "Target ECU not registered in DID list"},
+    {ErrorCode::RESPONSE_PENDING, "ECU response pending, continue polling"}
 };
 
 const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = {
@@ -21,7 +23,8 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = 
     {ErrorCode::DID_NOT_SUPPORTED, "CGW-DIAG-1004"},
     {ErrorCode::BASELINE_MISSING, "CGW-DIAG-1005"},
     {ErrorCode::PARSE_ERROR, "CGW-DIAG-1006"},
-    {ErrorCode::ECU_NOT_REGISTERED, "CGW-DIAG-1007"}
+    {ErrorCode::ECU_NOT_REGISTERED, "CGW-DIAG-1007"},
+    {ErrorCode::RESPONSE_PENDING, "CGW-DIAG-1008"}
 };
 
 std::string ErrorCodeMapper::toString(ErrorCode code) {
@@ -48,7 +51,7 @@ ErrorCode ErrorCodeMapper::fromNrc(uint8_t nrc) {
         case 0x22: // ConditionsNotCorrect
             return ErrorCode::NEGATIVE_RESPONSE;
         case 0x78: // ResponsePending
-            return ErrorCode::REQUEST_TIMEOUT;
+            return ErrorCode::RESPONSE_PENDING;
         default:
             return ErrorCode::NEGATIVE_RESPONSE;
     }
