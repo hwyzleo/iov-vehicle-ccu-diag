@@ -1,30 +1,23 @@
 #include "diagnostic_router.h"
-#include "do_can_transport.h"
-#include "doip_transport.h"
 
 namespace cgw_diag {
 
 DiagnosticRouter::DiagnosticRouter(std::shared_ptr<DidRegistry> registry,
-                                   std::shared_ptr<UdsClient> uds_client)
-    : registry_(registry), uds_client_(uds_client) {
-    initializeTransports();
+                                   std::shared_ptr<UdsClient> uds_client,
+                                   std::shared_ptr<TransportAdapter> docan_transport,
+                                   std::shared_ptr<TransportAdapter> doip_transport)
+    : registry_(registry), uds_client_(uds_client),
+      docan_transport_(docan_transport), doip_transport_(doip_transport) {
 }
 
 RoutingResult DiagnosticRouter::routeRequest(const std::string& ecu_id, uint16_t did) {
     RoutingResult result;
 
-    if (!registry_->isEcuRegistered(ecu_id)) {
-        result.success = false;
-        result.error_code = ErrorCode::ECU_NOT_REGISTERED;
-        result.error_message = "ECU not registered in DID list: " + ecu_id;
-        return result;
-    }
-
     auto ecu_config = registry_->findEcuById(ecu_id);
     if (!ecu_config) {
         result.success = false;
         result.error_code = ErrorCode::ECU_NOT_REGISTERED;
-        result.error_message = "Failed to get ECU configuration: " + ecu_id;
+        result.error_message = "ECU not registered in DID list: " + ecu_id;
         return result;
     }
 
@@ -83,10 +76,6 @@ RoutingResult DiagnosticRouter::routeRequest(const std::string& ecu_id, uint16_t
 }
 
 bool DiagnosticRouter::isEcuReachable(const std::string& ecu_id) {
-    if (!registry_->isEcuRegistered(ecu_id)) {
-        return false;
-    }
-
     auto ecu_config = registry_->findEcuById(ecu_id);
     if (!ecu_config) {
         return false;
@@ -101,21 +90,12 @@ bool DiagnosticRouter::isEcuReachable(const std::string& ecu_id) {
 }
 
 std::shared_ptr<TransportAdapter> DiagnosticRouter::getTransportForEcu(const std::string& ecu_id) {
-    if (!registry_->isEcuRegistered(ecu_id)) {
-        return nullptr;
-    }
-
     auto ecu_config = registry_->findEcuById(ecu_id);
     if (!ecu_config) {
         return nullptr;
     }
 
     return selectTransport(ecu_config->transport);
-}
-
-void DiagnosticRouter::initializeTransports() {
-    docan_transport_ = std::make_shared<DoCanTransport>("can0", 500000);
-    doip_transport_ = std::make_shared<DoIpTransport>("192.168.1.1", 13400);
 }
 
 std::shared_ptr<TransportAdapter> DiagnosticRouter::selectTransport(TransportType type) {

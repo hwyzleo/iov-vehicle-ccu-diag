@@ -1,55 +1,12 @@
 #include <gtest/gtest.h>
 #include "uds_client.h"
-#include "transport_adapter.h"
+#include "mock_transport.h"
 #include <memory>
 #include <vector>
 #include <functional>
 
 namespace cgw_diag {
 namespace tests {
-
-// MockTransport with configurable responses
-class MockTransport : public TransportAdapter {
-public:
-    using RequestHandler = std::function<TransportResponse(uint16_t, const std::vector<uint8_t>&)>;
-
-    MockTransport() = default;
-
-    void setRequestHandler(RequestHandler handler) {
-        handler_ = std::move(handler);
-    }
-
-    // Capture the last request for verification
-    struct CapturedRequest {
-        uint16_t logical_address;
-        std::vector<uint8_t> request;
-    };
-    std::vector<CapturedRequest> captured_requests;
-
-    TransportResponse sendRequest(uint16_t logical_address,
-                                  const std::vector<uint8_t>& request) override {
-        captured_requests.push_back({logical_address, request});
-        if (handler_) {
-            return handler_(logical_address, request);
-        }
-        TransportResponse resp;
-        resp.success = false;
-        resp.error_message = "No handler configured";
-        return resp;
-    }
-
-    bool isReachable(uint16_t logical_address) override {
-        (void)logical_address;
-        return true;
-    }
-
-    std::string getTransportType() const override {
-        return "Mock";
-    }
-
-private:
-    RequestHandler handler_;
-};
 
 class UdsClientTest : public ::testing::Test {
 protected:
@@ -66,7 +23,6 @@ protected:
         client = std::make_unique<UdsClient>(mock_transport, config);
     }
 
-    // Helper: build a positive response for a given DID
     static TransportResponse makePositiveResponse(uint16_t did,
                                                    const std::vector<uint8_t>& payload) {
         TransportResponse resp;
@@ -77,7 +33,6 @@ protected:
         return resp;
     }
 
-    // Helper: build a negative response with given NRC
     static TransportResponse makeNegativeResponse(uint8_t nrc) {
         TransportResponse resp;
         resp.success = true;
@@ -85,7 +40,6 @@ protected:
         return resp;
     }
 
-    // Helper: build a transport failure
     static TransportResponse makeTransportFailure(const std::string& msg) {
         TransportResponse resp;
         resp.success = false;
@@ -186,7 +140,6 @@ TEST_F(UdsClientTest, ReadDataByIdentifierTransportFailureRetries) {
     auto response = client->readDataByIdentifier(0x1A, 0xF195);
 
     EXPECT_FALSE(response.success);
-    // max_retry_count=2, so loop runs 3 times (0, 1, 2)
     EXPECT_EQ(call_count, 3);
 }
 
@@ -230,8 +183,8 @@ TEST_F(UdsClientTest, CreateReadDataByIdentifierRequest) {
     const auto& req = mock_transport->captured_requests[0].request;
     ASSERT_EQ(req.size(), 3);
     EXPECT_EQ(req[0], 0x22);
-    EXPECT_EQ(req[1], 0xF1);  // DID high byte
-    EXPECT_EQ(req[2], 0x95);  // DID low byte
+    EXPECT_EQ(req[1], 0xF1);
+    EXPECT_EQ(req[2], 0x95);
 }
 
 } // namespace tests

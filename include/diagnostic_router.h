@@ -4,6 +4,7 @@
 #include "error_codes.h"
 #include "did_registry.h"
 #include "uds_client.h"
+#include "transport_adapter.h"
 #include <memory>
 #include <optional>
 
@@ -19,7 +20,9 @@ struct RoutingResult {
 class DiagnosticRouter {
 public:
     DiagnosticRouter(std::shared_ptr<DidRegistry> registry,
-                    std::shared_ptr<UdsClient> uds_client);
+                    std::shared_ptr<UdsClient> uds_client,
+                    std::shared_ptr<TransportAdapter> docan_transport,
+                    std::shared_ptr<TransportAdapter> doip_transport);
 
     RoutingResult routeRequest(const std::string& ecu_id, uint16_t did);
 
@@ -34,7 +37,6 @@ private:
     std::shared_ptr<TransportAdapter> docan_transport_;
     std::shared_ptr<TransportAdapter> doip_transport_;
 
-    void initializeTransports();
     std::shared_ptr<TransportAdapter> selectTransport(TransportType type);
 };
 
