@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data_models.h"
+#include <yaml-cpp/yaml.h>
 #include <string>
 
 namespace cgw_diag {
@@ -11,8 +12,8 @@ public:
     static DiagConfig loadDiagConfig(const std::string& file_path);
     
 private:
-    static EcuConfig parseEcuConfig(const void* ecu_node);
-    static DidEntry parseDidEntry(const void* did_node);
+    static EcuConfig parseEcuConfig(const YAML::Node& node);
+    static DidEntry parseDidEntry(const YAML::Node& node);
 };
 
 } // namespace cgw_diag

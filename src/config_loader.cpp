@@ -1,6 +1,5 @@
 #include "config_loader.h"
 #include "constants.h"
-#include <yaml-cpp/yaml.h>
 #include <stdexcept>
 
 namespace cgw_diag {
@@ -26,7 +25,7 @@ DidRegistryConfig ConfigLoader::loadDidRegistry(const std::string& file_path) {
         // Load ECU configurations
         if (root["ecus"]) {
             for (const auto& ecu_node : root["ecus"]) {
-                EcuConfig ecu = parseEcuConfig(&ecu_node);
+                EcuConfig ecu = parseEcuConfig(ecu_node);
                 config.ecus.push_back(ecu);
             }
         }
@@ -65,8 +64,7 @@ DiagConfig ConfigLoader::loadDiagConfig(const std::string& file_path) {
     return config;
 }
 
-EcuConfig ConfigLoader::parseEcuConfig(const void* ecu_node) {
-    const YAML::Node& node = *static_cast<const YAML::Node*>(ecu_node);
+EcuConfig ConfigLoader::parseEcuConfig(const YAML::Node& node) {
     EcuConfig ecu;
     
     ecu.ecu_id = node["ecuId"].as<std::string>();
@@ -95,7 +93,7 @@ EcuConfig ConfigLoader::parseEcuConfig(const void* ecu_node) {
     // Load DID entries for UDS method
     if (ecu.read_method == ReadMethod::UDS_0x22 && node["dids"]) {
         for (const auto& did_node : node["dids"]) {
-            DidEntry did = parseDidEntry(&did_node);
+            DidEntry did = parseDidEntry(did_node);
             ecu.dids.push_back(did);
         }
     }
@@ -115,8 +113,7 @@ EcuConfig ConfigLoader::parseEcuConfig(const void* ecu_node) {
     return ecu;
 }
 
-DidEntry ConfigLoader::parseDidEntry(const void* did_node) {
-    const YAML::Node& node = *static_cast<const YAML::Node*>(did_node);
+DidEntry ConfigLoader::parseDidEntry(const YAML::Node& node) {
     DidEntry entry;
     
     entry.did = node["did"].as<uint16_t>();
