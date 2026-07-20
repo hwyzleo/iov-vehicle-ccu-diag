@@ -15,6 +15,7 @@ public:
     VehicleSoftwareSnapshot collectVehicleInventory(const std::string& vin);
     EcuVersionEntry getEcuVersion(const std::string& ecu_id);
     std::string getRegistryVersion();
+    void setBaselineInfo(const std::string& baseline_id, BaselineSource source);
 
 private:
     std::shared_ptr<VersionCollector> collector_;

@@ -225,5 +225,53 @@ ecus: []
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::FAILED);
 }
 
+TEST_F(FotaFacadeTest, CollectVehicleInventoryEmptyVin) {
+    auto snapshot = facade->collectVehicleInventory("");
+
+    EXPECT_EQ(snapshot.vin, "");
+    EXPECT_EQ(snapshot.overall_result, CollectionStatus::FAILED);
+    EXPECT_EQ(snapshot.ecu_list.size(), 0);
+}
+
+TEST_F(FotaFacadeTest, GetEcuVersionEmptyId) {
+    auto entry = facade->getEcuVersion("");
+
+    EXPECT_EQ(entry.ecu_id, "");
+    EXPECT_EQ(entry.status, EcuStatus::MISSING);
+    EXPECT_TRUE(entry.error_code.has_value());
+    EXPECT_EQ(entry.error_code.value(), ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED));
+}
+
+TEST_F(FotaFacadeTest, SetBaselineInfo) {
+    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+        TransportResponse resp;
+        resp.success = true;
+        uint16_t did = (request[1] << 8) | request[2];
+        resp.data = {0x62, request[1], request[2]};
+        if (addr == 0x1A) {
+            if (did == 0xF195) {
+                resp.data.insert(resp.data.end(), {'1', '.', '0', '.', '0', '\0'});
+            } else if (did == 0xF187) {
+                resp.data.insert(resp.data.end(), {'P', 'A', 'R', 'T', '1', '2', '3', '\0'});
+            }
+        }
+        return resp;
+    });
+
+    mock_doip_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>&) {
+        TransportResponse resp;
+        resp.success = true;
+        resp.data = {0x62, 0xF1, 0x95, '2', '.', '0', '.', '0', '\0'};
+        return resp;
+    });
+
+    facade->setBaselineInfo("BASELINE_V2.0", BaselineSource::LAST_OTA);
+
+    auto snapshot = facade->collectVehicleInventory("1234567890ABCDEFG");
+
+    EXPECT_EQ(snapshot.baseline_id, "BASELINE_V2.0");
+    EXPECT_EQ(snapshot.baseline_source, BaselineSource::LAST_OTA);
+}
+
 } // namespace tests
 } // namespace cgw_diag
