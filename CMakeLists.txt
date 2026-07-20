@@ -48,6 +48,11 @@ add_library(cgw_diag_lib STATIC ${LIB_SOURCES})
 target_include_directories(cgw_diag_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(cgw_diag_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json)
 
+# Main application executable
+add_executable(cgw_diag src/main.cpp)
+target_include_directories(cgw_diag PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(cgw_diag PRIVATE cgw_diag_lib)
+
 enable_testing()
 add_executable(CgwDiagTests
     tests/test_error_codes.cpp
@@ -59,6 +64,7 @@ add_executable(CgwDiagTests
     tests/test_transport_adapter.cpp
     tests/test_version_collector.cpp
     tests/test_fota_facade.cpp
+    tests/test_integration.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)
