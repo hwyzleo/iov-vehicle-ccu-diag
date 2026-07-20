@@ -4,6 +4,7 @@
 #include "transport_adapter.h"
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace cgw_diag {
@@ -34,7 +35,7 @@ private:
 
     std::vector<uint8_t> createReadDataByIdentifierRequest(uint16_t did);
     bool isPositiveResponse(const std::vector<uint8_t>& response);
-    uint8_t extractNrc(const std::vector<uint8_t>& response);
+    std::optional<uint8_t> extractNrc(const std::vector<uint8_t>& response);
     std::vector<uint8_t> extractData(const std::vector<uint8_t>& response);
 };
 

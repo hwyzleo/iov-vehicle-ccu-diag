@@ -1,8 +1,10 @@
 #include "uds_client.h"
 #include "constants.h"
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <stdexcept>
+#include <thread>
 
 namespace cgw_diag {
 
@@ -12,38 +14,42 @@ UdsClient::UdsClient(std::shared_ptr<TransportAdapter> transport, const DiagConf
 
 UdsResponse UdsClient::readDataByIdentifier(uint16_t logical_address, uint16_t did) {
     UdsResponse response;
+    std::vector<uint8_t> request = createReadDataByIdentifierRequest(did);
 
-    try {
-        std::vector<uint8_t> request = createReadDataByIdentifierRequest(did);
-
-        for (uint8_t retry = 0; retry <= config_.max_retry_count; ++retry) {
-            auto transport_response = transport_->sendRequest(logical_address, request);
-
-            if (!transport_response.success) {
-                response.success = false;
-                response.error_message = transport_response.error_message;
-
-                if (retry < config_.max_retry_count) {
-                    continue;
-                }
-                return response;
-            }
-
-            if (isPositiveResponse(transport_response.data)) {
-                response.success = true;
-                response.data = extractData(transport_response.data);
-                return response;
-            } else {
-                response.success = false;
-                response.nrc = extractNrc(transport_response.data);
-                response.error_message = "Negative response received";
-                return response;
-            }
+    for (uint8_t attempt = 0; attempt <= config_.max_retry_count; ++attempt) {
+        // Delay between retries (skip on first attempt)
+        if (attempt > 0 && config_.retry_interval_ms > 0) {
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(config_.retry_interval_ms));
         }
 
-    } catch (const std::exception& e) {
+        TransportResponse transport_response;
+        try {
+            transport_response = transport_->sendRequest(logical_address, request);
+        } catch (const std::exception& e) {
+            response.success = false;
+            response.error_message = e.what();
+            continue;  // Retry on exception
+        }
+
+        if (!transport_response.success) {
+            response.success = false;
+            response.error_message = transport_response.error_message;
+            continue;  // Retry on transport failure
+        }
+
+        if (isPositiveResponse(transport_response.data)) {
+            response.success = true;
+            response.data = extractData(transport_response.data);
+            return response;
+        }
+
+        // Negative response - no retry, return immediately
         response.success = false;
-        response.error_message = e.what();
+        auto nrc = extractNrc(transport_response.data);
+        response.nrc = nrc.value_or(0);
+        response.error_message = "Negative response received";
+        return response;
     }
 
     return response;
@@ -113,11 +119,11 @@ bool UdsClient::isPositiveResponse(const std::vector<uint8_t>& response) {
     return response[0] == 0x62;
 }
 
-uint8_t UdsClient::extractNrc(const std::vector<uint8_t>& response) {
+std::optional<uint8_t> UdsClient::extractNrc(const std::vector<uint8_t>& response) {
     if (response.size() >= 3 && response[0] == constants::UDS_NEGATIVE_RESPONSE) {
         return response[2];
     }
-    return 0;
+    return std::nullopt;
 }
 
 std::vector<uint8_t> UdsClient::extractData(const std::vector<uint8_t>& response) {
