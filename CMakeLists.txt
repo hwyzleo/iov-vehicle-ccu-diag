@@ -32,6 +32,8 @@ find_package(nlohmann_json REQUIRED)
 
 set(LIB_SOURCES
     src/error_codes.cpp
+    src/data_models.cpp
+    src/config_loader.cpp
 )
 
 # Create cgw_diag library
@@ -42,6 +44,8 @@ target_link_libraries(cgw_diag_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nloh
 enable_testing()
 add_executable(CgwDiagTests
     tests/test_error_codes.cpp
+    tests/test_data_models.cpp
+    tests/test_config_loader.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)

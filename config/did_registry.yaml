@@ -1,0 +1,45 @@
+registryVersion: "2026.07.0"
+baselineDids: [0xF195, 0xF188, 0xF187, 0xF193]
+ecus:
+  - ecuId: "BMS"
+    logicalAddress: 0x1A
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+    securityRequired: false
+    dids:
+      - did: 0xF195
+        field: "swVersion"
+        encoding: "ASCII"
+        length: 16
+      - did: 0xF187
+        field: "partNumber"
+        encoding: "ASCII"
+        length: 11
+      - did: 0xA001
+        field: "calibrationId"
+        encoding: "HEX"
+        length: 4
+  - ecuId: "IDCM"
+    logicalAddress: 0x20
+    transport: "DoIP"
+    readMethod: "SOMEIP_getVersion"
+    someipService: "0x1234"
+    fields: ["swVersion", "hwVersion"]
+  - ecuId: "VCU"
+    logicalAddress: 0x21
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+    securityRequired: false
+    dids:
+      - did: 0xF195
+        field: "swVersion"
+        encoding: "ASCII"
+        length: 16
+      - did: 0xF188
+        field: "ecuSoftwareNumber"
+        encoding: "ASCII"
+        length: 11
+      - did: 0xF193
+        field: "hwVersion"
+        encoding: "ASCII"
+        length: 8

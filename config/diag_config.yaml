@@ -1,0 +1,9 @@
+timing:
+  p2_server_max_ms: 50
+  p2_star_server_max_ms: 5000
+  s3_session_timeout_ms: 5000
+  tester_present_interval_ms: 2000
+  request_timeout_ms: 2000
+  retry_interval_ms: 100
+retry:
+  max_count: 2
