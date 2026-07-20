@@ -21,9 +21,14 @@ void printUsage(const char* program_name) {
               << "Options:\n"
               << "  --vin <VIN>              Collect vehicle software inventory\n"
               << "  --ecu <ECU_ID>           Get version for specific ECU\n"
-              << "  --registry-version        Print registry version\n"
+              << "  --registry-version       Print registry version\n"
+              << "  --version                Print application version\n"
               << "  --did-registry <path>    Path to DID registry YAML\n"
               << "  --diag-config <path>     Path to diag config YAML\n"
+              << "  --can-interface <name>   CAN interface name (default: " << constants::DEFAULT_CAN_INTERFACE << ")\n"
+              << "  --can-baudrate <rate>    CAN baudrate (default: " << constants::DEFAULT_CAN_BAUDRATE << ")\n"
+              << "  --doip-ip <ip>           DoIP server IP address (default: " << constants::DEFAULT_DOIP_IP << ")\n"
+              << "  --doip-port <port>       DoIP server port (default: " << constants::DEFAULT_DOIP_PORT << ")\n"
               << "  --help                   Show this help message\n";
 }
 
@@ -107,8 +112,13 @@ int main(int argc, char* argv[]) {
     std::string vin;
     std::string ecu_id;
     bool show_registry_version = false;
+    bool show_version = false;
     std::string did_registry_path = constants::DEFAULT_DID_REGISTRY_PATH;
     std::string diag_config_path = constants::DEFAULT_DIAG_CONFIG_PATH;
+    std::string can_interface = constants::DEFAULT_CAN_INTERFACE;
+    uint32_t can_baudrate = constants::DEFAULT_CAN_BAUDRATE;
+    std::string doip_ip = constants::DEFAULT_DOIP_IP;
+    uint16_t doip_port = constants::DEFAULT_DOIP_PORT;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -118,10 +128,20 @@ int main(int argc, char* argv[]) {
             ecu_id = argv[++i];
         } else if (arg == "--registry-version") {
             show_registry_version = true;
+        } else if (arg == "--version") {
+            show_version = true;
         } else if (arg == "--did-registry" && i + 1 < argc) {
             did_registry_path = argv[++i];
         } else if (arg == "--diag-config" && i + 1 < argc) {
             diag_config_path = argv[++i];
+        } else if (arg == "--can-interface" && i + 1 < argc) {
+            can_interface = argv[++i];
+        } else if (arg == "--can-baudrate" && i + 1 < argc) {
+            can_baudrate = static_cast<uint32_t>(std::stoul(argv[++i]));
+        } else if (arg == "--doip-ip" && i + 1 < argc) {
+            doip_ip = argv[++i];
+        } else if (arg == "--doip-port" && i + 1 < argc) {
+            doip_port = static_cast<uint16_t>(std::stoi(argv[++i]));
         } else if (arg == "--help") {
             printUsage(argv[0]);
             return 0;
@@ -133,11 +153,16 @@ int main(int argc, char* argv[]) {
     }
 
     try {
+        if (show_version) {
+            std::cout << constants::APP_VERSION << "\n";
+            return 0;
+        }
+
         auto registry = std::make_shared<DidRegistry>(did_registry_path);
         auto diag_config = ConfigLoader::loadDiagConfig(diag_config_path);
 
-        auto docan_transport = std::make_shared<DoCanTransport>("can0", 500000);
-        auto doip_transport = std::make_shared<DoIpTransport>("192.168.1.1", 13400);
+        auto docan_transport = std::make_shared<DoCanTransport>(can_interface, can_baudrate);
+        auto doip_transport = std::make_shared<DoIpTransport>(doip_ip, doip_port);
 
         auto uds_client = std::make_shared<UdsClient>(docan_transport, diag_config);
 

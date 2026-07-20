@@ -261,10 +261,16 @@ TEST_F(IntegrationTest, FullFlowAllFailed) {
 }
 
 TEST_F(IntegrationTest, EcuVersionSingleEcu) {
-    mock_docan->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
+    mock_docan->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
-        resp.data = {0x62, request[1], request[2], '5', '.', '0', '.', '0', '\0'};
+        uint16_t did = (request[1] << 8) | request[2];
+        resp.data = {0x62, request[1], request[2]};
+        if (did == 0xF195) {
+            resp.data.insert(resp.data.end(), {'5', '.', '0', '.', '0', '\0'});
+        } else if (did == 0xF187) {
+            resp.data.insert(resp.data.end(), {'P', 'N', '-', 'B', 'M', 'S', '-', '0', '0', '1', '\0'});
+        }
         return resp;
     });
 
@@ -276,7 +282,7 @@ TEST_F(IntegrationTest, EcuVersionSingleEcu) {
     EXPECT_TRUE(entry.sw_version.has_value());
     EXPECT_EQ(entry.sw_version.value(), "5.0.0");
     EXPECT_TRUE(entry.part_number.has_value());
-    EXPECT_EQ(entry.part_number.value(), "5.0.0");
+    EXPECT_EQ(entry.part_number.value(), "PN-BMS-001");
 }
 
 TEST_F(IntegrationTest, EcuVersionNotRegistered) {

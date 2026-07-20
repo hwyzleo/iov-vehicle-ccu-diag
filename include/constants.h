@@ -32,5 +32,14 @@ constexpr uint8_t MAX_RETRY_COUNT = 2;
 inline const std::string DEFAULT_DID_REGISTRY_PATH = "config/did_registry.yaml";
 inline const std::string DEFAULT_DIAG_CONFIG_PATH = "config/diag_config.yaml";
 
+// Transport defaults
+inline const std::string DEFAULT_CAN_INTERFACE = "can0";
+constexpr uint32_t DEFAULT_CAN_BAUDRATE = 500000;
+inline const std::string DEFAULT_DOIP_IP = "192.168.1.1";
+constexpr uint16_t DEFAULT_DOIP_PORT = 13400;
+
+// Application version
+inline const std::string APP_VERSION = "1.0.0";
+
 } // namespace constants
 } // namespace cgw_diag
