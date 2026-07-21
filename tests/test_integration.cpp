@@ -9,6 +9,10 @@
 #include "fota_facade.h"
 #include "error_codes.h"
 #include "mock_transport.h"
+#include "fota_someip_service.h"
+#include "fota_someip_proxy.h"
+#include "someip_service.h"
+#include "someip_client_proxy.h"
 #include <fstream>
 #include <memory>
 #include <filesystem>
@@ -443,6 +447,169 @@ ecus:
     EXPECT_FALSE(registry->isEcuRegistered("BMS"));
     EXPECT_TRUE(registry->isEcuRegistered("NEW_ECU"));
     EXPECT_EQ(registry->getRegistryVersion(), "2026.08.0");
+}
+
+class SomeIpIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        temp_dir_ = std::filesystem::temp_directory_path();
+        config_path_ = (temp_dir_ / "test_someip_integration.yaml").string();
+        createTestConfig();
+
+        service_config_.service_id = 0x1234;
+        service_config_.instance_id = 0x0001;
+        service_config_.major_version = 1;
+        service_config_.minor_version = 0;
+        service_config_.ip_address = "127.0.0.1";
+        service_config_.port = 30501;
+    }
+
+    void TearDown() override {
+        std::filesystem::remove(config_path_);
+    }
+
+    void createTestConfig() {
+        std::ofstream file(config_path_);
+        file << R"(
+registryVersion: "2026.07.0"
+baselineDids: [0xF195]
+ecus:
+  - ecuId: "BMS"
+    logicalAddress: 0x1A
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+    securityRequired: false
+    dids:
+      - did: 0xF195
+        field: "swVersion"
+        encoding: "ASCII"
+        length: 16
+)";
+        file.close();
+    }
+
+    std::filesystem::path temp_dir_;
+    std::string config_path_;
+    SomeIpServiceConfig service_config_;
+};
+
+TEST_F(SomeIpIntegrationTest, ServiceAndProxyCommunication) {
+    auto registry = std::make_shared<DidRegistry>(config_path_);
+    DiagConfig diag_config;
+    auto mock_transport = std::make_shared<MockTransport>();
+    auto uds_client = std::make_shared<UdsClient>(mock_transport, diag_config);
+    auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, mock_transport, mock_transport);
+    auto collector = std::make_shared<VersionCollector>(registry, router, mock_transport, mock_transport);
+    auto facade = std::make_shared<FotaFacade>(collector, registry);
+
+    auto service = createSomeIpService();
+    FotaSomeIpService fota_service(facade, std::move(service));
+    ASSERT_TRUE(fota_service.initialize(service_config_));
+    ASSERT_TRUE(fota_service.start());
+    ASSERT_TRUE(fota_service.offerService());
+
+    auto proxy = createSomeIpClientProxy();
+    FotaSomeIpProxy fota_proxy(std::move(proxy));
+    ASSERT_TRUE(fota_proxy.initialize(service_config_));
+    ASSERT_TRUE(fota_proxy.connect());
+
+    // Note: Stub implementation returns empty payload, so version will be empty
+    // In a real integration test with actual SOME/IP stack, this would return data
+    auto version = fota_proxy.getRegistryVersion();
+    EXPECT_TRUE(version.empty());
+
+    fota_proxy.disconnect();
+    fota_service.stop();
+}
+
+TEST_F(SomeIpIntegrationTest, ServiceLifecycle) {
+    auto registry = std::make_shared<DidRegistry>(config_path_);
+    DiagConfig diag_config;
+    auto mock_transport = std::make_shared<MockTransport>();
+    auto uds_client = std::make_shared<UdsClient>(mock_transport, diag_config);
+    auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, mock_transport, mock_transport);
+    auto collector = std::make_shared<VersionCollector>(registry, router, mock_transport, mock_transport);
+    auto facade = std::make_shared<FotaFacade>(collector, registry);
+
+    auto service = createSomeIpService();
+    FotaSomeIpService fota_service(facade, std::move(service));
+
+    EXPECT_FALSE(fota_service.isRunning());
+
+    ASSERT_TRUE(fota_service.initialize(service_config_));
+    ASSERT_TRUE(fota_service.start());
+    EXPECT_TRUE(fota_service.isRunning());
+
+    ASSERT_TRUE(fota_service.offerService());
+
+    fota_service.stopOfferService();
+    fota_service.stop();
+    EXPECT_FALSE(fota_service.isRunning());
+}
+
+TEST_F(SomeIpIntegrationTest, ProxyReconnection) {
+    auto registry = std::make_shared<DidRegistry>(config_path_);
+    DiagConfig diag_config;
+    auto mock_transport = std::make_shared<MockTransport>();
+    auto uds_client = std::make_shared<UdsClient>(mock_transport, diag_config);
+    auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, mock_transport, mock_transport);
+    auto collector = std::make_shared<VersionCollector>(registry, router, mock_transport, mock_transport);
+    auto facade = std::make_shared<FotaFacade>(collector, registry);
+
+    auto service = createSomeIpService();
+    FotaSomeIpService fota_service(facade, std::move(service));
+    ASSERT_TRUE(fota_service.initialize(service_config_));
+    ASSERT_TRUE(fota_service.start());
+    ASSERT_TRUE(fota_service.offerService());
+
+    auto proxy = createSomeIpClientProxy();
+    FotaSomeIpProxy fota_proxy(std::move(proxy));
+    ASSERT_TRUE(fota_proxy.initialize(service_config_));
+
+    ASSERT_TRUE(fota_proxy.connect());
+    EXPECT_TRUE(fota_proxy.isConnected());
+
+    fota_proxy.disconnect();
+    EXPECT_FALSE(fota_proxy.isConnected());
+
+    ASSERT_TRUE(fota_proxy.connect());
+    EXPECT_TRUE(fota_proxy.isConnected());
+
+    fota_proxy.disconnect();
+    fota_service.stop();
+}
+
+TEST_F(SomeIpIntegrationTest, ProxyGetEcuVersion) {
+    auto registry = std::make_shared<DidRegistry>(config_path_);
+    DiagConfig diag_config;
+    auto mock_transport = std::make_shared<MockTransport>();
+    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
+        TransportResponse resp;
+        resp.success = true;
+        resp.data = {0x62, request[1], request[2], '1', '.', '0', '.', '0', '\0'};
+        return resp;
+    });
+    auto uds_client = std::make_shared<UdsClient>(mock_transport, diag_config);
+    auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, mock_transport, mock_transport);
+    auto collector = std::make_shared<VersionCollector>(registry, router, mock_transport, mock_transport);
+    auto facade = std::make_shared<FotaFacade>(collector, registry);
+
+    auto service = createSomeIpService();
+    FotaSomeIpService fota_service(facade, std::move(service));
+    ASSERT_TRUE(fota_service.initialize(service_config_));
+    ASSERT_TRUE(fota_service.start());
+    ASSERT_TRUE(fota_service.offerService());
+
+    auto proxy = createSomeIpClientProxy();
+    FotaSomeIpProxy fota_proxy(std::move(proxy));
+    ASSERT_TRUE(fota_proxy.initialize(service_config_));
+    ASSERT_TRUE(fota_proxy.connect());
+
+    auto entry = fota_proxy.getEcuVersion("BMS");
+    EXPECT_EQ(entry.ecu_id, "BMS");
+
+    fota_proxy.disconnect();
+    fota_service.stop();
 }
 
 } // namespace tests
