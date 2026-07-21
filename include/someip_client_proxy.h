@@ -22,4 +22,7 @@ public:
     virtual uint32_t getRequestTimeout() const = 0;
 };
 
+// Factory function
+std::unique_ptr<SomeIpClientProxy> createSomeIpClientProxy();
+
 } // namespace cgw_diag

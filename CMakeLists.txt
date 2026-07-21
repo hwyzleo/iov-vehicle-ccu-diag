@@ -42,6 +42,7 @@ set(LIB_SOURCES
     src/version_collector.cpp
     src/fota_facade.cpp
     src/someip_service.cpp
+    src/someip_client_proxy.cpp
 )
 
 # Create cgw_diag library
@@ -66,6 +67,7 @@ add_executable(CgwDiagTests
     tests/test_version_collector.cpp
     tests/test_fota_facade.cpp
     tests/test_someip_service.cpp
+    tests/test_someip_proxy.cpp
     tests/test_integration.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
