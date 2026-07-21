@@ -4,6 +4,33 @@
 
 namespace cgw_diag {
 
+SomeIpServiceConfig ConfigLoader::loadSomeIpConfig(const std::string& file_path) {
+    SomeIpServiceConfig config;
+    
+    try {
+        YAML::Node yaml = YAML::LoadFile(file_path);
+        
+        if (yaml["someip"]["service"]) {
+            auto service = yaml["someip"]["service"];
+            config.service_id = service["service_id"].as<uint16_t>();
+            config.instance_id = service["instance_id"].as<uint16_t>();
+            config.major_version = service["major_version"].as<uint8_t>();
+            config.minor_version = service["minor_version"].as<uint32_t>();
+        }
+        
+        if (yaml["someip"]["network"]) {
+            auto network = yaml["someip"]["network"];
+            config.ip_address = network["ip_address"].as<std::string>();
+            config.port = network["port"].as<uint16_t>();
+        }
+        
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error("Failed to load SOME/IP config: " + std::string(e.what()));
+    }
+    
+    return config;
+}
+
 DidRegistryConfig ConfigLoader::loadDidRegistry(const std::string& file_path) {
     DidRegistryConfig config;
     

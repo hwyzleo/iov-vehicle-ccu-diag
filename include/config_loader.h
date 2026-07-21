@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data_models.h"
+#include "someip_types.h"
 #include <yaml-cpp/yaml.h>
 #include <string>
 
@@ -10,6 +11,7 @@ class ConfigLoader {
 public:
     static DidRegistryConfig loadDidRegistry(const std::string& file_path);
     static DiagConfig loadDiagConfig(const std::string& file_path);
+    static SomeIpServiceConfig loadSomeIpConfig(const std::string& file_path);
     
 private:
     static EcuConfig parseEcuConfig(const YAML::Node& node);

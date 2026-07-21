@@ -1,0 +1,31 @@
+# SOME/IP Service Configuration for CGW-DIAG
+someip:
+  service:
+    service_id: 0x1234
+    instance_id: 0x0001
+    major_version: 1
+    minor_version: 0
+  
+  network:
+    ip_address: "127.0.0.1"
+    port: 30501
+  
+  methods:
+    collect_vehicle_inventory:
+      method_id: 0x0001
+    get_ecu_version:
+      method_id: 0x0002
+    get_registry_version:
+      method_id: 0x0003
+  
+  events:
+    inventory_result:
+      event_id: 0x8001
+  
+  timing:
+    request_timeout_ms: 2000
+  
+  # SOME/IP-SD Configuration (static for this version)
+  sd:
+    enabled: true
+    mode: "static"
