@@ -43,6 +43,7 @@ set(LIB_SOURCES
     src/fota_facade.cpp
     src/someip_service.cpp
     src/someip_client_proxy.cpp
+    src/cgw_sec_client_proxy.cpp
     src/fota_someip_service.cpp
     src/fota_someip_proxy.cpp
     src/vin_store.cpp
@@ -80,3 +81,10 @@ add_executable(CgwDiagTests
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)
 add_test(NAME CgwDiagTests COMMAND CgwDiagTests)
+
+add_executable(test_cgw_sec_client_proxy
+    tests/test_cgw_sec_client_proxy.cpp
+)
+target_include_directories(test_cgw_sec_client_proxy PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(test_cgw_sec_client_proxy PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)
+add_test(NAME test_cgw_sec_client_proxy COMMAND test_cgw_sec_client_proxy)
