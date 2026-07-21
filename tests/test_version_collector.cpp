@@ -5,6 +5,7 @@
 #include "uds_client.h"
 #include "error_codes.h"
 #include "mock_transport.h"
+#include "vin_store.h"
 #include <fstream>
 #include <memory>
 #include <filesystem>
@@ -35,12 +36,17 @@ protected:
         router = std::make_shared<DiagnosticRouter>(registry, uds_client,
                                                       mock_transport, mock_doip_transport);
 
+        vin_store_path_ = (temp_dir_ / "test_vin_store.dat").string();
+        vin_store = std::shared_ptr<VinStore>(createVinStore(vin_store_path_).release());
+
         collector = std::make_unique<VersionCollector>(registry, router,
-                                                        mock_transport, mock_doip_transport);
+                                                        mock_transport, mock_doip_transport,
+                                                        vin_store);
     }
 
     void TearDown() override {
         std::filesystem::remove(config_path_);
+        std::filesystem::remove(vin_store_path_);
     }
 
     void createTestConfig() {
@@ -79,11 +85,13 @@ ecus:
 
     std::filesystem::path temp_dir_;
     std::string config_path_;
+    std::string vin_store_path_;
     std::shared_ptr<DidRegistry> registry;
     std::shared_ptr<MockTransport> mock_transport;
     std::shared_ptr<MockTransport> mock_doip_transport;
     std::shared_ptr<UdsClient> uds_client;
     std::shared_ptr<DiagnosticRouter> router;
+    std::shared_ptr<VinStore> vin_store;
     std::unique_ptr<VersionCollector> collector;
 };
 
@@ -105,11 +113,14 @@ TEST_F(VersionCollectorTest, CollectVehicleInventoryAllOk) {
         return resp;
     });
 
+    vin_store->writeVin("1234567890ABCDEFG");
+
     collector->setBaselineInfo("BASELINE_V1.0", BaselineSource::FACTORY);
 
-    auto snapshot = collector->collectVehicleInventory("1234567890ABCDEFG");
+    auto snapshot = collector->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.vin, "1234567890ABCDEFG");
+    EXPECT_EQ(snapshot.vin_source, VinSource::PROVISIONED);
     EXPECT_EQ(snapshot.baseline_id, "BASELINE_V1.0");
     EXPECT_EQ(snapshot.baseline_source, BaselineSource::FACTORY);
     EXPECT_EQ(snapshot.registry_version, "2026.07.0");
@@ -156,7 +167,7 @@ TEST_F(VersionCollectorTest, CollectVehicleInventoryPartial) {
         return resp;
     });
 
-    auto snapshot = collector->collectVehicleInventory("TEST_VIN");
+    auto snapshot = collector->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::PARTIAL);
 }
@@ -176,7 +187,7 @@ TEST_F(VersionCollectorTest, CollectVehicleInventoryFailed) {
         return resp;
     });
 
-    auto snapshot = collector->collectVehicleInventory("TEST_VIN");
+    auto snapshot = collector->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::FAILED);
 }
@@ -241,42 +252,42 @@ TEST_F(VersionCollectorTest, CollectEcuVersionNegativeResponse) {
 TEST_F(VersionCollectorTest, SetBaselineInfo) {
     collector->setBaselineInfo("NEW_BASELINE", BaselineSource::LAST_OTA);
 
-    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
+    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '1', '.', '0', '\0'};
         return resp;
     });
 
-    mock_doip_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
+    mock_doip_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '2', '.', '0', '\0'};
         return resp;
     });
 
-    auto snapshot = collector->collectVehicleInventory("TEST_VIN");
+    auto snapshot = collector->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.baseline_id, "NEW_BASELINE");
     EXPECT_EQ(snapshot.baseline_source, BaselineSource::LAST_OTA);
 }
 
 TEST_F(VersionCollectorTest, DefaultBaselineInfo) {
-    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
+    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '1', '.', '0', '\0'};
         return resp;
     });
 
-    mock_doip_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
+    mock_doip_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '2', '.', '0', '\0'};
         return resp;
     });
 
-    auto snapshot = collector->collectVehicleInventory("TEST_VIN");
+    auto snapshot = collector->collectVehicleInventory();
 
     EXPECT_FALSE(snapshot.baseline_id.has_value());
     EXPECT_EQ(snapshot.baseline_source, BaselineSource::UNKNOWN);
@@ -293,7 +304,7 @@ ecus: []
 
     registry->reload();
 
-    auto snapshot = collector->collectVehicleInventory("TEST_VIN");
+    auto snapshot = collector->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.ecu_list.size(), 0);
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::FAILED);

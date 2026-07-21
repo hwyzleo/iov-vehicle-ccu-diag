@@ -64,13 +64,19 @@ SomeIpMessage FotaSomeIpService::handleCollectVehicleInventory(const SomeIpMessa
     response.header.message_type = MessageType::RESPONSE;
 
     try {
-        std::string vin(request.payload.begin(), request.payload.end());
-        auto snapshot = facade_->collectVehicleInventory(vin);
+        auto snapshot = facade_->collectVehicleInventory();
 
         nlohmann::json j;
         j["vin"] = snapshot.vin;
         j["registry_version"] = snapshot.registry_version;
         j["collected_at"] = snapshot.collected_at;
+
+        std::string vin_source_str;
+        switch (snapshot.vin_source) {
+            case VinSource::PROVISIONED: vin_source_str = "PROVISIONED"; break;
+            case VinSource::UNKNOWN: vin_source_str = "UNKNOWN"; break;
+        }
+        j["vin_source"] = vin_source_str;
 
         std::string baseline_source_str;
         switch (snapshot.baseline_source) {

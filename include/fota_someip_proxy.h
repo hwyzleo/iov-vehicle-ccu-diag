@@ -17,7 +17,7 @@ public:
     void disconnect();
     bool isConnected() const;
 
-    VehicleSoftwareSnapshot collectVehicleInventory(const std::string& vin);
+    VehicleSoftwareSnapshot collectVehicleInventory();
     EcuVersionEntry getEcuVersion(const std::string& ecu_id);
     std::string getRegistryVersion();
 

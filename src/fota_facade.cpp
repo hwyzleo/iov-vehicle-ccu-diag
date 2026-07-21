@@ -8,14 +8,8 @@ FotaFacade::FotaFacade(std::shared_ptr<VersionCollector> collector,
     : collector_(collector), registry_(registry) {
 }
 
-VehicleSoftwareSnapshot FotaFacade::collectVehicleInventory(const std::string& vin) {
-    if (vin.empty()) {
-        VehicleSoftwareSnapshot snapshot;
-        snapshot.vin = vin;
-        snapshot.overall_result = CollectionStatus::FAILED;
-        return snapshot;
-    }
-    return collector_->collectVehicleInventory(vin);
+VehicleSoftwareSnapshot FotaFacade::collectVehicleInventory() {
+    return collector_->collectVehicleInventory();
 }
 
 EcuVersionEntry FotaFacade::getEcuVersion(const std::string& ecu_id) {

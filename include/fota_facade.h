@@ -12,7 +12,7 @@ public:
     FotaFacade(std::shared_ptr<VersionCollector> collector,
                std::shared_ptr<DidRegistry> registry);
 
-    VehicleSoftwareSnapshot collectVehicleInventory(const std::string& vin);
+    VehicleSoftwareSnapshot collectVehicleInventory();
     EcuVersionEntry getEcuVersion(const std::string& ecu_id);
     std::string getRegistryVersion();
     void setBaselineInfo(const std::string& baseline_id, BaselineSource source);

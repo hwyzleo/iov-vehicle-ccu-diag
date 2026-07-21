@@ -6,6 +6,7 @@
 #include "uds_client.h"
 #include "error_codes.h"
 #include "mock_transport.h"
+#include "vin_store.h"
 #include <fstream>
 #include <memory>
 #include <filesystem>
@@ -35,14 +36,19 @@ protected:
         router = std::make_shared<DiagnosticRouter>(registry, uds_client,
                                                       mock_transport, mock_doip_transport);
 
+        vin_store_path_ = (temp_dir_ / "test_vin_store.dat").string();
+        vin_store = std::shared_ptr<VinStore>(createVinStore(vin_store_path_).release());
+
         collector = std::make_shared<VersionCollector>(registry, router,
-                                                        mock_transport, mock_doip_transport);
+                                                        mock_transport, mock_doip_transport,
+                                                        vin_store);
 
         facade = std::make_unique<FotaFacade>(collector, registry);
     }
 
     void TearDown() override {
         std::filesystem::remove(config_path_);
+        std::filesystem::remove(vin_store_path_);
     }
 
     void createTestConfig() {
@@ -81,11 +87,13 @@ ecus:
 
     std::filesystem::path temp_dir_;
     std::string config_path_;
+    std::string vin_store_path_;
     std::shared_ptr<DidRegistry> registry;
     std::shared_ptr<MockTransport> mock_transport;
     std::shared_ptr<MockTransport> mock_doip_transport;
     std::shared_ptr<UdsClient> uds_client;
     std::shared_ptr<DiagnosticRouter> router;
+    std::shared_ptr<VinStore> vin_store;
     std::shared_ptr<VersionCollector> collector;
     std::unique_ptr<FotaFacade> facade;
 };
@@ -117,11 +125,14 @@ TEST_F(FotaFacadeTest, CollectVehicleInventoryAllOk) {
         return resp;
     });
 
+    vin_store->writeVin("1234567890ABCDEFG");
+
     collector->setBaselineInfo("BASELINE_V1.0", BaselineSource::FACTORY);
 
-    auto snapshot = facade->collectVehicleInventory("1234567890ABCDEFG");
+    auto snapshot = facade->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.vin, "1234567890ABCDEFG");
+    EXPECT_EQ(snapshot.vin_source, VinSource::PROVISIONED);
     EXPECT_EQ(snapshot.baseline_id, "BASELINE_V1.0");
     EXPECT_EQ(snapshot.baseline_source, BaselineSource::FACTORY);
     EXPECT_EQ(snapshot.registry_version, "2026.07.0");
@@ -151,7 +162,7 @@ TEST_F(FotaFacadeTest, CollectVehicleInventoryPartial) {
         return resp;
     });
 
-    auto snapshot = facade->collectVehicleInventory("TEST_VIN");
+    auto snapshot = facade->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::PARTIAL);
 }
@@ -203,7 +214,7 @@ TEST_F(FotaFacadeTest, CollectVehicleInventoryFailed) {
         return resp;
     });
 
-    auto snapshot = facade->collectVehicleInventory("TEST_VIN");
+    auto snapshot = facade->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::FAILED);
 }
@@ -219,18 +230,18 @@ ecus: []
 
     registry->reload();
 
-    auto snapshot = facade->collectVehicleInventory("TEST_VIN");
+    auto snapshot = facade->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.ecu_list.size(), 0);
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::FAILED);
 }
 
 TEST_F(FotaFacadeTest, CollectVehicleInventoryEmptyVin) {
-    auto snapshot = facade->collectVehicleInventory("");
+    auto snapshot = facade->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.vin, "");
-    EXPECT_EQ(snapshot.overall_result, CollectionStatus::FAILED);
-    EXPECT_EQ(snapshot.ecu_list.size(), 0);
+    EXPECT_EQ(snapshot.vin_source, VinSource::UNKNOWN);
+    EXPECT_EQ(snapshot.ecu_list.size(), 2);
 }
 
 TEST_F(FotaFacadeTest, GetEcuVersionEmptyId) {
@@ -265,9 +276,11 @@ TEST_F(FotaFacadeTest, SetBaselineInfo) {
         return resp;
     });
 
+    vin_store->writeVin("1234567890ABCDEFG");
+
     facade->setBaselineInfo("BASELINE_V2.0", BaselineSource::LAST_OTA);
 
-    auto snapshot = facade->collectVehicleInventory("1234567890ABCDEFG");
+    auto snapshot = facade->collectVehicleInventory();
 
     EXPECT_EQ(snapshot.baseline_id, "BASELINE_V2.0");
     EXPECT_EQ(snapshot.baseline_source, BaselineSource::LAST_OTA);

@@ -4,6 +4,7 @@
 #include "did_registry.h"
 #include "diagnostic_router.h"
 #include "uds_client.h"
+#include "vin_store.h"
 #include <memory>
 #include <optional>
 
@@ -18,9 +19,10 @@ public:
     VersionCollector(std::shared_ptr<DidRegistry> registry,
                     std::shared_ptr<DiagnosticRouter> router,
                     std::shared_ptr<TransportAdapter> docan_transport,
-                    std::shared_ptr<TransportAdapter> doip_transport);
+                    std::shared_ptr<TransportAdapter> doip_transport,
+                    std::shared_ptr<VinStore> vin_store);
 
-    VehicleSoftwareSnapshot collectVehicleInventory(const std::string& vin);
+    VehicleSoftwareSnapshot collectVehicleInventory();
 
     EcuVersionEntry collectEcuVersion(const std::string& ecu_id);
 
@@ -31,6 +33,7 @@ private:
     std::shared_ptr<DiagnosticRouter> router_;
     std::shared_ptr<TransportAdapter> docan_transport_;
     std::shared_ptr<TransportAdapter> doip_transport_;
+    std::shared_ptr<VinStore> vin_store_;
 
     std::optional<std::string> baseline_id_;
     BaselineSource baseline_source_;

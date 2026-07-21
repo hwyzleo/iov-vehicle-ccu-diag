@@ -24,9 +24,8 @@ bool FotaSomeIpProxy::isConnected() const {
     return proxy_->isConnected();
 }
 
-VehicleSoftwareSnapshot FotaSomeIpProxy::collectVehicleInventory(const std::string& vin) {
+VehicleSoftwareSnapshot FotaSomeIpProxy::collectVehicleInventory() {
     VehicleSoftwareSnapshot snapshot;
-    snapshot.vin = vin;
     snapshot.overall_result = CollectionStatus::FAILED;
 
     if (!proxy_->isConnected()) {
@@ -37,7 +36,6 @@ VehicleSoftwareSnapshot FotaSomeIpProxy::collectVehicleInventory(const std::stri
     request.header.service_id = constants::CGW_DIAG_SERVICE_ID;
     request.header.method_id = constants::METHOD_COLLECT_VEHICLE_INVENTORY;
     request.header.message_type = MessageType::REQUEST;
-    request.payload.assign(vin.begin(), vin.end());
 
     auto response = proxy_->sendRequest(request);
 
@@ -46,9 +44,16 @@ VehicleSoftwareSnapshot FotaSomeIpProxy::collectVehicleInventory(const std::stri
             std::string json_str(response.payload.begin(), response.payload.end());
             nlohmann::json j = nlohmann::json::parse(json_str);
 
-            snapshot.vin = j.value("vin", vin);
+            snapshot.vin = j.value("vin", "");
             snapshot.registry_version = j.value("registry_version", "");
             snapshot.collected_at = j.value("collected_at", "");
+
+            std::string vin_source_str = j.value("vin_source", "UNKNOWN");
+            if (vin_source_str == "PROVISIONED") {
+                snapshot.vin_source = VinSource::PROVISIONED;
+            } else {
+                snapshot.vin_source = VinSource::UNKNOWN;
+            }
 
             std::string baseline_source_str = j.value("baseline_source", "UNKNOWN");
             if (baseline_source_str == "FACTORY") {

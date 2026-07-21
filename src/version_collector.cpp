@@ -10,17 +10,27 @@ namespace cgw_diag {
 VersionCollector::VersionCollector(std::shared_ptr<DidRegistry> registry,
                                    std::shared_ptr<DiagnosticRouter> router,
                                    std::shared_ptr<TransportAdapter> docan_transport,
-                                   std::shared_ptr<TransportAdapter> doip_transport)
+                                   std::shared_ptr<TransportAdapter> doip_transport,
+                                   std::shared_ptr<VinStore> vin_store)
     : registry_(registry), router_(router),
       docan_transport_(docan_transport),
       doip_transport_(doip_transport),
+      vin_store_(vin_store),
       baseline_source_(BaselineSource::UNKNOWN) {
 }
 
-VehicleSoftwareSnapshot VersionCollector::collectVehicleInventory(const std::string& vin) {
+VehicleSoftwareSnapshot VersionCollector::collectVehicleInventory() {
     VehicleSoftwareSnapshot snapshot;
 
-    snapshot.vin = vin;
+    auto vin = vin_store_->readVin();
+    if (vin.has_value()) {
+        snapshot.vin = vin.value();
+        snapshot.vin_source = VinSource::PROVISIONED;
+    } else {
+        snapshot.vin.clear();
+        snapshot.vin_source = VinSource::UNKNOWN;
+    }
+
     snapshot.baseline_id = baseline_id_;
     snapshot.baseline_source = baseline_source_;
     snapshot.registry_version = registry_->getRegistryVersion();

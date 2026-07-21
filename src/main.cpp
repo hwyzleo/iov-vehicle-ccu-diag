@@ -8,6 +8,7 @@
 #include "fota_facade.h"
 #include "fota_someip_service.h"
 #include "someip_service.h"
+#include "vin_store.h"
 #include "constants.h"
 #include <iostream>
 #include <memory>
@@ -112,8 +113,11 @@ int main(int argc, char* argv[]) {
         auto uds_client = std::make_shared<UdsClient>(docan_transport, diag_config);
         auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, docan_transport, doip_transport);
 
+        // Create VIN store
+        auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
+
         // Create version collector and FOTA facade
-        auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport);
+        auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport, vin_store);
         auto facade = std::make_shared<FotaFacade>(collector, registry);
 
         // Load SOME/IP configuration
