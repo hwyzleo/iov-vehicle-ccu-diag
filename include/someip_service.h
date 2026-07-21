@@ -25,4 +25,7 @@ public:
     virtual uint16_t getInstanceId() const = 0;
 };
 
+// Factory function
+std::unique_ptr<SomeIpService> createSomeIpService();
+
 } // namespace cgw_diag
