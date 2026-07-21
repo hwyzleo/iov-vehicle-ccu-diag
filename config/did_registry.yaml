@@ -1,4 +1,4 @@
-registryVersion: "2026.07.0"
+registryVersion: "2026.07.1"
 baselineDids: [0xF195, 0xF188, 0xF187, 0xF193]
 ecus:
   - ecuId: "BMS"
@@ -43,3 +43,9 @@ ecus:
         field: "hwVersion"
         encoding: "ASCII"
         length: 8
+
+vinConfig:
+  storagePath: "config/vin.dat"
+  writeOnce: true
+  securityLevel: 1
+  allowedDids: [0xF190]

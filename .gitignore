@@ -70,3 +70,6 @@ Testing/
 
 graphify-out/
 docs/superpowers/
+
+# VIN storage (sensitive data)
+config/vin.dat
