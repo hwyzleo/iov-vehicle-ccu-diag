@@ -42,7 +42,7 @@ TEST_F(VinStoreTest, WriteInvalidVinLength) {
 }
 
 TEST_F(VinStoreTest, WriteInvalidVinCharacters) {
-    std::string invalid_vin = "1234567890ABCDEX";  // Contains invalid chars
+    std::string invalid_vin = "1234567890ABCDEFI";  // Contains 'I' which is invalid
     EXPECT_FALSE(store_->writeVin(invalid_vin));
     EXPECT_FALSE(store_->isVinProvisioned());
 }
@@ -69,7 +69,18 @@ TEST_F(VinStoreTest, Persistence) {
 TEST_F(VinStoreTest, VinValidation) {
     EXPECT_TRUE(VinStore::isValidVin("1234567890ABCDEFG"));
     EXPECT_FALSE(VinStore::isValidVin("1234567890"));  // Too short
-    EXPECT_FALSE(VinStore::isValidVin("1234567890ABCDEX"));  // Invalid chars
+    EXPECT_FALSE(VinStore::isValidVin("1234567890ABCDEFI"));  // Invalid char 'I'
+}
+
+TEST_F(VinStoreTest, ResetVin) {
+    std::string vin = "1234567890ABCDEFG";
+    EXPECT_TRUE(store_->writeVin(vin));
+    EXPECT_TRUE(store_->isVinProvisioned());
+    EXPECT_EQ(store_->readVin().value(), vin);
+
+    EXPECT_TRUE(store_->resetVin());
+    EXPECT_FALSE(store_->isVinProvisioned());
+    EXPECT_FALSE(store_->readVin().has_value());
 }
 
 } // namespace tests

@@ -24,21 +24,13 @@ public:
     bool writeVin(const std::string& vin) override {
         std::lock_guard<std::mutex> lock(mutex_);
 
-        // Validate VIN length
         if (!isValidVin(vin)) {
             return false;
         }
 
-        // Check write-once semantics
-        if (!vin_.empty() && !allow_rewrite_) {
+        // Write-once semantics
+        if (!vin_.empty()) {
             return false;
-        }
-
-        // Validate VIN characters (alphanumeric, no I, O, Q)
-        for (char c : vin) {
-            if (!std::isalnum(c) || c == 'I' || c == 'O' || c == 'Q') {
-                return false;
-            }
         }
 
         vin_ = vin;
@@ -53,17 +45,9 @@ public:
 
     bool resetVin() override {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (!allow_rewrite_) {
-            return false;
-        }
         vin_.clear();
         saveToStorage();
         return true;
-    }
-
-    void setAllowRewrite(bool allow) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        allow_rewrite_ = allow;
     }
 
 private:
@@ -103,7 +87,6 @@ private:
 
     std::string storage_path_;
     std::string vin_;
-    bool allow_rewrite_ = false;
     mutable std::mutex mutex_;
 };
 
