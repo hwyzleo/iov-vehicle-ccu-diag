@@ -9,6 +9,7 @@
 #include "fota_someip_service.h"
 #include "someip_service.h"
 #include "vin_store.h"
+#include "diagnostic_server.h"
 #include "constants.h"
 #include <iostream>
 #include <memory>
@@ -116,6 +117,9 @@ int main(int argc, char* argv[]) {
         // Create VIN store
         auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
 
+        // Create diagnostic server
+        auto diag_server = std::make_shared<DiagnosticServer>(vin_store);
+
         // Create version collector and FOTA facade
         auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport, vin_store);
         auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
@@ -156,6 +160,7 @@ int main(int argc, char* argv[]) {
         }
 
         std::cout << "CGW-DIAG service started\n";
+        std::cout << "VIN Store: " << (vin_store->isVinProvisioned() ? "Provisioned" : "Not provisioned") << "\n";
         std::cout << "SOME/IP Service ID: 0x" << std::hex << someip_config.service_id << "\n";
         std::cout << "Listening on: " << someip_config.ip_address << ":" << someip_config.port << "\n";
 
