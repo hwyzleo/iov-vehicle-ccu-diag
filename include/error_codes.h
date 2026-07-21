@@ -22,7 +22,11 @@ enum class ErrorCode {
     // CGW-DIAG-1007: Target ECU not registered in DID list
     ECU_NOT_REGISTERED = 1007,
     // CGW-DIAG-1008: Response pending (NRC 0x78), client should continue polling
-    RESPONSE_PENDING = 1008
+    RESPONSE_PENDING = 1008,
+    // CGW-DIAG-1009: VIN not provisioned / missing
+    VIN_NOT_PROVISIONED = 1009,
+    // CGW-DIAG-1010: VIN write rejected
+    VIN_WRITE_REJECTED = 1010
 };
 
 class ErrorCodeMapper {

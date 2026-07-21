@@ -14,6 +14,8 @@ TEST(ErrorCodeMapperTest, ToStringReturnsCorrectString) {
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::PARSE_ERROR), "Version data parsing failed");
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::ECU_NOT_REGISTERED), "Target ECU not registered in DID list");
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::RESPONSE_PENDING), "ECU response pending, continue polling");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::VIN_NOT_PROVISIONED), "VIN not provisioned or missing");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::VIN_WRITE_REJECTED), "VIN write rejected (unlock failed, validation failed, or unauthorized rewrite)");
 }
 
 TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
@@ -26,6 +28,8 @@ TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::PARSE_ERROR), "CGW-DIAG-1006");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED), "CGW-DIAG-1007");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::RESPONSE_PENDING), "CGW-DIAG-1008");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED), "CGW-DIAG-1009");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED), "CGW-DIAG-1010");
 }
 
 TEST(ErrorCodeMapperTest, ToStringUnknownCodeReturnsFallback) {

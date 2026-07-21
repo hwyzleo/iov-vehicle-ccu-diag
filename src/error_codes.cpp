@@ -12,7 +12,9 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::error_strings_
     {ErrorCode::BASELINE_MISSING, "Baseline tag missing or unknown"},
     {ErrorCode::PARSE_ERROR, "Version data parsing failed"},
     {ErrorCode::ECU_NOT_REGISTERED, "Target ECU not registered in DID list"},
-    {ErrorCode::RESPONSE_PENDING, "ECU response pending, continue polling"}
+    {ErrorCode::RESPONSE_PENDING, "ECU response pending, continue polling"},
+    {ErrorCode::VIN_NOT_PROVISIONED, "VIN not provisioned or missing"},
+    {ErrorCode::VIN_WRITE_REJECTED, "VIN write rejected (unlock failed, validation failed, or unauthorized rewrite)"}
 };
 
 const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = {
@@ -24,7 +26,9 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = 
     {ErrorCode::BASELINE_MISSING, "CGW-DIAG-1005"},
     {ErrorCode::PARSE_ERROR, "CGW-DIAG-1006"},
     {ErrorCode::ECU_NOT_REGISTERED, "CGW-DIAG-1007"},
-    {ErrorCode::RESPONSE_PENDING, "CGW-DIAG-1008"}
+    {ErrorCode::RESPONSE_PENDING, "CGW-DIAG-1008"},
+    {ErrorCode::VIN_NOT_PROVISIONED, "CGW-DIAG-1009"},
+    {ErrorCode::VIN_WRITE_REJECTED, "CGW-DIAG-1010"}
 };
 
 std::string ErrorCodeMapper::toString(ErrorCode code) {
