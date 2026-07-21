@@ -243,6 +243,40 @@ cd build && ctest --output-on-failure
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 创建 Pull Request
 
+## SOME/IP 服务
+
+CGW-DIAG 现在作为独立进程运行，通过 SOME/IP 提供服务间通信能力。
+
+### 服务配置
+
+SOME/IP 配置文件位于 `config/someip_config.yaml`。
+
+### 命令行参数
+
+```
+./cgw_diag [options]
+Options:
+  --did-registry <path>    Path to DID registry YAML
+  --diag-config <path>     Path to diag config YAML
+  --someip-config <path>   Path to SOME/IP config YAML
+  --can-interface <name>   CAN interface name
+  --can-baudrate <rate>    CAN baudrate
+  --doip-ip <ip>           DoIP server IP address
+  --doip-port <port>       DoIP server port
+  --someip-ip <ip>         SOME/IP listen address
+  --someip-port <port>     SOME/IP listen port
+  --version                Print application version
+  --help                   Show this help message
+```
+
+### SOME/IP 方法
+
+| 方法 | Method ID | 说明 |
+|------|-----------|------|
+| collectVehicleInventory | 0x0001 | 触发一轮采集，返回 VehicleSoftwareSnapshot |
+| getEcuVersion | 0x0002 | 按单 ECU 读取版本 |
+| getRegistryVersion | 0x0003 | 返回当前 DidRegistry 版本 |
+
 ## 联系方式
 
 - 项目维护者：hwyz_leo
