@@ -78,9 +78,43 @@ TEST_F(VinStoreTest, ResetVin) {
     EXPECT_TRUE(store_->isVinProvisioned());
     EXPECT_EQ(store_->readVin().value(), vin);
 
+    // Reset should fail without authorization
+    EXPECT_FALSE(store_->resetVin());
+    EXPECT_TRUE(store_->isVinProvisioned());
+
+    // Enable rewrite authorization
+    store_->setAllowRewrite(true);
     EXPECT_TRUE(store_->resetVin());
     EXPECT_FALSE(store_->isVinProvisioned());
     EXPECT_FALSE(store_->readVin().has_value());
+}
+
+TEST_F(VinStoreTest, WriteAfterReset) {
+    std::string first_vin = "1234567890ABCDEFG";
+    std::string second_vin = "9876543210EDCBAFG";
+
+    EXPECT_TRUE(store_->writeVin(first_vin));
+    EXPECT_TRUE(store_->isVinProvisioned());
+
+    // Enable rewrite authorization and reset
+    store_->setAllowRewrite(true);
+    EXPECT_TRUE(store_->resetVin());
+    EXPECT_FALSE(store_->isVinProvisioned());
+
+    // Write new VIN after reset should succeed
+    EXPECT_TRUE(store_->writeVin(second_vin));
+    EXPECT_TRUE(store_->isVinProvisioned());
+    EXPECT_EQ(store_->readVin().value(), second_vin);
+}
+
+TEST_F(VinStoreTest, ResetVinUnauthorized) {
+    std::string vin = "1234567890ABCDEFG";
+    EXPECT_TRUE(store_->writeVin(vin));
+
+    // Reset should fail without setting allow_rewrite
+    EXPECT_FALSE(store_->resetVin());
+    EXPECT_TRUE(store_->isVinProvisioned());
+    EXPECT_EQ(store_->readVin().value(), vin);
 }
 
 } // namespace tests

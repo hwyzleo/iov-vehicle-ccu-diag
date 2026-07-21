@@ -21,7 +21,10 @@ public:
     // Check if VIN is provisioned
     virtual bool isVinProvisioned() const = 0;
 
-    // Reset VIN (for authorized rewrites only)
+    // Set allow rewrite flag (authorization control)
+    virtual void setAllowRewrite(bool allow) = 0;
+
+    // Reset VIN (for authorized rewrites only, requires allow_rewrite_ flag)
     virtual bool resetVin() = 0;
 
     // Get VIN length validation

@@ -9,7 +9,7 @@ namespace cgw_diag {
 class VinStoreImpl : public VinStore {
 public:
     explicit VinStoreImpl(const std::string& storage_path)
-        : storage_path_(storage_path) {
+        : storage_path_(storage_path), allow_rewrite_(false) {
         loadFromStorage();
     }
 
@@ -43,8 +43,16 @@ public:
         return !vin_.empty();
     }
 
+    void setAllowRewrite(bool allow) override {
+        std::lock_guard<std::mutex> lock(mutex_);
+        allow_rewrite_ = allow;
+    }
+
     bool resetVin() override {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (!allow_rewrite_) {
+            return false;
+        }
         vin_.clear();
         saveToStorage();
         return true;
@@ -87,6 +95,7 @@ private:
 
     std::string storage_path_;
     std::string vin_;
+    bool allow_rewrite_;
     mutable std::mutex mutex_;
 };
 
