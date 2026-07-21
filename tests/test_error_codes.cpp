@@ -16,6 +16,7 @@ TEST(ErrorCodeMapperTest, ToStringReturnsCorrectString) {
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::RESPONSE_PENDING), "ECU response pending, continue polling");
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::VIN_NOT_PROVISIONED), "VIN not provisioned or missing");
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::VIN_WRITE_REJECTED), "VIN write rejected (unlock failed, validation failed, or unauthorized rewrite)");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::INVALID_KEY), "Invalid key provided for security access");
 }
 
 TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
@@ -30,6 +31,7 @@ TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::RESPONSE_PENDING), "CGW-DIAG-1008");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED), "CGW-DIAG-1009");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED), "CGW-DIAG-1010");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVALID_KEY), "CGW-DIAG-1011");
 }
 
 TEST(ErrorCodeMapperTest, ToStringUnknownCodeReturnsFallback) {
@@ -48,6 +50,9 @@ TEST(ErrorCodeMapperTest, FromNrcMapsCorrectly) {
     
     // Test NRC 0x22 (ConditionsNotCorrect)
     EXPECT_EQ(ErrorCodeMapper::fromNrc(0x22), ErrorCode::NEGATIVE_RESPONSE);
+    
+    // Test NRC 0x35 (InvalidKey)
+    EXPECT_EQ(ErrorCodeMapper::fromNrc(0x35), ErrorCode::INVALID_KEY);
     
     // Test NRC 0x78 (ResponsePending) - should map to response pending
     EXPECT_EQ(ErrorCodeMapper::fromNrc(0x78), ErrorCode::RESPONSE_PENDING);

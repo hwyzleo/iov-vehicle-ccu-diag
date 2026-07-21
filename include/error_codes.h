@@ -26,7 +26,9 @@ enum class ErrorCode {
     // CGW-DIAG-1009: VIN not provisioned / missing
     VIN_NOT_PROVISIONED = 1009,
     // CGW-DIAG-1010: VIN write rejected
-    VIN_WRITE_REJECTED = 1010
+    VIN_WRITE_REJECTED = 1010,
+    // CGW-DIAG-1011: Invalid key (NRC 0x35)
+    INVALID_KEY = 1011
 };
 
 class ErrorCodeMapper {

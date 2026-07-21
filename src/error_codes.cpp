@@ -14,7 +14,8 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::error_strings_
     {ErrorCode::ECU_NOT_REGISTERED, "Target ECU not registered in DID list"},
     {ErrorCode::RESPONSE_PENDING, "ECU response pending, continue polling"},
     {ErrorCode::VIN_NOT_PROVISIONED, "VIN not provisioned or missing"},
-    {ErrorCode::VIN_WRITE_REJECTED, "VIN write rejected (unlock failed, validation failed, or unauthorized rewrite)"}
+    {ErrorCode::VIN_WRITE_REJECTED, "VIN write rejected (unlock failed, validation failed, or unauthorized rewrite)"},
+    {ErrorCode::INVALID_KEY, "Invalid key provided for security access"}
 };
 
 const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = {
@@ -28,7 +29,8 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = 
     {ErrorCode::ECU_NOT_REGISTERED, "CGW-DIAG-1007"},
     {ErrorCode::RESPONSE_PENDING, "CGW-DIAG-1008"},
     {ErrorCode::VIN_NOT_PROVISIONED, "CGW-DIAG-1009"},
-    {ErrorCode::VIN_WRITE_REJECTED, "CGW-DIAG-1010"}
+    {ErrorCode::VIN_WRITE_REJECTED, "CGW-DIAG-1010"},
+    {ErrorCode::INVALID_KEY, "CGW-DIAG-1011"}
 };
 
 std::string ErrorCodeMapper::toString(ErrorCode code) {
@@ -54,6 +56,8 @@ ErrorCode ErrorCodeMapper::fromNrc(uint8_t nrc) {
         case 0x31: // RequestOutOfRange
         case 0x22: // ConditionsNotCorrect
             return ErrorCode::NEGATIVE_RESPONSE;
+        case 0x35: // InvalidKey
+            return ErrorCode::INVALID_KEY;
         case 0x78: // ResponsePending
             return ErrorCode::RESPONSE_PENDING;
         default:
