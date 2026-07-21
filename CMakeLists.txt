@@ -75,6 +75,7 @@ add_executable(CgwDiagTests
     tests/test_integration.cpp
     tests/test_vin_store.cpp
     tests/test_diagnostic_server.cpp
+    tests/test_vin_integration.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)

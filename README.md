@@ -230,6 +230,9 @@ cd build && ctest --output-on-failure
 - 传输适配器
 - 版本采集器
 - FOTA 接口
+- VIN 存储与管理
+- 诊断服务器（UDS 0x27/0x2E）
+- VIN 配置集成测试
 
 ## 许可证
 
