@@ -51,7 +51,7 @@ TEST_F(SomeIpServiceTest, RegisterMethodHandler) {
     service->initialize(config_);
 
     bool handler_called = false;
-    service->registerMethodHandler(0x0001, [&handler_called](const SomeIpMessage& req) {
+    service->registerMethodHandler(0x0001, [&handler_called](const SomeIpMessage&) {
         handler_called = true;
         SomeIpMessage resp;
         resp.header.return_code = ReturnCode::E_OK;

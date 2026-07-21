@@ -173,7 +173,7 @@ TEST_F(UdsClientTest, ReadDataByIdentifierNegativeResponse) {
 }
 
 TEST_F(UdsClientTest, CreateReadDataByIdentifierRequest) {
-    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
+    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>&) {
         return UdsClientTest::makePositiveResponse(0xF195, {'V', '\0'});
     });
 

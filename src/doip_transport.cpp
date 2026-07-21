@@ -64,6 +64,7 @@ TransportResponse DoIpTransport::sendRequest(uint16_t logical_address,
 }
 
 bool DoIpTransport::isReachable(uint16_t logical_address) {
+    (void)logical_address;
     // Simplified implementation - assume all addresses are reachable
     // Real implementation would check DoIP connection status
     return true;

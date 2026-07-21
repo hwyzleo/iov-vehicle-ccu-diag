@@ -9,6 +9,8 @@
 
 namespace cgw_diag {
 
+class SomeIpClientProxy;
+
 enum class SecLevel : uint8_t {
     LEVEL_1 = 0x01
 };
@@ -45,5 +47,7 @@ public:
 };
 
 std::unique_ptr<CgwSecClientProxy> createCgwSecClientProxy();
+std::unique_ptr<CgwSecClientProxy> createCgwSecClientProxy(
+    std::unique_ptr<SomeIpClientProxy> proxy);
 
 } // namespace cgw_diag

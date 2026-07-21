@@ -252,14 +252,14 @@ TEST_F(VersionCollectorTest, CollectEcuVersionNegativeResponse) {
 TEST_F(VersionCollectorTest, SetBaselineInfo) {
     collector->setBaselineInfo("NEW_BASELINE", BaselineSource::LAST_OTA);
 
-    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '1', '.', '0', '\0'};
         return resp;
     });
 
-    mock_doip_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+    mock_doip_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '2', '.', '0', '\0'};
@@ -273,14 +273,14 @@ TEST_F(VersionCollectorTest, SetBaselineInfo) {
 }
 
 TEST_F(VersionCollectorTest, DefaultBaselineInfo) {
-    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '1', '.', '0', '\0'};
         return resp;
     });
 
-    mock_doip_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+    mock_doip_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '2', '.', '0', '\0'};

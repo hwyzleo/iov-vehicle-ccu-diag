@@ -64,6 +64,7 @@ TransportResponse DoCanTransport::sendRequest(uint16_t logical_address,
 }
 
 bool DoCanTransport::isReachable(uint16_t logical_address) {
+    (void)logical_address;
     // Simplified implementation - assume all addresses are reachable
     // Real implementation would ping the ECU or check bus status
     return true;

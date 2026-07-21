@@ -56,6 +56,7 @@ public:
     }
 
     bool sendNotification(const SomeIpMessage& notification) override {
+        (void)notification;
         if (!connected_) {
             return false;
         }

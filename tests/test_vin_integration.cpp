@@ -124,7 +124,7 @@ TEST_F(VinIntegrationTest, FullVinProvisioningFlow) {
     EXPECT_EQ(vin.value(), "1234567890ABCDEFG");
     
     // Setup mock for version collection
-    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '1', '.', '0', '.', '0', '\0'};
@@ -142,7 +142,7 @@ TEST_F(VinIntegrationTest, FullVinProvisioningFlow) {
 
 TEST_F(VinIntegrationTest, VinNotProvisioned) {
     // Collect inventory without VIN
-    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         resp.data = {0x62, request[1], request[2], '1', '.', '0', '.', '0', '\0'};

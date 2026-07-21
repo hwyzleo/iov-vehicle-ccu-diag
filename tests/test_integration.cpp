@@ -275,7 +275,7 @@ TEST_F(IntegrationTest, FullFlowAllFailed) {
 }
 
 TEST_F(IntegrationTest, EcuVersionSingleEcu) {
-    mock_docan->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+    mock_docan->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
         TransportResponse resp;
         resp.success = true;
         uint16_t did = (request[1] << 8) | request[2];
