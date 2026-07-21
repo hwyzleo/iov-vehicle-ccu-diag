@@ -43,7 +43,7 @@ protected:
                                                         mock_transport, mock_doip_transport,
                                                         vin_store);
 
-        facade = std::make_unique<FotaFacade>(collector, registry);
+        facade = std::make_unique<FotaFacade>(collector, registry, vin_store);
     }
 
     void TearDown() override {
@@ -284,6 +284,19 @@ TEST_F(FotaFacadeTest, SetBaselineInfo) {
 
     EXPECT_EQ(snapshot.baseline_id, "BASELINE_V2.0");
     EXPECT_EQ(snapshot.baseline_source, BaselineSource::LAST_OTA);
+}
+
+TEST_F(FotaFacadeTest, ReadVin) {
+    // Initially no VIN
+    EXPECT_FALSE(facade->readVin().has_value());
+
+    // Write VIN
+    vin_store->writeVin("1234567890ABCDEFG");
+
+    // Read VIN
+    auto vin = facade->readVin();
+    EXPECT_TRUE(vin.has_value());
+    EXPECT_EQ(vin.value(), "1234567890ABCDEFG");
 }
 
 } // namespace tests

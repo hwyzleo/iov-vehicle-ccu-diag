@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
 
         // Create version collector and FOTA facade
         auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport, vin_store);
-        auto facade = std::make_shared<FotaFacade>(collector, registry);
+        auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
 
         // Load SOME/IP configuration
         SomeIpServiceConfig someip_config;

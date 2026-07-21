@@ -4,11 +4,13 @@
 namespace cgw_diag {
 
 FotaFacade::FotaFacade(std::shared_ptr<VersionCollector> collector,
-                       std::shared_ptr<DidRegistry> registry)
-    : collector_(collector), registry_(registry) {
+                       std::shared_ptr<DidRegistry> registry,
+                       std::shared_ptr<VinStore> vin_store)
+    : collector_(collector), registry_(registry), vin_store_(vin_store) {
 }
 
 VehicleSoftwareSnapshot FotaFacade::collectVehicleInventory() {
+    // VIN is now read internally by VersionCollector
     return collector_->collectVehicleInventory();
 }
 
@@ -29,6 +31,10 @@ std::string FotaFacade::getRegistryVersion() {
 
 void FotaFacade::setBaselineInfo(const std::string& baseline_id, BaselineSource source) {
     collector_->setBaselineInfo(baseline_id, source);
+}
+
+std::optional<std::string> FotaFacade::readVin() {
+    return vin_store_->readVin();
 }
 
 } // namespace cgw_diag

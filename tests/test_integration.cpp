@@ -55,7 +55,7 @@ protected:
         collector = std::make_shared<VersionCollector>(
             registry, router, mock_docan, mock_doip, vin_store);
 
-        facade = std::make_unique<FotaFacade>(collector, registry);
+        facade = std::make_unique<FotaFacade>(collector, registry, vin_store);
     }
 
     void TearDown() override {
@@ -511,7 +511,7 @@ TEST_F(SomeIpIntegrationTest, ServiceAndProxyCommunication) {
     auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, mock_transport, mock_transport);
     auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
     auto collector = std::make_shared<VersionCollector>(registry, router, mock_transport, mock_transport, vin_store);
-    auto facade = std::make_shared<FotaFacade>(collector, registry);
+    auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
 
     auto service = createSomeIpService();
     FotaSomeIpService fota_service(facade, std::move(service));
@@ -541,7 +541,7 @@ TEST_F(SomeIpIntegrationTest, ServiceLifecycle) {
     auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, mock_transport, mock_transport);
     auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
     auto collector = std::make_shared<VersionCollector>(registry, router, mock_transport, mock_transport, vin_store);
-    auto facade = std::make_shared<FotaFacade>(collector, registry);
+    auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
 
     auto service = createSomeIpService();
     FotaSomeIpService fota_service(facade, std::move(service));
@@ -567,7 +567,7 @@ TEST_F(SomeIpIntegrationTest, ProxyReconnection) {
     auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, mock_transport, mock_transport);
     auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
     auto collector = std::make_shared<VersionCollector>(registry, router, mock_transport, mock_transport, vin_store);
-    auto facade = std::make_shared<FotaFacade>(collector, registry);
+    auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
 
     auto service = createSomeIpService();
     FotaSomeIpService fota_service(facade, std::move(service));
@@ -606,7 +606,7 @@ TEST_F(SomeIpIntegrationTest, ProxyGetEcuVersion) {
     auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, mock_transport, mock_transport);
     auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
     auto collector = std::make_shared<VersionCollector>(registry, router, mock_transport, mock_transport, vin_store);
-    auto facade = std::make_shared<FotaFacade>(collector, registry);
+    auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
 
     auto service = createSomeIpService();
     FotaSomeIpService fota_service(facade, std::move(service));
