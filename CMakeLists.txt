@@ -43,6 +43,7 @@ set(LIB_SOURCES
     src/fota_facade.cpp
     src/someip_service.cpp
     src/someip_client_proxy.cpp
+    src/fota_someip_service.cpp
 )
 
 # Create cgw_diag library

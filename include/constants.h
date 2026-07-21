@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include "someip_types.h"
 
 namespace cgw_diag {
 namespace constants {
@@ -40,6 +41,25 @@ constexpr uint16_t DEFAULT_DOIP_PORT = 13400;
 
 // Application version
 inline const std::string APP_VERSION = "1.0.0";
+
+// SOME/IP Service IDs
+constexpr ServiceId CGW_DIAG_SERVICE_ID = 0x1234;
+constexpr uint16_t CGW_DIAG_INSTANCE_ID = 0x0001;
+constexpr uint8_t CGW_DIAG_MAJOR_VERSION = 1;
+constexpr uint32_t CGW_DIAG_MINOR_VERSION = 0;
+
+// SOME/IP Method IDs
+constexpr MethodId METHOD_COLLECT_VEHICLE_INVENTORY = 0x0001;
+constexpr MethodId METHOD_GET_ECU_VERSION = 0x0002;
+constexpr MethodId METHOD_GET_REGISTRY_VERSION = 0x0003;
+
+// SOME/IP Event IDs
+constexpr EventId EVENT_INVENTORY_RESULT = 0x8001;
+
+// SOME/IP Network Configuration
+inline const std::string DEFAULT_SOMEIP_ADDRESS = "127.0.0.1";
+constexpr uint16_t DEFAULT_SOMEIP_PORT = 30501;
+constexpr uint32_t DEFAULT_SOMEIP_REQUEST_TIMEOUT_MS = 2000;
 
 } // namespace constants
 } // namespace cgw_diag
