@@ -13,18 +13,20 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
     // Sub-function 0x01: Request seed
     // Sub-function 0x02: Send key
     if (sub_function == 0x01) {
-        // Request seed - generate random seed (simplified)
+        // FIXME: CRITICAL — hardcoded seed is a security vulnerability.
+        // Replace with cryptographically random seed before production.
+        // The seed must be unique per session and unpredictable.
         response.resize(4);
         response[0] = 0x67;  // Positive response
         response[1] = 0x01;  // Sub-function
-        response[2] = 0x12;  // Seed byte 1 (simplified)
-        response[3] = 0x34;  // Seed byte 2 (simplified)
+        response[2] = 0x12;  // Seed byte 1 (HARDCODED — DO NOT SHIP)
+        response[3] = 0x34;  // Seed byte 2 (HARDCODED — DO NOT SHIP)
         return ErrorCode::SUCCESS;
     } else if (sub_function == 0x02) {
-        // Send key - validate key (simplified)
-        // In real implementation, this would validate against seed
+        // FIXME: CRITICAL — accepts any 4-byte key. This bypasses
+        // security entirely. Replace with real seed/key validation
+        // (e.g., compute key from seed using shared secret or PKI).
         if (request.size() >= 4) {
-            // Simplified validation - accept any key for now
             security_level_ = SecurityLevel::LEVEL_1;
             vin_write_session_active_ = true;
             

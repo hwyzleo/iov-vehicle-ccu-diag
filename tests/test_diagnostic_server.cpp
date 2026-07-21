@@ -19,6 +19,16 @@ protected:
         std::filesystem::remove(storage_path_);
     }
     
+    void performSecurityAccess() {
+        std::vector<uint8_t> seed_request;
+        std::vector<uint8_t> seed_response;
+        server_->handleSecurityAccess(0x01, seed_request, seed_response);
+        
+        std::vector<uint8_t> key_request = {0x12, 0x34, 0x56, 0x78};
+        std::vector<uint8_t> key_response;
+        server_->handleSecurityAccess(0x02, key_request, key_response);
+    }
+    
     std::filesystem::path temp_dir_;
     std::string storage_path_;
     std::shared_ptr<VinStore> vin_store_;
@@ -61,16 +71,8 @@ TEST_F(DiagnosticServerTest, WriteVinWithoutSecurity) {
 }
 
 TEST_F(DiagnosticServerTest, WriteVinWithSecurity) {
-    // First, perform security access
-    std::vector<uint8_t> seed_request;
-    std::vector<uint8_t> seed_response;
-    server_->handleSecurityAccess(0x01, seed_request, seed_response);
+    performSecurityAccess();
     
-    std::vector<uint8_t> key_request = {0x12, 0x34, 0x56, 0x78};
-    std::vector<uint8_t> key_response;
-    server_->handleSecurityAccess(0x02, key_request, key_response);
-    
-    // Now write VIN
     std::vector<uint8_t> vin_data = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 
                                       'A', 'B', 'C', 'D', 'E', 'F', 'G'};
     std::vector<uint8_t> response;
@@ -82,16 +84,8 @@ TEST_F(DiagnosticServerTest, WriteVinWithSecurity) {
 }
 
 TEST_F(DiagnosticServerTest, WriteInvalidVinLength) {
-    // Perform security access
-    std::vector<uint8_t> seed_request;
-    std::vector<uint8_t> seed_response;
-    server_->handleSecurityAccess(0x01, seed_request, seed_response);
+    performSecurityAccess();
     
-    std::vector<uint8_t> key_request = {0x12, 0x34, 0x56, 0x78};
-    std::vector<uint8_t> key_response;
-    server_->handleSecurityAccess(0x02, key_request, key_response);
-    
-    // Try to write invalid VIN (too short)
     std::vector<uint8_t> invalid_vin = {'1', '2', '3', '4', '5'};
     std::vector<uint8_t> response;
     
@@ -100,19 +94,41 @@ TEST_F(DiagnosticServerTest, WriteInvalidVinLength) {
     EXPECT_FALSE(vin_store_->isVinProvisioned());
 }
 
-TEST_F(DiagnosticServerTest, ResetSession) {
-    // Perform security access
-    std::vector<uint8_t> seed_request;
-    std::vector<uint8_t> seed_response;
-    server_->handleSecurityAccess(0x01, seed_request, seed_response);
+TEST_F(DiagnosticServerTest, WriteNonVinDid) {
+    performSecurityAccess();
     
-    std::vector<uint8_t> key_request = {0x12, 0x34, 0x56, 0x78};
-    std::vector<uint8_t> key_response;
-    server_->handleSecurityAccess(0x02, key_request, key_response);
+    std::vector<uint8_t> data = {0x01, 0x02, 0x03};
+    std::vector<uint8_t> response;
+    
+    auto result = server_->handleWriteDataByIdentifier(0x0000, data, response);
+    EXPECT_EQ(result, ErrorCode::VIN_WRITE_REJECTED);
+    
+    result = server_->handleWriteDataByIdentifier(0xF191, data, response);
+    EXPECT_EQ(result, ErrorCode::VIN_WRITE_REJECTED);
+}
+
+TEST_F(DiagnosticServerTest, InvalidSubFunction) {
+    std::vector<uint8_t> request;
+    std::vector<uint8_t> response;
+    
+    auto result = server_->handleSecurityAccess(0x00, request, response);
+    EXPECT_EQ(result, ErrorCode::VIN_WRITE_REJECTED);
+    EXPECT_EQ(server_->getSecurityLevel(), SecurityLevel::LOCKED);
+    
+    result = server_->handleSecurityAccess(0x03, request, response);
+    EXPECT_EQ(result, ErrorCode::VIN_WRITE_REJECTED);
+    EXPECT_EQ(server_->getSecurityLevel(), SecurityLevel::LOCKED);
+    
+    result = server_->handleSecurityAccess(0xFF, request, response);
+    EXPECT_EQ(result, ErrorCode::VIN_WRITE_REJECTED);
+    EXPECT_EQ(server_->getSecurityLevel(), SecurityLevel::LOCKED);
+}
+
+TEST_F(DiagnosticServerTest, ResetSession) {
+    performSecurityAccess();
     
     EXPECT_TRUE(server_->isVinWriteSessionActive());
     
-    // Reset session
     server_->resetSession();
     
     EXPECT_FALSE(server_->isVinWriteSessionActive());

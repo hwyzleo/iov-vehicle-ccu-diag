@@ -4,7 +4,6 @@
 #include "data_models.h"
 #include "error_codes.h"
 #include <memory>
-#include <functional>
 
 namespace cgw_diag {
 
