@@ -43,6 +43,9 @@ enum class VinSource {
     UNKNOWN
 };
 
+std::string vinSourceToString(VinSource source);
+VinSource stringToVinSource(const std::string& str);
+
 struct DidEntry {
     uint16_t did = 0;
     std::string field;

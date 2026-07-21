@@ -32,12 +32,13 @@ TEST(DataModelsTest, EcuConfigCreation) {
 TEST(DataModelsTest, VehicleSoftwareSnapshotCreation) {
     VehicleSoftwareSnapshot snapshot;
     snapshot.vin = "1234567890ABCDEFG";
+    snapshot.vin_source = VinSource::PROVISIONED;
     snapshot.baseline_id = "BASELINE_V1.0";
     snapshot.baseline_source = BaselineSource::FACTORY;
     snapshot.registry_version = "2026.07.0";
     snapshot.collected_at = "2026-07-20T12:00:00Z";
     snapshot.overall_result = CollectionStatus::ALL_OK;
-    
+
     EcuVersionEntry entry;
     entry.ecu_id = "BMS";
     entry.part_number = "PART123";
@@ -45,16 +46,39 @@ TEST(DataModelsTest, VehicleSoftwareSnapshotCreation) {
     entry.hw_version = "HW1.0";
     entry.source = ReadMethod::UDS_0x22;
     entry.status = EcuStatus::OK;
-    
+
     snapshot.ecu_list.push_back(entry);
-    
+
     EXPECT_EQ(snapshot.vin, "1234567890ABCDEFG");
+    EXPECT_EQ(snapshot.vin_source, VinSource::PROVISIONED);
     EXPECT_EQ(snapshot.baseline_id, "BASELINE_V1.0");
     EXPECT_EQ(snapshot.baseline_source, BaselineSource::FACTORY);
     EXPECT_EQ(snapshot.registry_version, "2026.07.0");
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::ALL_OK);
     EXPECT_EQ(snapshot.ecu_list.size(), 1);
     EXPECT_EQ(snapshot.ecu_list[0].ecu_id, "BMS");
+}
+
+TEST(DataModelsTest, VehicleSoftwareSnapshotVinSourceDefault) {
+    VehicleSoftwareSnapshot snapshot;
+    EXPECT_EQ(snapshot.vin_source, VinSource::UNKNOWN);
+}
+
+TEST(DataModelsTest, VinSourceToString) {
+    EXPECT_EQ(vinSourceToString(VinSource::PROVISIONED), "provisioned");
+    EXPECT_EQ(vinSourceToString(VinSource::UNKNOWN), "unknown");
+}
+
+TEST(DataModelsTest, StringToVinSource) {
+    EXPECT_EQ(stringToVinSource("provisioned"), VinSource::PROVISIONED);
+    EXPECT_EQ(stringToVinSource("unknown"), VinSource::UNKNOWN);
+    EXPECT_EQ(stringToVinSource("invalid"), VinSource::UNKNOWN);
+    EXPECT_EQ(stringToVinSource(""), VinSource::UNKNOWN);
+}
+
+TEST(DataModelsTest, VinSourceSerializationRoundTrip) {
+    EXPECT_EQ(stringToVinSource(vinSourceToString(VinSource::PROVISIONED)), VinSource::PROVISIONED);
+    EXPECT_EQ(stringToVinSource(vinSourceToString(VinSource::UNKNOWN)), VinSource::UNKNOWN);
 }
 
 TEST(DataModelsTest, DiagConfigDefaults) {
