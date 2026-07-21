@@ -188,47 +188,56 @@ TEST_F(VinIntegrationTest, VinNotProvisioned) {
     EXPECT_EQ(snapshot.vin_source, VinSource::UNKNOWN);
 }
 
-TEST_F(VinIntegrationTest, EndToEndVinProvisioningWithCgwSec) {
-    // This test verifies the complete VIN provisioning flow
-    // with CGW-SEC integration
+TEST_F(VinIntegrationTest, SecurityLockoutAfterFailedAttempts) {
+    // This test verifies CGW-SEC lockout mechanism after repeated
+    // failed key submissions — a scenario not covered by FullVinProvisioningFlow.
     
-    // Setup mock CGW-SEC responses
     SecuritySeed seed;
     seed.seed_id = 12345;
     seed.seed = {0x12, 0x34, 0x56, 0x78};
     
-    EXPECT_CALL(*mock_sec_proxy, getSeed(SecLevel::LEVEL_1))
-        .WillOnce(Return(seed));
+    std::vector<uint8_t> wrong_key = {0xFF, 0xFF, 0xFF, 0xFF};
     
-    std::vector<uint8_t> valid_key = {0x9A, 0xBC, 0xDE, 0xF0};
-    EXPECT_CALL(*mock_sec_proxy, verifyKey(SecLevel::LEVEL_1, 12345, valid_key))
-        .WillOnce(Return(SecResult::SUCCESS));
+    // Exhaust all allowed attempts (MAX_FAILED_ATTEMPTS = 3)
+    for (int i = 0; i < 3; ++i) {
+        EXPECT_CALL(*mock_sec_proxy, getSeed(SecLevel::LEVEL_1))
+            .WillOnce(Return(seed));
+        
+        std::vector<uint8_t> seed_request = {0x01};
+        std::vector<uint8_t> seed_response;
+        auto result = diag_server->handleSecurityAccess(0x01, seed_request, seed_response);
+        EXPECT_EQ(result, ErrorCode::SUCCESS);
+        
+        EXPECT_CALL(*mock_sec_proxy, verifyKey(SecLevel::LEVEL_1, 12345, wrong_key))
+            .WillOnce(Return(SecResult::INVALID_KEY));
+        
+        std::vector<uint8_t> key_request = {0x02};
+        key_request.insert(key_request.end(), wrong_key.begin(), wrong_key.end());
+        std::vector<uint8_t> key_response;
+        result = diag_server->handleSecurityAccess(0x02, key_request, key_response);
+        EXPECT_EQ(result, ErrorCode::INVALID_KEY);
+    }
     
-    // Step 1: Request seed
+    // Verify lockout is active
+    EXPECT_TRUE(diag_server->isLockedOut());
+    
+    // Subsequent seed request should fail while locked out
     std::vector<uint8_t> seed_request = {0x01};
     std::vector<uint8_t> seed_response;
     auto result = diag_server->handleSecurityAccess(0x01, seed_request, seed_response);
-    EXPECT_EQ(result, ErrorCode::SUCCESS);
+    EXPECT_NE(result, ErrorCode::SUCCESS);
     
-    // Step 2: Send key
-    std::vector<uint8_t> key_request = {0x02};
-    key_request.insert(key_request.end(), valid_key.begin(), valid_key.end());
-    std::vector<uint8_t> key_response;
-    result = diag_server->handleSecurityAccess(0x02, key_request, key_response);
-    EXPECT_EQ(result, ErrorCode::SUCCESS);
-    
-    // Step 3: Write VIN
+    // VIN write should be rejected without security access
     std::string test_vin = "1HGBH41JXMN109186";
     std::vector<uint8_t> vin_data(test_vin.begin(), test_vin.end());
     std::vector<uint8_t> write_response;
+    result = diag_server->handleWriteDataByIdentifier(DID_VIN, vin_data, write_response);
+    EXPECT_NE(result, ErrorCode::SUCCESS);
     
-    result = diag_server->handleWriteDataByIdentifier(0xF190, vin_data, write_response);
-    EXPECT_EQ(result, ErrorCode::SUCCESS);
-    
-    // Verify VIN was written
-    auto stored_vin = vin_store->readVin();
-    EXPECT_TRUE(stored_vin.has_value());
-    EXPECT_EQ(stored_vin.value(), test_vin);
+    // Verify VIN was NOT written
+    EXPECT_FALSE(vin_store->isVinProvisioned());
+    EXPECT_FALSE(vin_store->readVin().has_value());
+    EXPECT_FALSE(facade->readVin().has_value());
 }
 
 } // namespace tests
