@@ -53,6 +53,7 @@ constexpr uint32_t CGW_DIAG_MINOR_VERSION = 0;
 constexpr MethodId METHOD_COLLECT_VEHICLE_INVENTORY = 0x0001;
 constexpr MethodId METHOD_GET_ECU_VERSION = 0x0002;
 constexpr MethodId METHOD_GET_REGISTRY_VERSION = 0x0003;
+constexpr MethodId METHOD_READ_VIN = 0x0004;
 
 // SOME/IP Event IDs
 constexpr EventId EVENT_INVENTORY_RESULT = 0x8001;

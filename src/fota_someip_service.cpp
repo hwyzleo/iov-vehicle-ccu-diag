@@ -55,6 +55,12 @@ void FotaSomeIpService::registerMethodHandlers() {
         [this](const SomeIpMessage& request) {
             return handleGetRegistryVersion(request);
         });
+
+    service_->registerMethodHandler(
+        constants::METHOD_READ_VIN,
+        [this](const SomeIpMessage& request) {
+            return handleReadVin(request);
+        });
 }
 
 SomeIpMessage FotaSomeIpService::handleCollectVehicleInventory(const SomeIpMessage& request) {
@@ -167,6 +173,34 @@ SomeIpMessage FotaSomeIpService::handleGetRegistryVersion(const SomeIpMessage& r
     try {
         std::string version = facade_->getRegistryVersion();
         response.payload.assign(version.begin(), version.end());
+        response.header.return_code = ReturnCode::E_OK;
+    } catch (const std::exception& e) {
+        response.header.return_code = ReturnCode::E_NOT_OK;
+    }
+
+    return response;
+}
+
+SomeIpMessage FotaSomeIpService::handleReadVin(const SomeIpMessage& request) {
+    SomeIpMessage response;
+    response.header.service_id = request.header.service_id;
+    response.header.method_id = request.header.method_id;
+    response.header.message_type = MessageType::RESPONSE;
+
+    try {
+        auto vin = facade_->readVin();
+        
+        nlohmann::json j;
+        if (vin.has_value()) {
+            j["vin"] = vin.value();
+            j["status"] = "provisioned";
+        } else {
+            j["vin"] = nullptr;
+            j["status"] = "not_provisioned";
+        }
+        
+        std::string json_str = j.dump();
+        response.payload.assign(json_str.begin(), json_str.end());
         response.header.return_code = ReturnCode::E_OK;
     } catch (const std::exception& e) {
         response.header.return_code = ReturnCode::E_NOT_OK;

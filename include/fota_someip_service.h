@@ -20,6 +20,8 @@ public:
     bool offerService();
     void stopOfferService();
 
+    SomeIpMessage handleReadVin(const SomeIpMessage& request);
+
 private:
     std::shared_ptr<FotaFacade> facade_;
     std::unique_ptr<SomeIpService> service_;
