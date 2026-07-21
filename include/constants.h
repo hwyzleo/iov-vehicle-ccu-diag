@@ -32,6 +32,7 @@ constexpr uint8_t MAX_RETRY_COUNT = 2;
 // Configuration file paths
 inline const std::string DEFAULT_DID_REGISTRY_PATH = "config/did_registry.yaml";
 inline const std::string DEFAULT_DIAG_CONFIG_PATH = "config/diag_config.yaml";
+inline const std::string DEFAULT_SOMEIP_CONFIG_PATH = "config/someip_config.yaml";
 
 // Transport defaults
 inline const std::string DEFAULT_CAN_INTERFACE = "can0";
