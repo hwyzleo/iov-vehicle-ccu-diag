@@ -269,7 +269,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyExceptionSafety) {
     proxy_->initialize(config_);
     std::vector<uint8_t> key = {0x01, 0x02, 0x03, 0x04};
     auto result = proxy_->verifyKey(SecLevel::LEVEL_1, 12345, key);
-    EXPECT_EQ(result, SecResult::UNKNOWN_ERROR);
+    EXPECT_EQ(result, SecResult::SERVICE_UNAVAILABLE);
 }
 
 TEST_F(CgwSecClientProxyTest, SetRequestTimeout) {

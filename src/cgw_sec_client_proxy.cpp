@@ -111,7 +111,7 @@ public:
         try {
             response = someip_proxy_->sendRequest(request);
         } catch (...) {
-            return SecResult::UNKNOWN_ERROR;
+            return SecResult::SERVICE_UNAVAILABLE;
         }
 
         // Transport-level errors: SOME/IP return_code indicates failure
