@@ -45,6 +45,7 @@ set(LIB_SOURCES
     src/someip_client_proxy.cpp
     src/fota_someip_service.cpp
     src/fota_someip_proxy.cpp
+    src/vin_store.cpp
 )
 
 # Create cgw_diag library
@@ -71,6 +72,7 @@ add_executable(CgwDiagTests
     tests/test_someip_service.cpp
     tests/test_someip_proxy.cpp
     tests/test_integration.cpp
+    tests/test_vin_store.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)
