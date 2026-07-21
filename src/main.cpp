@@ -10,6 +10,7 @@
 #include "someip_service.h"
 #include "vin_store.h"
 #include "diagnostic_server.h"
+#include "cgw_sec_client_proxy.h"
 #include "constants.h"
 #include <iostream>
 #include <memory>
@@ -117,8 +118,9 @@ int main(int argc, char* argv[]) {
         // Create VIN store
         auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
 
-        // Create diagnostic server
-        auto diag_server = std::make_shared<DiagnosticServer>(vin_store);
+        // Create CGW-SEC client proxy and diagnostic server
+        auto sec_client_proxy = createCgwSecClientProxy();
+        auto diag_server = std::make_shared<DiagnosticServer>(vin_store, std::move(sec_client_proxy));
 
         // Create version collector and FOTA facade
         auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport, vin_store);

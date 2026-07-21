@@ -47,6 +47,11 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
     } 
     // Sub-function 0x02: Send key
     else if (sub_function == 0x02) {
+        // Validate request has at least sub-function byte + 1 key byte
+        if (request.size() < 2) {
+            return ErrorCode::VIN_WRITE_REJECTED;
+        }
+        
         // Extract key from request (skip sub-function byte)
         std::vector<uint8_t> key(request.begin() + 1, request.end());
         
