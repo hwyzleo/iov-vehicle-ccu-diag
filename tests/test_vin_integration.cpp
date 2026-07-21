@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include "vin_store.h"
 #include "diagnostic_server.h"
 #include "version_collector.h"
@@ -7,12 +8,29 @@
 #include "diagnostic_router.h"
 #include "uds_client.h"
 #include "mock_transport.h"
+#include "cgw_sec_client_proxy.h"
 #include <filesystem>
 #include <fstream>
 #include <memory>
 
 namespace cgw_diag {
 namespace tests {
+
+using ::testing::Return;
+using ::testing::_;
+
+// Mock CGW-SEC client proxy for testing
+class MockCgwSecClientProxy : public CgwSecClientProxy {
+public:
+    MOCK_METHOD(bool, initialize, (const SomeIpServiceConfig&), (override));
+    MOCK_METHOD(bool, connect, (), (override));
+    MOCK_METHOD(void, disconnect, (), (override));
+    MOCK_METHOD(bool, isConnected, (), (const, override));
+    MOCK_METHOD(std::optional<SecuritySeed>, getSeed, (SecLevel), (override));
+    MOCK_METHOD(SecResult, verifyKey, (SecLevel, uint32_t, const std::vector<uint8_t>&), (override));
+    MOCK_METHOD(void, setRequestTimeout, (uint32_t), (override));
+    MOCK_METHOD(uint32_t, getRequestTimeout, (), (const, override));
+};
 
 class VinIntegrationTest : public ::testing::Test {
 protected:
@@ -45,7 +63,8 @@ protected:
                                                         vin_store);
         
         facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
-        diag_server = std::make_shared<DiagnosticServer>(vin_store);
+        mock_sec_proxy = std::make_shared<MockCgwSecClientProxy>();
+        diag_server = std::make_shared<DiagnosticServer>(vin_store, mock_sec_proxy);
     }
     
     void TearDown() override {
@@ -89,6 +108,7 @@ vinConfig:
     std::shared_ptr<DiagnosticRouter> router;
     std::shared_ptr<VersionCollector> collector;
     std::shared_ptr<FotaFacade> facade;
+    std::shared_ptr<MockCgwSecClientProxy> mock_sec_proxy;
     std::shared_ptr<DiagnosticServer> diag_server;
 };
 
@@ -97,12 +117,24 @@ TEST_F(VinIntegrationTest, FullVinProvisioningFlow) {
     EXPECT_FALSE(vin_store->isVinProvisioned());
     EXPECT_FALSE(facade->readVin().has_value());
     
-    // Perform security access
+    // Perform security access with mock
+    SecuritySeed seed;
+    seed.seed_id = 12345;
+    seed.seed = {0x01, 0x02, 0x03, 0x04};
+    
+    EXPECT_CALL(*mock_sec_proxy, getSeed(SecLevel::LEVEL_1))
+        .WillOnce(Return(seed));
+    
     std::vector<uint8_t> seed_request;
     std::vector<uint8_t> seed_response;
     diag_server->handleSecurityAccess(0x01, seed_request, seed_response);
     
-    std::vector<uint8_t> key_request = {0x12, 0x34, 0x56, 0x78};
+    std::vector<uint8_t> key = {0x05, 0x06, 0x07, 0x08};
+    EXPECT_CALL(*mock_sec_proxy, verifyKey(SecLevel::LEVEL_1, 12345, key))
+        .WillOnce(Return(SecResult::SUCCESS));
+    
+    std::vector<uint8_t> key_request = {0x02};
+    key_request.insert(key_request.end(), key.begin(), key.end());
     std::vector<uint8_t> key_response;
     diag_server->handleSecurityAccess(0x02, key_request, key_response);
     

@@ -3,30 +3,60 @@
 
 namespace cgw_diag {
 
-DiagnosticServer::DiagnosticServer(std::shared_ptr<VinStore> vin_store)
-    : vin_store_(std::move(vin_store)) {
+DiagnosticServer::DiagnosticServer(std::shared_ptr<VinStore> vin_store,
+                                   std::shared_ptr<CgwSecClientProxy> sec_client_proxy)
+    : vin_store_(std::move(vin_store))
+    , sec_client_proxy_(std::move(sec_client_proxy)) {
 }
 
 ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
                                                   const std::vector<uint8_t>& request,
                                                   std::vector<uint8_t>& response) {
+    // Check lockout status
+    if (is_locked_out_) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - lockout_start_).count();
+        if (elapsed < LOCKOUT_DURATION_MS) {
+            return ErrorCode::VIN_WRITE_REJECTED;
+        }
+        // Lockout period expired, reset
+        is_locked_out_ = false;
+        failed_attempts_ = 0;
+    }
+
     // Sub-function 0x01: Request seed
-    // Sub-function 0x02: Send key
     if (sub_function == 0x01) {
-        // FIXME: CRITICAL — hardcoded seed is a security vulnerability.
-        // Replace with cryptographically random seed before production.
-        // The seed must be unique per session and unpredictable.
-        response.resize(4);
+        // Get seed from CGW-SEC
+        auto seed_result = sec_client_proxy_->getSeed(SecLevel::LEVEL_1);
+        if (!seed_result.has_value()) {
+            return ErrorCode::VIN_WRITE_REJECTED;
+        }
+        
+        // Store seed_id for key verification
+        seed_id_ = seed_result->seed_id;
+        
+        // Build response: positive response + seed
+        response.resize(2 + seed_result->seed.size());
         response[0] = 0x67;  // Positive response
         response[1] = 0x01;  // Sub-function
-        response[2] = 0x12;  // Seed byte 1 (HARDCODED — DO NOT SHIP)
-        response[3] = 0x34;  // Seed byte 2 (HARDCODED — DO NOT SHIP)
+        std::copy(seed_result->seed.begin(), seed_result->seed.end(), 
+                  response.begin() + 2);
+        
         return ErrorCode::SUCCESS;
-    } else if (sub_function == 0x02) {
-        // FIXME: CRITICAL — accepts any 4-byte key. This bypasses
-        // security entirely. Replace with real seed/key validation
-        // (e.g., compute key from seed using shared secret or PKI).
-        if (request.size() >= 4) {
+    } 
+    // Sub-function 0x02: Send key
+    else if (sub_function == 0x02) {
+        // Extract key from request (skip sub-function byte)
+        std::vector<uint8_t> key(request.begin() + 1, request.end());
+        
+        // Verify key with CGW-SEC
+        auto verify_result = sec_client_proxy_->verifyKey(
+            SecLevel::LEVEL_1, seed_id_, key);
+        
+        if (verify_result == SecResult::SUCCESS) {
+            // Reset failed attempts on success
+            failed_attempts_ = 0;
             security_level_ = SecurityLevel::LEVEL_1;
             vin_write_session_active_ = true;
             
@@ -34,6 +64,20 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
             response[0] = 0x67;  // Positive response
             response[1] = 0x02;  // Sub-function
             return ErrorCode::SUCCESS;
+        } else if (verify_result == SecResult::INVALID_KEY) {
+            // Increment failed attempts
+            failed_attempts_++;
+            
+            // Check if lockout should be triggered
+            if (failed_attempts_ >= MAX_FAILED_ATTEMPTS) {
+                is_locked_out_ = true;
+                lockout_start_ = std::chrono::steady_clock::now();
+            }
+            
+            return ErrorCode::INVALID_KEY;
+        } else {
+            // Other errors (service unavailable, timeout, etc.)
+            return ErrorCode::VIN_WRITE_REJECTED;
         }
     }
     
@@ -86,6 +130,21 @@ SecurityLevel DiagnosticServer::getSecurityLevel() const {
 void DiagnosticServer::resetSession() {
     security_level_ = SecurityLevel::LOCKED;
     vin_write_session_active_ = false;
+    failed_attempts_ = 0;
+    is_locked_out_ = false;
+    seed_id_ = 0;
+}
+
+bool DiagnosticServer::isLockedOut() const {
+    if (!is_locked_out_) {
+        return false;
+    }
+    
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - lockout_start_).count();
+    
+    return elapsed < LOCKOUT_DURATION_MS;
 }
 
 bool DiagnosticServer::validateVin(const std::vector<uint8_t>& data) const {

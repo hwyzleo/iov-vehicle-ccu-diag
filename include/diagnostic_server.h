@@ -3,7 +3,9 @@
 #include "vin_store.h"
 #include "data_models.h"
 #include "error_codes.h"
+#include "cgw_sec_client_proxy.h"
 #include <memory>
+#include <chrono>
 
 namespace cgw_diag {
 
@@ -20,7 +22,8 @@ enum class SecurityLevel {
 
 class DiagnosticServer {
 public:
-    DiagnosticServer(std::shared_ptr<VinStore> vin_store);
+    DiagnosticServer(std::shared_ptr<VinStore> vin_store,
+                     std::shared_ptr<CgwSecClientProxy> sec_client_proxy);
     ~DiagnosticServer() = default;
     
     // Handle UDS Security Access (0x27)
@@ -41,13 +44,25 @@ public:
     
     // Reset session (for timeout or explicit logout)
     void resetSession();
+    
+    // Check if locked out due to failed attempts
+    bool isLockedOut() const;
 
 private:
     bool validateVin(const std::vector<uint8_t>& data) const;
     
     std::shared_ptr<VinStore> vin_store_;
+    std::shared_ptr<CgwSecClientProxy> sec_client_proxy_;
     SecurityLevel security_level_ = SecurityLevel::LOCKED;
     bool vin_write_session_active_ = false;
+    
+    // Security access state for CGW-SEC integration
+    uint32_t seed_id_ = 0;
+    uint8_t failed_attempts_ = 0;
+    static constexpr uint8_t MAX_FAILED_ATTEMPTS = 3;
+    static constexpr uint32_t LOCKOUT_DURATION_MS = 10000;  // 10 seconds
+    std::chrono::steady_clock::time_point lockout_start_;
+    bool is_locked_out_ = false;
 };
 
 } // namespace cgw_diag
