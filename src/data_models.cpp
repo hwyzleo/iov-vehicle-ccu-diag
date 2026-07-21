@@ -2,7 +2,17 @@
 
 namespace cgw_diag {
 
-// Data models are mostly POD types, so implementation is minimal
-// This file exists for future extensions or serialization logic
+std::string vinSourceToString(VinSource source) {
+    switch (source) {
+        case VinSource::PROVISIONED: return "provisioned";
+        case VinSource::UNKNOWN: return "unknown";
+        default: return "unknown";
+    }
+}
+
+VinSource stringToVinSource(const std::string& str) {
+    if (str == "provisioned") return VinSource::PROVISIONED;
+    return VinSource::UNKNOWN;
+}
 
 } // namespace cgw_diag

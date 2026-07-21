@@ -38,6 +38,11 @@ enum class BaselineSource {
     UNKNOWN
 };
 
+enum class VinSource {
+    PROVISIONED,
+    UNKNOWN
+};
+
 struct DidEntry {
     uint16_t did = 0;
     std::string field;
@@ -74,6 +79,7 @@ struct EcuVersionEntry {
 
 struct VehicleSoftwareSnapshot {
     std::string vin;
+    VinSource vin_source = VinSource::UNKNOWN;
     std::optional<std::string> baseline_id;
     BaselineSource baseline_source = BaselineSource::UNKNOWN;
     std::string registry_version;
