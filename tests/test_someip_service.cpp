@@ -5,6 +5,7 @@
 #include "fota_facade.h"
 #include "vin_store.h"
 #include "constants.h"
+#include "test_helpers.h"
 #include <nlohmann/json.hpp>
 #include <memory>
 #include <filesystem>
@@ -15,12 +16,7 @@ namespace tests {
 class SomeIpServiceTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        config_.service_id = 0x1234;
-        config_.instance_id = 0x0001;
-        config_.major_version = 1;
-        config_.minor_version = 0;
-        config_.ip_address = "127.0.0.1";
-        config_.port = 30501;
+        config_ = getAvailableSomeIpConfig();
     }
 
     SomeIpServiceConfig config_;
@@ -82,13 +78,11 @@ protected:
         facade = std::make_shared<FotaFacade>(nullptr, nullptr, vin_store);
         fota_service = std::make_unique<FotaSomeIpService>(facade, std::move(someip_service));
 
-        SomeIpServiceConfig config;
+        SomeIpServiceConfig config = getAvailableSomeIpConfig();
         config.service_id = constants::CGW_DIAG_SERVICE_ID;
         config.instance_id = constants::CGW_DIAG_INSTANCE_ID;
         config.major_version = constants::CGW_DIAG_MAJOR_VERSION;
         config.minor_version = constants::CGW_DIAG_MINOR_VERSION;
-        config.ip_address = "127.0.0.1";
-        config.port = 30501;
         fota_service->initialize(config);
     }
 
