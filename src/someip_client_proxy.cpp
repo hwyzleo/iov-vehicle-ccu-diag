@@ -4,6 +4,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <chrono>
+#include <vector>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -131,13 +132,37 @@ public:
         if (!initialized_ || connected_) {
             return false;
         }
-        // In real implementation, this would establish connection to remote service
+
+        fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
+        if (fd_ < 0) {
+            return false;
+        }
+
+        sockaddr_in addr{};
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(remote_config_.port);
+        if (::inet_pton(AF_INET, remote_config_.ip_address.c_str(), &addr.sin_addr) != 1) {
+            ::close(fd_);
+            fd_ = -1;
+            return false;
+        }
+
+        if (::connect(fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+            ::close(fd_);
+            fd_ = -1;
+            return false;
+        }
+
         connected_ = true;
         return true;
     }
 
     void disconnect() override {
         connected_ = false;
+        if (fd_ >= 0) {
+            ::close(fd_);
+            fd_ = -1;
+        }
     }
 
     bool isConnected() const override {
@@ -146,18 +171,72 @@ public:
 
     SomeIpMessage sendRequest(const SomeIpMessage& request) override {
         SomeIpMessage response;
+        response.header.return_code = ReturnCode::E_NOT_OK;
 
-        if (!connected_) {
+        if (!connected_ || fd_ < 0) {
+            return response;
+        }
+
+        uint16_t sid = ++session_counter_;
+
+        PseudoSomeIpHeader reqHdr{};
+        reqHdr.service_id = request.header.service_id;
+        reqHdr.method_id = request.header.method_id;
+        reqHdr.message_type = static_cast<uint8_t>(request.header.message_type);
+        reqHdr.return_code = static_cast<uint8_t>(request.header.return_code);
+        reqHdr.client_id = request.header.client_id;
+        reqHdr.session_id = sid;
+        reqHdr.payload_length = static_cast<uint32_t>(request.payload.size());
+
+        uint8_t hdrBuf[20];
+        serializeHeader(hdrBuf, reqHdr);
+        if (!writeAll(fd_, hdrBuf, 20)) {
+            disconnect();
+            return response;
+        }
+        if (!request.payload.empty()) {
+            if (!writeAll(fd_, request.payload.data(), request.payload.size())) {
+                disconnect();
+                return response;
+            }
+        }
+
+        // Wait for response
+        uint8_t respHdrBuf[20];
+        if (!readExact(fd_, respHdrBuf, 20, static_cast<int>(request_timeout_ms_))) {
+            disconnect();
+            return response;
+        }
+
+        PseudoSomeIpHeader respHdr{};
+        deserializeHeader(respHdrBuf, respHdr);
+
+        if (respHdr.session_id != sid) {
+            // Session mismatch
             response.header.return_code = ReturnCode::E_NOT_OK;
             return response;
         }
 
-        // In real implementation, this would send request via SOME/IP stack
-        // and wait for response with timeout
-        response.header.service_id = request.header.service_id;
-        response.header.method_id = request.header.method_id;
-        response.header.message_type = MessageType::RESPONSE;
-        response.header.return_code = ReturnCode::E_OK;
+        std::vector<uint8_t> payload;
+        if (respHdr.payload_length > 0) {
+            if (respHdr.payload_length > 10 * 1024 * 1024) {
+                disconnect();
+                return response;
+            }
+            payload.resize(respHdr.payload_length);
+            if (!readExact(fd_, payload.data(), respHdr.payload_length, static_cast<int>(request_timeout_ms_))) {
+                disconnect();
+                return response;
+            }
+        }
+
+        response.header.service_id = respHdr.service_id;
+        response.header.method_id = respHdr.method_id;
+        response.header.message_type = static_cast<MessageType>(respHdr.message_type);
+        response.header.return_code = static_cast<ReturnCode>(respHdr.return_code);
+        response.header.client_id = respHdr.client_id;
+        response.header.session_id = respHdr.session_id;
+        response.payload = std::move(payload);
 
         return response;
     }
@@ -184,6 +263,8 @@ private:
     std::atomic<bool> initialized_{false};
     std::atomic<bool> connected_{false};
     uint32_t request_timeout_ms_ = 2000;
+    int fd_{-1};
+    uint16_t session_counter_{0};
 };
 
 std::unique_ptr<SomeIpClientProxy> createSomeIpClientProxy() {

@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "someip_client_proxy.h"
+#include "someip_service.h"
 #include "someip_types.h"
+#include "test_helpers.h"
 
 namespace cgw_diag {
 namespace tests {
@@ -8,12 +10,7 @@ namespace tests {
 class SomeIpProxyTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        service_config_.service_id = 0x1234;
-        service_config_.instance_id = 0x0001;
-        service_config_.major_version = 1;
-        service_config_.minor_version = 0;
-        service_config_.ip_address = "127.0.0.1";
-        service_config_.port = 30501;
+        service_config_ = getAvailableSomeIpConfig();
     }
 
     SomeIpServiceConfig service_config_;
@@ -31,12 +28,22 @@ TEST_F(SomeIpProxyTest, Initialize) {
 }
 
 TEST_F(SomeIpProxyTest, ConnectDisconnect) {
+    auto service = createSomeIpService();
+    ASSERT_TRUE(service->initialize(service_config_));
+    ASSERT_TRUE(service->start());
+
+    // 使用服务实际绑定的端口
+    SomeIpServiceConfig client_config = service_config_;
+    client_config.port = service->getBoundPort();
+
     auto proxy = createSomeIpClientProxy();
-    proxy->initialize(service_config_);
+    proxy->initialize(client_config);
     EXPECT_TRUE(proxy->connect());
     EXPECT_TRUE(proxy->isConnected());
     proxy->disconnect();
     EXPECT_FALSE(proxy->isConnected());
+
+    service->stop();
 }
 
 TEST_F(SomeIpProxyTest, SetRequestTimeout) {

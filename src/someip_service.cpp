@@ -158,8 +158,16 @@ public:
             return false;
         }
 
+        // 获取实际绑定的端口（当使用端口 0 时）
+        sockaddr_in actual_addr{};
+        socklen_t actual_len = sizeof(actual_addr);
+        if (::getsockname(listen_fd_, reinterpret_cast<sockaddr*>(&actual_addr), &actual_len) == 0) {
+            bound_port_ = ntohs(actual_addr.sin_port);
+        } else {
+            bound_port_ = config_.port;
+        }
+
         bound_address_ = config_.ip_address;
-        bound_port_ = config_.port;
         initialized_ = true;
         return true;
     }

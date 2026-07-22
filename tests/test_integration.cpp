@@ -524,10 +524,9 @@ TEST_F(SomeIpIntegrationTest, ServiceAndProxyCommunication) {
     ASSERT_TRUE(fota_proxy.initialize(service_config_));
     ASSERT_TRUE(fota_proxy.connect());
 
-    // Note: Stub implementation returns empty payload, so version will be empty
-    // In a real integration test with actual SOME/IP stack, this would return data
+    // Real TCP mock now forwards requests to handler which returns actual registry version
     auto version = fota_proxy.getRegistryVersion();
-    EXPECT_TRUE(version.empty());
+    EXPECT_EQ(version, "2026.07.0");
 
     fota_proxy.disconnect();
     fota_service.stop();

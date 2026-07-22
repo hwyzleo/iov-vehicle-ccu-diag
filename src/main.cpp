@@ -37,6 +37,7 @@ void printUsage(const char* program_name) {
               << "  --did-registry <path>    Path to DID registry YAML\n"
               << "  --diag-config <path>     Path to diag config YAML\n"
               << "  --someip-config <path>   Path to SOME/IP config YAML\n"
+              << "  --sec-config <path>      Path to CGW-SEC SOME/IP config YAML\n"
               << "  --can-interface <name>   CAN interface name (default: " << constants::DEFAULT_CAN_INTERFACE << ")\n"
               << "  --can-baudrate <rate>    CAN baudrate (default: " << constants::DEFAULT_CAN_BAUDRATE << ")\n"
               << "  --doip-ip <ip>           DoIP server IP address (default: " << constants::DEFAULT_DOIP_IP << ")\n"
@@ -53,6 +54,7 @@ int main(int argc, char* argv[]) {
     std::string did_registry_path = constants::DEFAULT_DID_REGISTRY_PATH;
     std::string diag_config_path = constants::DEFAULT_DIAG_CONFIG_PATH;
     std::string someip_config_path = constants::DEFAULT_SOMEIP_CONFIG_PATH;
+    std::string sec_config_path = constants::DEFAULT_SEC_CONFIG_PATH;
     std::string can_interface = constants::DEFAULT_CAN_INTERFACE;
     uint32_t can_baudrate = constants::DEFAULT_CAN_BAUDRATE;
     std::string doip_ip = constants::DEFAULT_DOIP_IP;
@@ -69,6 +71,8 @@ int main(int argc, char* argv[]) {
             diag_config_path = argv[++i];
         } else if (arg == "--someip-config" && i + 1 < argc) {
             someip_config_path = argv[++i];
+        } else if (arg == "--sec-config" && i + 1 < argc) {
+            sec_config_path = argv[++i];
         } else if (arg == "--can-interface" && i + 1 < argc) {
             can_interface = argv[++i];
         } else if (arg == "--can-baudrate" && i + 1 < argc) {
@@ -118,9 +122,8 @@ int main(int argc, char* argv[]) {
         // Create VIN store
         auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
 
-        // Create CGW-SEC client proxy and diagnostic server
+        // Create CGW-SEC client proxy
         auto sec_client_proxy = createCgwSecClientProxy();
-        auto diag_server = std::make_shared<DiagnosticServer>(vin_store, std::move(sec_client_proxy));
 
         // Create version collector and FOTA facade
         auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport, vin_store);
@@ -138,9 +141,40 @@ int main(int argc, char* argv[]) {
             someip_config.minor_version = constants::CGW_DIAG_MINOR_VERSION;
         }
 
+        // Load CGW-SEC SOME/IP configuration
+        SomeIpServiceConfig sec_someip_config;
+        try {
+            sec_someip_config = ConfigLoader::loadSomeIpConfig(sec_config_path);
+        } catch (const std::exception& e) {
+            std::cerr << "Warning: Failed to load CGW-SEC SOME/IP config, using defaults: " << e.what() << "\n";
+            sec_someip_config.service_id = 0x1235;
+            sec_someip_config.instance_id = 0x0001;
+            sec_someip_config.major_version = 1;
+            sec_someip_config.minor_version = 0;
+        }
+
         // Override network config from command line
         someip_config.ip_address = someip_ip;
         someip_config.port = someip_port;
+        
+        // Initialize CGW-SEC client proxy
+        std::cout << "Initializing CGW-SEC client proxy...\n";
+        if (!sec_client_proxy->initialize(sec_someip_config)) {
+            std::cerr << "Error: Failed to initialize CGW-SEC client proxy\n";
+            return 1;
+        }
+        
+        // Connect to CGW-SEC service
+        std::cout << "Connecting to CGW-SEC service...\n";
+        if (!sec_client_proxy->connect()) {
+            std::cerr << "Warning: Failed to connect to CGW-SEC service. Security features may be unavailable.\n";
+            // Continue startup without SEC connection
+        } else {
+            std::cout << "Successfully connected to CGW-SEC service\n";
+        }
+        
+        // Create diagnostic server with initialized SEC proxy
+        auto diag_server = std::make_shared<DiagnosticServer>(vin_store, std::move(sec_client_proxy));
 
         // Create SOME/IP service
         auto someip_service = createSomeIpService();
@@ -163,8 +197,8 @@ int main(int argc, char* argv[]) {
 
         std::cout << "CGW-DIAG service started\n";
         std::cout << "VIN Store: " << (vin_store->isVinProvisioned() ? "Provisioned" : "Not provisioned") << "\n";
-        std::cout << "SOME/IP Service ID: 0x" << std::hex << someip_config.service_id << "\n";
-        std::cout << "Listening on: " << someip_config.ip_address << ":" << someip_config.port << "\n";
+        std::cout << "SOME/IP Service ID: 0x" << std::hex << someip_config.service_id << std::dec << "\n";
+        // Listening log is now emitted by SomeIpServiceMock after successful bind
 
         // Main loop
         while (g_running) {

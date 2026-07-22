@@ -1,0 +1,18 @@
+# SOME/IP Service Configuration for CGW-SEC
+someip:
+  service:
+    service_id: 0x1235  # Example Service ID for CGW-SEC
+    instance_id: 0x0001
+    major_version: 1
+    minor_version: 0
+  
+  network:
+    ip_address: "127.0.0.1"
+    port: 30502
+  
+  timing:
+    request_timeout_ms: 2000
+  
+  sd:
+    enabled: true
+    mode: "static"

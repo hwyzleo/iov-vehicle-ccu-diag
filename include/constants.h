@@ -59,6 +59,7 @@ constexpr MethodId METHOD_READ_VIN = 0x0004;
 constexpr EventId EVENT_INVENTORY_RESULT = 0x8001;
 
 // SOME/IP Network Configuration
+inline const std::string DEFAULT_SEC_CONFIG_PATH = "config/sec_config.yaml";
 inline const std::string DEFAULT_SOMEIP_ADDRESS = "127.0.0.1";
 constexpr uint16_t DEFAULT_SOMEIP_PORT = 30501;
 constexpr uint32_t DEFAULT_SOMEIP_REQUEST_TIMEOUT_MS = 2000;
