@@ -20,6 +20,8 @@ public:
     bool offerService();
     void stopOfferService();
 
+    uint16_t getBoundPort() const;
+
     SomeIpMessage handleReadVin(const SomeIpMessage& request);
 
 private:

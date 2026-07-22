@@ -37,6 +37,10 @@ void FotaSomeIpService::stopOfferService() {
     service_->stopOfferService();
 }
 
+uint16_t FotaSomeIpService::getBoundPort() const {
+    return service_->getBoundPort();
+}
+
 void FotaSomeIpService::registerMethodHandlers() {
     service_->registerMethodHandler(
         constants::METHOD_COLLECT_VEHICLE_INVENTORY,

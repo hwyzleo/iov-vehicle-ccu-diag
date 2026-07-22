@@ -14,6 +14,8 @@
 #include "someip_service.h"
 #include "someip_client_proxy.h"
 #include "vin_store.h"
+#include "test_helpers.h"
+#include "constants.h"
 #include <fstream>
 #include <memory>
 #include <filesystem>
@@ -466,12 +468,11 @@ protected:
         config_path_ = (temp_dir_ / "test_someip_integration.yaml").string();
         createTestConfig();
 
-        service_config_.service_id = 0x1234;
-        service_config_.instance_id = 0x0001;
-        service_config_.major_version = 1;
-        service_config_.minor_version = 0;
-        service_config_.ip_address = "127.0.0.1";
-        service_config_.port = 30501;
+        service_config_ = getAvailableSomeIpConfig();
+        service_config_.service_id = constants::CGW_DIAG_SERVICE_ID;
+        service_config_.instance_id = constants::CGW_DIAG_INSTANCE_ID;
+        service_config_.major_version = constants::CGW_DIAG_MAJOR_VERSION;
+        service_config_.minor_version = constants::CGW_DIAG_MINOR_VERSION;
     }
 
     void TearDown() override {
@@ -519,9 +520,13 @@ TEST_F(SomeIpIntegrationTest, ServiceAndProxyCommunication) {
     ASSERT_TRUE(fota_service.start());
     ASSERT_TRUE(fota_service.offerService());
 
+    // 使用服务实际绑定的端口
+    SomeIpServiceConfig client_config = service_config_;
+    client_config.port = fota_service.getBoundPort();
+
     auto proxy = createSomeIpClientProxy();
     FotaSomeIpProxy fota_proxy(std::move(proxy));
-    ASSERT_TRUE(fota_proxy.initialize(service_config_));
+    ASSERT_TRUE(fota_proxy.initialize(client_config));
     ASSERT_TRUE(fota_proxy.connect());
 
     // Real TCP mock now forwards requests to handler which returns actual registry version
@@ -574,9 +579,13 @@ TEST_F(SomeIpIntegrationTest, ProxyReconnection) {
     ASSERT_TRUE(fota_service.start());
     ASSERT_TRUE(fota_service.offerService());
 
+    // 使用服务实际绑定的端口
+    SomeIpServiceConfig client_config = service_config_;
+    client_config.port = fota_service.getBoundPort();
+
     auto proxy = createSomeIpClientProxy();
     FotaSomeIpProxy fota_proxy(std::move(proxy));
-    ASSERT_TRUE(fota_proxy.initialize(service_config_));
+    ASSERT_TRUE(fota_proxy.initialize(client_config));
 
     ASSERT_TRUE(fota_proxy.connect());
     EXPECT_TRUE(fota_proxy.isConnected());
@@ -613,9 +622,13 @@ TEST_F(SomeIpIntegrationTest, ProxyGetEcuVersion) {
     ASSERT_TRUE(fota_service.start());
     ASSERT_TRUE(fota_service.offerService());
 
+    // 使用服务实际绑定的端口
+    SomeIpServiceConfig client_config = service_config_;
+    client_config.port = fota_service.getBoundPort();
+
     auto proxy = createSomeIpClientProxy();
     FotaSomeIpProxy fota_proxy(std::move(proxy));
-    ASSERT_TRUE(fota_proxy.initialize(service_config_));
+    ASSERT_TRUE(fota_proxy.initialize(client_config));
     ASSERT_TRUE(fota_proxy.connect());
 
     auto entry = fota_proxy.getEcuVersion("BMS");
