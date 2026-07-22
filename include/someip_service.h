@@ -23,6 +23,12 @@ public:
 
     virtual ServiceId getServiceId() const = 0;
     virtual uint16_t getInstanceId() const = 0;
+
+    /**
+     * @brief 获取实际绑定的端口
+     * @return 绑定的端口号，未初始化时返回 0
+     */
+    virtual uint16_t getBoundPort() const = 0;
 };
 
 // Factory function
