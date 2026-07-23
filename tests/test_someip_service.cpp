@@ -63,7 +63,7 @@ TEST_F(SomeIpServiceTest, RegisterMethodHandler) {
 TEST_F(SomeIpServiceTest, GetServiceId) {
     auto service = createSomeIpService();
     service->initialize(config_);
-    EXPECT_EQ(service->getServiceId(), 0x1234);
+    EXPECT_EQ(service->getServiceId(), 0x7725);
     EXPECT_EQ(service->getInstanceId(), 0x0001);
 }
 

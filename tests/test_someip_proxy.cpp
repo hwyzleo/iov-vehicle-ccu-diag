@@ -57,7 +57,7 @@ TEST_F(SomeIpProxyTest, SendRequestWithoutConnection) {
     proxy->initialize(service_config_);
 
     SomeIpMessage request;
-    request.header.service_id = 0x1234;
+    request.header.service_id = 0x7725;
     request.header.method_id = 0x0001;
     request.header.message_type = MessageType::REQUEST;
 

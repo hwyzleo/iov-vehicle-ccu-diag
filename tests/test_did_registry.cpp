@@ -55,7 +55,7 @@ ecus:
     logicalAddress: 0x20
     transport: "DoIP"
     readMethod: "SOMEIP_getVersion"
-    someipService: "0x1234"
+    someipService: "0x7725"
     fields: ["swVersion", "hwVersion"]
 )");
     }

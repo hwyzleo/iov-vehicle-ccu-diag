@@ -44,7 +44,7 @@ constexpr uint16_t DEFAULT_DOIP_PORT = 13400;
 inline const std::string APP_VERSION = "1.0.0";
 
 // SOME/IP Service IDs
-constexpr ServiceId CGW_DIAG_SERVICE_ID = 0x1234;
+constexpr ServiceId CGW_DIAG_SERVICE_ID = 0x7725;
 constexpr uint16_t CGW_DIAG_INSTANCE_ID = 0x0001;
 constexpr uint8_t CGW_DIAG_MAJOR_VERSION = 1;
 constexpr uint32_t CGW_DIAG_MINOR_VERSION = 0;

@@ -1,7 +1,7 @@
 # SOME/IP Service Configuration for CGW-DIAG
 someip:
   service:
-    service_id: 0x1234
+    service_id: 0x7725
     instance_id: 0x0001
     major_version: 1
     minor_version: 0

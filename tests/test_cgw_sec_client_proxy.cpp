@@ -26,7 +26,7 @@ protected:
         auto mock = std::make_unique<MockSomeIpClientProxy>();
         mock_ptr_ = mock.get();
         proxy_ = createCgwSecClientProxy(std::move(mock));
-        config_.service_id = 0x1234;
+        config_.service_id = 0x7725;
         config_.instance_id = 0x0001;
         config_.ip_address = "127.0.0.1";
         config_.port = 30509;
@@ -308,7 +308,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyRequestPayloadFormat) {
     proxy_->verifyKey(SecLevel::LEVEL_1, 0x12345678, key);
 
     // Verify request structure
-    EXPECT_EQ(captured_request.header.service_id, 0x1234);
+    EXPECT_EQ(captured_request.header.service_id, 0x7725);
     EXPECT_EQ(captured_request.header.method_id, 0x0002);
     EXPECT_EQ(captured_request.header.message_type, MessageType::REQUEST);
     EXPECT_EQ(captured_request.header.length, 8u + 1 + 4 + 2);  // header + level + seed_id + key
@@ -341,7 +341,7 @@ TEST_F(CgwSecClientProxyTest, GetSeedRequestPayloadFormat) {
     proxy_->initialize(config_);
     proxy_->getSeed(SecLevel::LEVEL_1);
 
-    EXPECT_EQ(captured_request.header.service_id, 0x1234);
+    EXPECT_EQ(captured_request.header.service_id, 0x7725);
     EXPECT_EQ(captured_request.header.method_id, 0x0001);
     EXPECT_EQ(captured_request.header.message_type, MessageType::REQUEST);
     EXPECT_EQ(captured_request.header.length, 8u + 1);  // header + level
