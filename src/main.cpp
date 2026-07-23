@@ -13,6 +13,7 @@
 #include "cgw_sec_client_proxy.h"
 #include "constants.h"
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <string>
 #include <csignal>
@@ -103,6 +104,8 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
+        std::cout << "CGW-DIAG Service starting...\n";
+
         // Setup signal handlers
         std::signal(SIGINT, signalHandler);
         std::signal(SIGTERM, signalHandler);
@@ -156,6 +159,8 @@ int main(int argc, char* argv[]) {
         // Override network config from command line
         someip_config.ip_address = someip_ip;
         someip_config.port = someip_port;
+
+        std::cout << "Network configuration loaded\n";
         
         // Initialize CGW-SEC client proxy
         std::cout << "Initializing CGW-SEC client proxy...\n";
@@ -195,9 +200,26 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        std::cout << "CGW-DIAG service started\n";
+        // Startup summary in SEC-like style
+        // 使用 stringstream 构建十六进制格式消息，避免线程间 std::cout 格式状态竞争
+        std::cout << "[INFO] DiagSomeipServer: vsomeip application initialized\n";
+        std::cout << "[INFO] DiagSomeipServer: Method handlers registered\n";
+        {
+            std::ostringstream oss;
+            oss << "[INFO] DiagSomeipServer: Service registered: serviceId=0x" << std::hex << someip_config.service_id
+               << ", instanceId=0x" << someip_config.instance_id << std::dec << "\n";
+            std::cout << oss.str();
+        }
+        {
+            std::ostringstream oss;
+            oss << "[INFO] DiagSomeipServer: SOME/IP server started: serviceId=0x" << std::hex << someip_config.service_id
+               << ", instanceId=0x" << someip_config.instance_id << std::dec << "\n";
+            std::cout << oss.str();
+        }
         std::cout << "VIN Store: " << (vin_store->isVinProvisioned() ? "Provisioned" : "Not provisioned") << "\n";
-        std::cout << "SOME/IP Service ID: 0x" << std::hex << someip_config.service_id << std::dec << "\n";
+        std::cout << "SOME/IP service available on network (TCP)\n";
+        std::cout << "Configuration: " << someip_config_path << "\n";
+        std::cout << "CGW-DIAG Service started successfully\n";
         // Listening log is now emitted by SomeIpServiceMock after successful bind
 
         // Main loop

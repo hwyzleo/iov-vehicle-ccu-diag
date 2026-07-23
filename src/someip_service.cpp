@@ -5,6 +5,7 @@
 #include <atomic>
 #include <thread>
 #include <vector>
+#include <sstream>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -170,7 +171,12 @@ public:
         running_ = true;
 
         listener_thread_ = std::thread([this]() {
-            std::cout << "[INFO] MockSomeIP listening on " << bound_address_ << ":" << bound_port_ << "\n";
+            // 使用 stringstream 构建完整消息，避免线程间 std::cout 格式状态竞争
+            std::ostringstream oss;
+            oss << "[INFO] MockSomeIP listening on " << bound_address_ << ":" << bound_port_
+               << " for service=0x" << std::hex << config_.service_id
+               << " instance=0x" << config_.instance_id << std::dec << "\n";
+            std::cout << oss.str();
             while (!stop_requested_) {
                 pollfd pfd{listen_fd_, POLLIN, 0};
                 int pr = ::poll(&pfd, 1, 200); // 200ms poll interval
@@ -195,7 +201,16 @@ public:
                     continue;
                 }
                 client_fd_ = fd;
-                std::cout << "[INFO] MockSomeIP client connected\n";
+                {
+                    char addr_buf[INET_ADDRSTRLEN] = {0};
+                    ::inet_ntop(AF_INET, &cli.sin_addr, addr_buf, sizeof(addr_buf));
+                    std::ostringstream oss;
+                    oss << "[INFO] MockSomeIP client connected: fd=" << client_fd_
+                       << ", addr=" << addr_buf << ":" << ntohs(cli.sin_port)
+                       << ", service=0x" << std::hex << config_.service_id
+                       << ", instance=0x" << config_.instance_id << std::dec << "\n";
+                    std::cout << oss.str();
+                }
 
                 // Simple synchronous request processing loop
                 while (!stop_requested_) {
@@ -221,9 +236,13 @@ public:
                         }
                     }
 
-                    std::cout << "[INFO] MockSomeIP recv service=0x" << std::hex << hdr.service_id
-                              << " method=0x" << hdr.method_id << std::dec
-                              << " session=" << hdr.session_id << "\n";
+                    {
+                        std::ostringstream oss;
+                        oss << "[INFO] MockSomeIP recv service=0x" << std::hex << hdr.service_id
+                           << " method=0x" << hdr.method_id << std::dec
+                           << " session=" << hdr.session_id << "\n";
+                        std::cout << oss.str();
+                    }
 
                     // Map to SomeIpMessage
                     SomeIpMessage request;

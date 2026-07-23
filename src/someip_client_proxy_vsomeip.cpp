@@ -210,8 +210,10 @@ void SomeIpClientProxyVsomeip::onServiceAvailability(
     someip::service_t service, someip::instance_t instance, bool available) {
     
     if (available) {
-        logInfo("Service available: 0x" + std::to_string(service) + 
-                " instance: 0x" + std::to_string(instance));
+        std::ostringstream oss;
+        oss << "Service available: 0x" << std::hex << service 
+            << " instance: 0x" << instance;
+        logInfo(oss.str());
         
         // 注册消息处理器
         application_->register_message_handler(
@@ -222,8 +224,10 @@ void SomeIpClientProxyVsomeip::onServiceAvailability(
         
         connected_ = true;
     } else {
-        logWarning("Service unavailable: 0x" + std::to_string(service) + 
-                   " instance: 0x" + std::to_string(instance));
+        std::ostringstream oss2;
+        oss2 << "Service unavailable: 0x" << std::hex << service 
+             << " instance: 0x" << instance;
+        logWarning(oss2.str());
         connected_ = false;
     }
 }

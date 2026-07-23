@@ -123,8 +123,10 @@ bool SomeIpServiceVsomeip::offerService() {
         application_->offer_service(config_.service_id, config_.instance_id);
         
         offering_ = true;
-        logInfo("Service offered: 0x" + std::to_string(config_.service_id) + 
-                " instance: 0x" + std::to_string(config_.instance_id));
+        std::ostringstream oss;
+        oss << "Service offered: 0x" << std::hex << config_.service_id 
+            << " instance: 0x" << config_.instance_id;
+        logInfo(oss.str());
         return true;
         
     } catch (const std::exception& e) {
