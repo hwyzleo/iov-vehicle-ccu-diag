@@ -150,7 +150,7 @@ int main(int argc, char* argv[]) {
             sec_someip_config = ConfigLoader::loadSomeIpConfig(sec_config_path);
         } catch (const std::exception& e) {
             std::cerr << "Warning: Failed to load CGW-SEC SOME/IP config, using defaults: " << e.what() << "\n";
-            sec_someip_config.service_id = 0x1235;
+            sec_someip_config.service_id = 0x1140;  // CGW-SEC-DSN-CR-003
             sec_someip_config.instance_id = 0x0001;
             sec_someip_config.major_version = 1;
             sec_someip_config.minor_version = 0;

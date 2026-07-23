@@ -55,7 +55,7 @@ ecus:
     logicalAddress: 0x20
     transport: "DoIP"
     readMethod: "SOMEIP_getVersion"
-    someipService: "0x7725"
+    someipService: "0x1110"  # CGW-DIAG-DSN-CR-007
     fields: ["swVersion", "hwVersion"]
 )");
     }

@@ -11,7 +11,7 @@ namespace tests {
  */
 inline SomeIpServiceConfig getAvailableSomeIpConfig() {
     SomeIpServiceConfig config;
-    config.service_id = 0x7725;
+    config.service_id = 0x1110;  // CGW-DIAG-DSN-CR-007
     config.instance_id = 0x0001;
     config.major_version = 1;
     config.minor_version = 0;

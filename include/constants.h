@@ -44,7 +44,8 @@ constexpr uint16_t DEFAULT_DOIP_PORT = 13400;
 inline const std::string APP_VERSION = "1.0.0";
 
 // SOME/IP Service IDs
-constexpr ServiceId CGW_DIAG_SERVICE_ID = 0x7725;
+// 来源：整车 SOME/IP Service Registry 统一分配（CGW-DIAG-DSN-CR-007）
+constexpr ServiceId CGW_DIAG_SERVICE_ID = 0x1110;
 constexpr uint16_t CGW_DIAG_INSTANCE_ID = 0x0001;
 constexpr uint8_t CGW_DIAG_MAJOR_VERSION = 1;
 constexpr uint32_t CGW_DIAG_MINOR_VERSION = 0;
@@ -61,7 +62,7 @@ constexpr EventId EVENT_INVENTORY_RESULT = 0x8001;
 // SOME/IP Network Configuration
 inline const std::string DEFAULT_SEC_CONFIG_PATH = "config/sec_config.yaml";
 inline const std::string DEFAULT_SOMEIP_ADDRESS = "127.0.0.1";
-constexpr uint16_t DEFAULT_SOMEIP_PORT = 30501;
+constexpr uint16_t DEFAULT_SOMEIP_PORT = 51110;
 constexpr uint32_t DEFAULT_SOMEIP_REQUEST_TIMEOUT_MS = 2000;
 
 } // namespace constants

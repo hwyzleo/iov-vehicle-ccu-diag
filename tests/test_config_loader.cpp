@@ -57,7 +57,7 @@ ecus:
     logicalAddress: 0x20
     transport: "DoIP"
     readMethod: "SOMEIP_getVersion"
-    someipService: "0x7725"
+    someipService: "0x1110"  # CGW-DIAG-DSN-CR-007
     fields: ["swVersion", "hwVersion"]
 )");
     }
@@ -108,7 +108,7 @@ TEST_F(ConfigLoaderTest, LoadDidRegistrySuccess) {
     EXPECT_EQ(idcm.logical_address, 0x20);
     EXPECT_EQ(idcm.transport, TransportType::DOIP);
     EXPECT_EQ(idcm.read_method, ReadMethod::SOMEIP_GET_VERSION);
-    EXPECT_EQ(idcm.someip_service, "0x7725");
+    EXPECT_EQ(idcm.someip_service, "0x1110");  // CGW-DIAG-DSN-CR-007
     ASSERT_EQ(idcm.fields.size(), 2);
     EXPECT_EQ(idcm.fields[0], "swVersion");
     EXPECT_EQ(idcm.fields[1], "hwVersion");
