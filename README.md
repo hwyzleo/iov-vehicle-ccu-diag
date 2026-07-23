@@ -276,9 +276,10 @@ Options:
 
 | 方法 | Method ID | 说明 |
 |------|-----------|------|
-| collectVehicleInventory | 0x0001 | 触发一轮采集，返回 VehicleSoftwareSnapshot |
-| getEcuVersion | 0x0002 | 按单 ECU 读取版本 |
-| getRegistryVersion | 0x0003 | 返回当前 DidRegistry 版本 |
+| readVin | 0x0001 | 读取 VIN |
+| collectVehicleInventory | 0x0002 | 触发一轮采集，返回 VehicleSoftwareSnapshot |
+| getEcuVersion | 0x0003 | 按单 ECU 读取版本 |
+| getRegistryVersion | 0x0004 | 返回当前 DidRegistry 版本 |
 
 ## 联系方式
 

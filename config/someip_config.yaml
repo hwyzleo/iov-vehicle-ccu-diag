@@ -11,12 +11,14 @@ someip:
     port: 30501
   
   methods:
-    collect_vehicle_inventory:
+    read_vin:
       method_id: 0x0001
-    get_ecu_version:
+    collect_vehicle_inventory:
       method_id: 0x0002
-    get_registry_version:
+    get_ecu_version:
       method_id: 0x0003
+    get_registry_version:
+      method_id: 0x0004
   
   events:
     inventory_result:
