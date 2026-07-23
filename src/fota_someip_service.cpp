@@ -1,6 +1,7 @@
 #include "fota_someip_service.h"
 #include "constants.h"
 #include <nlohmann/json.hpp>
+#include <iostream>
 
 namespace cgw_diag {
 
@@ -194,18 +195,14 @@ SomeIpMessage FotaSomeIpService::handleReadVin(const SomeIpMessage& request) {
     try {
         auto vin = facade_->readVin();
         
-        nlohmann::json j;
         if (vin.has_value()) {
-            j["vin"] = vin.value();
-            j["status"] = "provisioned";
+            // Return raw VIN string (17 bytes) as SOME/IP payload
+            response.payload.assign(vin.value().begin(), vin.value().end());
+            response.header.return_code = ReturnCode::E_OK;
         } else {
-            j["vin"] = nullptr;
-            j["status"] = "not_provisioned";
+            // VIN not provisioned - return error
+            response.header.return_code = ReturnCode::E_NOT_OK;
         }
-        
-        std::string json_str = j.dump();
-        response.payload.assign(json_str.begin(), json_str.end());
-        response.header.return_code = ReturnCode::E_OK;
     } catch (const std::exception& e) {
         response.header.return_code = ReturnCode::E_NOT_OK;
     }

@@ -2,6 +2,7 @@
 #include "someip_client_proxy.h"
 #include "someip_service.h"
 #include "someip_types.h"
+#include "constants.h"
 #include "test_helpers.h"
 
 namespace cgw_diag {
@@ -58,7 +59,7 @@ TEST_F(SomeIpProxyTest, SendRequestWithoutConnection) {
 
     SomeIpMessage request;
     request.header.service_id = 0x7725;
-    request.header.method_id = 0x0001;
+    request.header.method_id = constants::METHOD_READ_VIN;
     request.header.message_type = MessageType::REQUEST;
 
     auto response = proxy->sendRequest(request);

@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 
 namespace cgw_diag {
 

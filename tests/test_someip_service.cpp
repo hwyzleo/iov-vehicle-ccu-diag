@@ -110,10 +110,9 @@ TEST_F(FotaSomeIpServiceTest, HandleReadVinProvisioned) {
     EXPECT_EQ(response.header.return_code, ReturnCode::E_OK);
     EXPECT_EQ(response.header.message_type, MessageType::RESPONSE);
 
-    std::string json_str(response.payload.begin(), response.payload.end());
-    auto j = nlohmann::json::parse(json_str);
-    EXPECT_EQ(j["vin"], "1234567890ABCDEFG");
-    EXPECT_EQ(j["status"], "provisioned");
+    // SOME/IP returns raw VIN string (17 bytes), not JSON
+    std::string vin_str(response.payload.begin(), response.payload.end());
+    EXPECT_EQ(vin_str, "1234567890ABCDEFG");
 }
 
 TEST_F(FotaSomeIpServiceTest, HandleReadVinNotProvisioned) {
@@ -124,13 +123,9 @@ TEST_F(FotaSomeIpServiceTest, HandleReadVinNotProvisioned) {
 
     auto response = fota_service->handleReadVin(request);
 
-    EXPECT_EQ(response.header.return_code, ReturnCode::E_OK);
+    // VIN not provisioned - should return error
+    EXPECT_EQ(response.header.return_code, ReturnCode::E_NOT_OK);
     EXPECT_EQ(response.header.message_type, MessageType::RESPONSE);
-
-    std::string json_str(response.payload.begin(), response.payload.end());
-    auto j = nlohmann::json::parse(json_str);
-    EXPECT_TRUE(j["vin"].is_null());
-    EXPECT_EQ(j["status"], "not_provisioned");
 }
 
 } // namespace tests

@@ -14,19 +14,7 @@
 
 namespace {
 
-// Pseudo SOME/IP binary frame header (20 bytes: 16B core + 4B payload_length), big-endian
-struct PseudoSomeIpHeader {
-    uint16_t service_id;
-    uint16_t method_id;
-    uint8_t message_type;
-    uint8_t return_code;
-    uint16_t client_id;
-    uint16_t session_id;
-    uint8_t reserved[6];
-    uint32_t payload_length;
-};
-
-static_assert(sizeof(PseudoSomeIpHeader) == 20, "PseudoSomeIpHeader must be 20 bytes");
+// Note: Using SomeIpHeader from someip_types.h (16 bytes standard SOME/IP header)
 
 inline void writeU16BE(uint8_t* p, uint16_t v) {
     p[0] = static_cast<uint8_t>(v >> 8);
@@ -51,26 +39,28 @@ inline uint32_t readU32BE(const uint8_t* p) {
            static_cast<uint32_t>(p[3]);
 }
 
-inline void serializeHeader(uint8_t buf[20], const PseudoSomeIpHeader& h) {
+inline void serializeHeader(uint8_t buf[16], const cgw_diag::SomeIpHeader& h) {
     writeU16BE(buf + 0, h.service_id);
     writeU16BE(buf + 2, h.method_id);
-    buf[4] = h.message_type;
-    buf[5] = h.return_code;
-    writeU16BE(buf + 6, h.client_id);
-    writeU16BE(buf + 8, h.session_id);
-    std::memset(buf + 10, 0, 6);
-    writeU32BE(buf + 16, h.payload_length);
+    writeU32BE(buf + 4, h.length);
+    writeU16BE(buf + 8, h.client_id);
+    writeU16BE(buf + 10, h.session_id);
+    buf[12] = h.protocol_version;
+    buf[13] = h.interface_version;
+    buf[14] = static_cast<uint8_t>(h.message_type);
+    buf[15] = static_cast<uint8_t>(h.return_code);
 }
 
-inline bool deserializeHeader(const uint8_t buf[20], PseudoSomeIpHeader& h) {
+inline bool deserializeHeader(const uint8_t buf[16], cgw_diag::SomeIpHeader& h) {
     h.service_id = readU16BE(buf + 0);
     h.method_id = readU16BE(buf + 2);
-    h.message_type = buf[4];
-    h.return_code = buf[5];
-    h.client_id = readU16BE(buf + 6);
-    h.session_id = readU16BE(buf + 8);
-    // reserved ignored on read
-    h.payload_length = readU32BE(buf + 16);
+    h.length = readU32BE(buf + 4);
+    h.client_id = readU16BE(buf + 8);
+    h.session_id = readU16BE(buf + 10);
+    h.protocol_version = buf[12];
+    h.interface_version = buf[13];
+    h.message_type = static_cast<cgw_diag::MessageType>(buf[14]);
+    h.return_code = static_cast<cgw_diag::ReturnCode>(buf[15]);
     return true;
 }
 
@@ -179,18 +169,21 @@ public:
 
         uint16_t sid = ++session_counter_;
 
-        PseudoSomeIpHeader reqHdr{};
+        SomeIpHeader reqHdr{};
         reqHdr.service_id = request.header.service_id;
         reqHdr.method_id = request.header.method_id;
-        reqHdr.message_type = static_cast<uint8_t>(request.header.message_type);
-        reqHdr.return_code = static_cast<uint8_t>(request.header.return_code);
+        // length = 8 bytes (client_id + session_id + protocol/interface/message_type/return_code) + payload size
+        reqHdr.length = static_cast<uint32_t>(8 + request.payload.size());
         reqHdr.client_id = request.header.client_id;
         reqHdr.session_id = sid;
-        reqHdr.payload_length = static_cast<uint32_t>(request.payload.size());
+        reqHdr.protocol_version = 0x01;
+        reqHdr.interface_version = 0x01;
+        reqHdr.message_type = request.header.message_type;
+        reqHdr.return_code = request.header.return_code;
 
-        uint8_t hdrBuf[20];
+        uint8_t hdrBuf[16];
         serializeHeader(hdrBuf, reqHdr);
-        if (!writeAll(fd_, hdrBuf, 20)) {
+        if (!writeAll(fd_, hdrBuf, 16)) {
             disconnect();
             return response;
         }
@@ -202,13 +195,13 @@ public:
         }
 
         // Wait for response
-        uint8_t respHdrBuf[20];
-        if (!readExact(fd_, respHdrBuf, 20, static_cast<int>(request_timeout_ms_))) {
+        uint8_t respHdrBuf[16];
+        if (!readExact(fd_, respHdrBuf, 16, static_cast<int>(request_timeout_ms_))) {
             disconnect();
             return response;
         }
 
-        PseudoSomeIpHeader respHdr{};
+        SomeIpHeader respHdr{};
         deserializeHeader(respHdrBuf, respHdr);
 
         if (respHdr.session_id != sid) {
@@ -217,14 +210,17 @@ public:
             return response;
         }
 
+        // Calculate payload length from length field
+        // length = 8 + payload_size, so payload_size = length - 8
+        uint32_t payload_length = (respHdr.length > 8) ? (respHdr.length - 8) : 0;
         std::vector<uint8_t> payload;
-        if (respHdr.payload_length > 0) {
-            if (respHdr.payload_length > 10 * 1024 * 1024) {
+        if (payload_length > 0) {
+            if (payload_length > 10 * 1024 * 1024) {
                 disconnect();
                 return response;
             }
-            payload.resize(respHdr.payload_length);
-            if (!readExact(fd_, payload.data(), respHdr.payload_length, static_cast<int>(request_timeout_ms_))) {
+            payload.resize(payload_length);
+            if (!readExact(fd_, payload.data(), payload_length, static_cast<int>(request_timeout_ms_))) {
                 disconnect();
                 return response;
             }

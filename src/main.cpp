@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
         auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, docan_transport, doip_transport);
 
         // Create VIN store
-        auto vin_store = std::shared_ptr<VinStore>(createVinStore().release());
+        auto vin_store = std::shared_ptr<VinStore>(createVinStore("config/vin.dat").release());
 
         // Create CGW-SEC client proxy
         auto sec_client_proxy = createCgwSecClientProxy();
