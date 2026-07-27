@@ -1,5 +1,7 @@
 #include "someip_service.h"
 #include "someip_service_vsomeip.h"
+#include "diag_log_adapter.h"
+#include "diag_log_context.h"
 #include <unordered_map>
 #include <mutex>
 #include <atomic>
@@ -118,7 +120,10 @@ public:
 
         listen_fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
         if (listen_fd_ < 0) {
-            std::cerr << "[ERROR] MockSomeIP socket() failed: " << std::strerror(errno) << "\n";
+            DiagLogAdapter::facade().error("diag.someip.socket_failed",
+                "MockSomeIP socket() failed",
+                {dlog::f_str("reason", std::strerror(errno))}
+            );
             return false;
         }
 
@@ -129,21 +134,32 @@ public:
         addr.sin_family = AF_INET;
         addr.sin_port = htons(config_.port);
         if (::inet_pton(AF_INET, config_.ip_address.c_str(), &addr.sin_addr) != 1) {
-            std::cerr << "[ERROR] MockSomeIP inet_pton() failed for " << config_.ip_address << "\n";
+            DiagLogAdapter::facade().error("diag.someip.inet_pton_failed",
+                "MockSomeIP inet_pton() failed",
+                {dlog::f_str("ip_address", config_.ip_address)}
+            );
             ::close(listen_fd_);
             listen_fd_ = -1;
             return false;
         }
 
         if (::bind(listen_fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-            std::cerr << "[ERROR] MockSomeIP bind() failed: " << std::strerror(errno) << "\n";
+            DiagLogAdapter::facade().error("diag.someip.bind_failed",
+                "MockSomeIP bind() failed",
+                {dlog::f_str("ip_address", config_.ip_address),
+                 dlog::f_int("port", config_.port),
+                 dlog::f_str("reason", std::strerror(errno))}
+            );
             ::close(listen_fd_);
             listen_fd_ = -1;
             return false;
         }
 
         if (::listen(listen_fd_, 1) < 0) {
-            std::cerr << "[ERROR] MockSomeIP listen() failed: " << std::strerror(errno) << "\n";
+            DiagLogAdapter::facade().error("diag.someip.listen_failed",
+                "MockSomeIP listen() failed",
+                {dlog::f_str("reason", std::strerror(errno))}
+            );
             ::close(listen_fd_);
             listen_fd_ = -1;
             return false;
@@ -171,12 +187,13 @@ public:
         running_ = true;
 
         listener_thread_ = std::thread([this]() {
-            // 使用 stringstream 构建完整消息，避免线程间 std::cout 格式状态竞争
-            std::ostringstream oss;
-            oss << "[INFO] MockSomeIP listening on " << bound_address_ << ":" << bound_port_
-               << " for service=0x" << std::hex << config_.service_id
-               << " instance=0x" << config_.instance_id << std::dec << "\n";
-            std::cout << oss.str();
+            DiagLogAdapter::facade().info("diag.someip.listening",
+                "MockSomeIP listening",
+                {dlog::f_str("ip_address", bound_address_),
+                 dlog::f_int("port", bound_port_),
+                 dlog::f_str("someip_service_id", hex_id(config_.service_id)),
+                 dlog::f_str("someip_instance_id", hex_id(config_.instance_id))}
+            );
             while (!stop_requested_) {
                 pollfd pfd{listen_fd_, POLLIN, 0};
                 int pr = ::poll(&pfd, 1, 200); // 200ms poll interval
@@ -191,7 +208,10 @@ public:
                 int fd = ::accept(listen_fd_, reinterpret_cast<sockaddr*>(&cli), &cliLen);
                 if (fd < 0) {
                     if (errno == EINTR) continue;
-                    std::cerr << "[WARN] MockSomeIP accept() failed: " << std::strerror(errno) << "\n";
+                    DiagLogAdapter::facade().warn("diag.someip.accept_failed",
+                        "MockSomeIP accept() failed",
+                        {dlog::f_str("reason", std::strerror(errno))}
+                    );
                     continue;
                 }
 
@@ -204,12 +224,13 @@ public:
                 {
                     char addr_buf[INET_ADDRSTRLEN] = {0};
                     ::inet_ntop(AF_INET, &cli.sin_addr, addr_buf, sizeof(addr_buf));
-                    std::ostringstream oss;
-                    oss << "[INFO] MockSomeIP client connected: fd=" << client_fd_
-                       << ", addr=" << addr_buf << ":" << ntohs(cli.sin_port)
-                       << ", service=0x" << std::hex << config_.service_id
-                       << ", instance=0x" << config_.instance_id << std::dec << "\n";
-                    std::cout << oss.str();
+                    DiagLogAdapter::facade().info("diag.someip.client_connected",
+                        "MockSomeIP client connected",
+                        {dlog::f_int("fd", client_fd_),
+                         dlog::f_str("remote_endpoint", std::string(addr_buf) + ":" + std::to_string(ntohs(cli.sin_port))),
+                         dlog::f_str("someip_service_id", hex_id(config_.service_id)),
+                         dlog::f_str("someip_instance_id", hex_id(config_.instance_id))}
+                    );
                 }
 
                 // Simple synchronous request processing loop
@@ -237,11 +258,12 @@ public:
                     }
 
                     {
-                        std::ostringstream oss;
-                        oss << "[INFO] MockSomeIP recv service=0x" << std::hex << hdr.service_id
-                           << " method=0x" << hdr.method_id << std::dec
-                           << " session=" << hdr.session_id << "\n";
-                        std::cout << oss.str();
+                        DiagLogAdapter::facade().info("diag.someip.request_received",
+                            "MockSomeIP request received",
+                            {dlog::f_str("someip_service_id", hex_id(hdr.service_id)),
+                             dlog::f_str("someip_method_id", hex_id(hdr.method_id)),
+                             dlog::f_int("session_id", hdr.session_id)}
+                        );
                     }
 
                     // Map to SomeIpMessage
@@ -294,7 +316,9 @@ public:
                     }
                 }
 
-                std::cout << "[INFO] MockSomeIP client disconnected\n";
+                DiagLogAdapter::facade().info("diag.someip.client_disconnected",
+                    "MockSomeIP client disconnected"
+                );
                 ::close(client_fd_);
                 client_fd_ = -1;
             }

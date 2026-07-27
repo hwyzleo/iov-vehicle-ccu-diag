@@ -1,6 +1,18 @@
 #include "diagnostic_router.h"
+#include "diag_log_adapter.h"
+#include "diag_log_context.h"
 
 namespace cgw_diag {
+
+namespace {
+const char* transportTypeToString(TransportType type) {
+    switch (type) {
+        case TransportType::DOCAN: return "DoCAN";
+        case TransportType::DOIP:  return "DoIP";
+        default: return "UNKNOWN";
+    }
+}
+} // namespace
 
 DiagnosticRouter::DiagnosticRouter(std::shared_ptr<DidRegistry> registry,
                                    std::shared_ptr<UdsClient> uds_client,
@@ -18,6 +30,12 @@ RoutingResult DiagnosticRouter::routeRequest(const std::string& ecu_id, uint16_t
         result.success = false;
         result.error_code = ErrorCode::ECU_NOT_REGISTERED;
         result.error_message = "ECU not registered in DID list: " + ecu_id;
+        // CGW-DIAG-DSN-CR-008: 目标 ECU 未登记
+        DiagLogAdapter::router().error(diag_events::ROUTE_FAILED,
+            "ECU not registered in DID list",
+            {dlog::f_str("ecu_id", ecu_id),
+             dlog::f_str("error_code", ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED))}
+        );
         return result;
     }
 
@@ -43,6 +61,14 @@ RoutingResult DiagnosticRouter::routeRequest(const std::string& ecu_id, uint16_t
         result.success = false;
         result.error_code = ErrorCode::ECU_UNREACHABLE;
         result.error_message = "No transport available for ECU";
+        // CGW-DIAG-DSN-CR-008: 无路由
+        DiagLogAdapter::router().error(diag_events::ROUTE_FAILED,
+            "No transport available for ECU",
+            {dlog::f_str("ecu_id", ecu_id),
+             dlog::f_str("logical_address", hex_id(ecu_config->logical_address)),
+             dlog::f_str("transport", transportTypeToString(ecu_config->transport)),
+             dlog::f_str("error_code", ErrorCodeMapper::toDiagCode(ErrorCode::ECU_UNREACHABLE))}
+        );
         return result;
     }
 
@@ -50,6 +76,14 @@ RoutingResult DiagnosticRouter::routeRequest(const std::string& ecu_id, uint16_t
         result.success = false;
         result.error_code = ErrorCode::ECU_UNREACHABLE;
         result.error_message = "ECU is not reachable";
+        // CGW-DIAG-DSN-CR-008: ECU 不可达
+        DiagLogAdapter::router().error(diag_events::ROUTE_FAILED,
+            "ECU is not reachable",
+            {dlog::f_str("ecu_id", ecu_id),
+             dlog::f_str("logical_address", hex_id(ecu_config->logical_address)),
+             dlog::f_str("transport", transport->getTransportType()),
+             dlog::f_str("error_code", ErrorCodeMapper::toDiagCode(ErrorCode::ECU_UNREACHABLE))}
+        );
         return result;
     }
 

@@ -1,5 +1,7 @@
 #include "fota_someip_service.h"
 #include "constants.h"
+#include "diag_log_adapter.h"
+#include "diag_log_context.h"
 #include <nlohmann/json.hpp>
 #include <iostream>
 
@@ -69,6 +71,23 @@ void FotaSomeIpService::registerMethodHandlers() {
 }
 
 SomeIpMessage FotaSomeIpService::handleCollectVehicleInventory(const SomeIpMessage& request) {
+    // CGW-DIAG-DSN-CR-008: SOME/IP Provider 收到 FOTA 请求时建立 ContextScope
+    auto trace_id = generate_trace_id();
+    auto request_id = generate_request_id();
+    auto scope = make_someip_context_scope(
+        trace_id, request_id,
+        hex_id(request.header.service_id),
+        hex_id(request.header.method_id),
+        hex_id(request.header.client_id)
+    );
+
+    DiagLogAdapter::facade().info(diag_events::INVENTORY_REQUEST_ACCEPTED,
+        "FOTA inventory request accepted",
+        {dlog::f_str("request_id", request_id),
+         dlog::f_str("someip_service_id", hex_id(request.header.service_id)),
+         dlog::f_str("someip_method_id", hex_id(request.header.method_id))}
+    );
+
     SomeIpMessage response;
     response.header.service_id = request.header.service_id;
     response.header.method_id = request.header.method_id;
@@ -116,6 +135,16 @@ SomeIpMessage FotaSomeIpService::handleCollectVehicleInventory(const SomeIpMessa
 }
 
 SomeIpMessage FotaSomeIpService::handleGetEcuVersion(const SomeIpMessage& request) {
+    // CGW-DIAG-DSN-CR-008: 建立请求上下文
+    auto trace_id = generate_trace_id();
+    auto request_id = generate_request_id();
+    auto scope = make_someip_context_scope(
+        trace_id, request_id,
+        hex_id(request.header.service_id),
+        hex_id(request.header.method_id),
+        hex_id(request.header.client_id)
+    );
+
     SomeIpMessage response;
     response.header.service_id = request.header.service_id;
     response.header.method_id = request.header.method_id;
@@ -170,6 +199,16 @@ SomeIpMessage FotaSomeIpService::handleGetEcuVersion(const SomeIpMessage& reques
 }
 
 SomeIpMessage FotaSomeIpService::handleGetRegistryVersion(const SomeIpMessage& request) {
+    // CGW-DIAG-DSN-CR-008: 建立请求上下文
+    auto trace_id = generate_trace_id();
+    auto request_id = generate_request_id();
+    auto scope = make_someip_context_scope(
+        trace_id, request_id,
+        hex_id(request.header.service_id),
+        hex_id(request.header.method_id),
+        hex_id(request.header.client_id)
+    );
+
     SomeIpMessage response;
     response.header.service_id = request.header.service_id;
     response.header.method_id = request.header.method_id;
@@ -187,6 +226,16 @@ SomeIpMessage FotaSomeIpService::handleGetRegistryVersion(const SomeIpMessage& r
 }
 
 SomeIpMessage FotaSomeIpService::handleReadVin(const SomeIpMessage& request) {
+    // CGW-DIAG-DSN-CR-008: 建立请求上下文
+    auto trace_id = generate_trace_id();
+    auto request_id = generate_request_id();
+    auto scope = make_someip_context_scope(
+        trace_id, request_id,
+        hex_id(request.header.service_id),
+        hex_id(request.header.method_id),
+        hex_id(request.header.client_id)
+    );
+
     SomeIpMessage response;
     response.header.service_id = request.header.service_id;
     response.header.method_id = request.header.method_id;

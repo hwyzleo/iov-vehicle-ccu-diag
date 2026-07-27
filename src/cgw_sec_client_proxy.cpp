@@ -1,8 +1,24 @@
 #include "cgw_sec_client_proxy.h"
 #include "someip_client_proxy.h"
+#include "diag_log_adapter.h"
+#include "diag_log_context.h"
 #include <stdexcept>
 
 namespace cgw_diag {
+
+namespace {
+const char* secResultToString(SecResult result) {
+    switch (result) {
+        case SecResult::SUCCESS:            return "SUCCESS";
+        case SecResult::INVALID_KEY:        return "INVALID_KEY";
+        case SecResult::INVALID_SEED:       return "INVALID_SEED";
+        case SecResult::SERVICE_UNAVAILABLE:return "SERVICE_UNAVAILABLE";
+        case SecResult::TIMEOUT:            return "TIMEOUT";
+        case SecResult::UNKNOWN_ERROR:      return "UNKNOWN_ERROR";
+        default: return "UNKNOWN";
+    }
+}
+} // namespace
 
 // CGW-SEC service method IDs (from design document)
 constexpr MethodId METHOD_GET_SEED = 0x0001;
@@ -54,8 +70,20 @@ public:
 
     std::optional<SecuritySeed> getSeed(SecLevel level) override {
         if (!isConnected()) {
+            DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+                "getSeed failed: not connected",
+                {dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "getSeed"),
+                 dlog::f_str("result", "not_connected")}
+            );
             return std::nullopt;
         }
+
+        // CGW-DIAG-DSN-CR-008: DIAG 调用 CGW-SEC 时创建 SOME/IP Client 子作用域
+        auto scope = make_someip_child_scope(
+            hex_id(sec_service_config_.service_id),
+            hex_id(METHOD_GET_SEED)
+        );
 
         SomeIpMessage request;
         request.header.service_id = sec_service_config_.service_id;
@@ -68,14 +96,32 @@ public:
         try {
             response = someip_proxy_->sendRequest(request);
         } catch (...) {
+            DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+                "getSeed failed: request exception",
+                {dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "getSeed"),
+                 dlog::f_str("result", "exception")}
+            );
             return std::nullopt;
         }
 
         if (response.header.return_code != ReturnCode::E_OK) {
+            DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+                "getSeed failed: SOME/IP error",
+                {dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "getSeed"),
+                 dlog::f_str("result", "someip_error")}
+            );
             return std::nullopt;
         }
 
         if (response.payload.size() < 5) {
+            DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+                "getSeed failed: invalid response",
+                {dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "getSeed"),
+                 dlog::f_str("result", "invalid_response")}
+            );
             return std::nullopt;
         }
 
@@ -86,6 +132,18 @@ public:
                        static_cast<uint32_t>(response.payload[3]);
         seed.seed.assign(response.payload.begin() + 4, response.payload.end());
 
+        // CGW-DIAG-DSN-CR-008: 仅记录非密钥元数据（seed_id、seed 长度），
+        // 不记录 seed 原值
+        DiagLogAdapter::sec_client().info("diag.security.get_seed.succeeded",
+            "getSeed succeeded",
+            {dlog::f_str("security_level", "LEVEL_1"),
+             dlog::f_str("operation", "getSeed"),
+             dlog::f_int("seed_id", static_cast<int64_t>(seed.seed_id)),
+             dlog::f_int("seed_length", static_cast<int64_t>(seed.seed.size())),
+             dlog::f_str("someip_service_id", hex_id(sec_service_config_.service_id)),
+             dlog::f_str("someip_method_id", hex_id(METHOD_GET_SEED))}
+        );
+
         return seed;
     }
 
@@ -94,6 +152,12 @@ public:
         if (!isConnected()) {
             return SecResult::SERVICE_UNAVAILABLE;
         }
+
+        // CGW-DIAG-DSN-CR-008: DIAG 调用 CGW-SEC 时创建 SOME/IP Client 子作用域
+        auto scope = make_someip_child_scope(
+            hex_id(sec_service_config_.service_id),
+            hex_id(METHOD_VERIFY_KEY)
+        );
 
         SomeIpMessage request;
         request.header.service_id = sec_service_config_.service_id;
@@ -111,6 +175,13 @@ public:
         try {
             response = someip_proxy_->sendRequest(request);
         } catch (...) {
+            DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+                "verifyKey failed: request exception",
+                {dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "verifyKey"),
+                 dlog::f_int("seed_id", static_cast<int64_t>(seed_id)),
+                 dlog::f_str("result", "exception")}
+            );
             return SecResult::SERVICE_UNAVAILABLE;
         }
 
@@ -134,12 +205,36 @@ public:
 
         uint8_t nrc = response.payload[0];
         if (nrc == NRC_POSITIVE_RESPONSE) {
+            // CGW-DIAG-DSN-CR-008: verifyKey 成功（不记录 key 原值）
+            DiagLogAdapter::sec_client().info("diag.security.verify_key.succeeded",
+                "verifyKey succeeded",
+                {dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "verifyKey"),
+                 dlog::f_int("seed_id", static_cast<int64_t>(seed_id)),
+                 dlog::f_str("result", "SUCCESS"),
+                 dlog::f_str("someip_service_id", hex_id(sec_service_config_.service_id)),
+                 dlog::f_str("someip_method_id", hex_id(METHOD_VERIFY_KEY))}
+            );
             return SecResult::SUCCESS;
         }
         if (nrc == NRC_INVALID_KEY) {
+            DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+                "verifyKey failed: invalid key",
+                {dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "verifyKey"),
+                 dlog::f_int("seed_id", static_cast<int64_t>(seed_id)),
+                 dlog::f_str("result", secResultToString(SecResult::INVALID_KEY))}
+            );
             return SecResult::INVALID_KEY;
         }
 
+        DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+            "verifyKey failed: unknown NRC",
+            {dlog::f_str("security_level", "LEVEL_1"),
+             dlog::f_str("operation", "verifyKey"),
+             dlog::f_int("seed_id", static_cast<int64_t>(seed_id)),
+             dlog::f_str("result", secResultToString(SecResult::UNKNOWN_ERROR))}
+        );
         return SecResult::UNKNOWN_ERROR;
     }
 

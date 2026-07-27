@@ -1,4 +1,6 @@
 #include "doip_transport.h"
+#include "diag_log_adapter.h"
+#include "diag_log_context.h"
 #include <sys/socket.h>
 #include <unistd.h>
 #include <cstring>
@@ -53,11 +55,25 @@ TransportResponse DoIpTransport::sendRequest(uint16_t logical_address,
         } else {
             response.success = false;
             response.error_message = "Unsupported request";
+            // CGW-DIAG-DSN-CR-008: DoIP 传输异常
+            DiagLogAdapter::transport().warn(diag_events::TRANSPORT_FAILED,
+                "DoIP transport request unsupported",
+                {dlog::f_str("transport", "DoIP"),
+                 dlog::f_str("logical_address", hex_id(logical_address)),
+                 dlog::f_str("reason", "unsupported_request")}
+            );
         }
         
     } catch (const std::exception& e) {
         response.success = false;
         response.error_message = e.what();
+        // CGW-DIAG-DSN-CR-008: DoIP 传输异常
+        DiagLogAdapter::transport().error(diag_events::TRANSPORT_FAILED,
+            "DoIP transport exception",
+            {dlog::f_str("transport", "DoIP"),
+             dlog::f_str("logical_address", hex_id(logical_address)),
+             dlog::f_str("reason", e.what())}
+        );
     }
     
     return response;

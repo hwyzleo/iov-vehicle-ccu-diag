@@ -1,5 +1,8 @@
 #include "diagnostic_server.h"
+#include "diag_log_adapter.h"
+#include "diag_log_context.h"
 #include <algorithm>
+#include <chrono>
 
 namespace cgw_diag {
 
@@ -27,9 +30,23 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
 
     // Sub-function 0x01: Request seed
     if (sub_function == 0x01) {
+        // CGW-DIAG-DSN-CR-008: 生成日志会话 ID 关联 0x27/0x2E
+        log_session_id_ = "diag-sess-" + std::to_string(
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
+
         // Get seed from CGW-SEC
         auto seed_result = sec_client_proxy_->getSeed(SecLevel::LEVEL_1);
         if (!seed_result.has_value()) {
+            // CGW-DIAG-DSN-CR-008: SEC 调用失败
+            DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+                "Security access getSeed failed",
+                {dlog::f_str("session_id", log_session_id_),
+                 dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "getSeed"),
+                 dlog::f_str("result", "failed"),
+                 dlog::f_str("error_code", ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED))}
+            );
             return ErrorCode::VIN_WRITE_REJECTED;
         }
         
@@ -79,9 +96,28 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
                 lockout_start_ = std::chrono::steady_clock::now();
             }
             
+            // CGW-DIAG-DSN-CR-008: 0x27 解锁失败
+            DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
+                "Security access verifyKey failed: invalid key",
+                {dlog::f_str("session_id", log_session_id_),
+                 dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "verifyKey"),
+                 dlog::f_str("result", "invalid_key"),
+                 dlog::f_int("failed_attempts", failed_attempts_),
+                 dlog::f_str("error_code", ErrorCodeMapper::toDiagCode(ErrorCode::INVALID_KEY))}
+            );
             return ErrorCode::INVALID_KEY;
         } else {
             // Other errors (service unavailable, timeout, etc.)
+            // CGW-DIAG-DSN-CR-008: SEC 调用失败
+            DiagLogAdapter::sec_client().error(diag_events::SECURITY_ACCESS_FAILED,
+                "Security access verifyKey failed",
+                {dlog::f_str("session_id", log_session_id_),
+                 dlog::f_str("security_level", "LEVEL_1"),
+                 dlog::f_str("operation", "verifyKey"),
+                 dlog::f_str("result", "error"),
+                 dlog::f_str("error_code", ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED))}
+            );
             return ErrorCode::VIN_WRITE_REJECTED;
         }
     }
@@ -111,9 +147,33 @@ ErrorCode DiagnosticServer::handleWriteDataByIdentifier(uint16_t did,
     std::string vin(data.begin(), data.end());
     
     // Write to VIN store
-    if (!vin_store_->writeVin(vin)) {
+    auto write_start = std::chrono::steady_clock::now();
+    bool write_ok = vin_store_->writeVin(vin);
+    auto write_end = std::chrono::steady_clock::now();
+    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        write_end - write_start).count();
+
+    if (!write_ok) {
+        // CGW-DIAG-DSN-CR-008: VIN 受限写入失败
+        DiagLogAdapter::vin_store().error(diag_events::VIN_WRITE_FAILED,
+            "VIN write failed",
+            {dlog::f_str("session_id", log_session_id_),
+             dlog::f_str("operation", "writeVin"),
+             dlog::f_str("result", "failed"),
+             dlog::f_int("duration_ms", duration_ms),
+             dlog::f_str("error_code", ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED))}
+        );
         return ErrorCode::VIN_WRITE_REJECTED;
     }
+
+    // CGW-DIAG-DSN-CR-008: VIN 受限写入成功
+    DiagLogAdapter::vin_store().info(diag_events::VIN_WRITE_SUCCEEDED,
+        "VIN write succeeded",
+        {dlog::f_str("session_id", log_session_id_),
+         dlog::f_str("operation", "writeVin"),
+         dlog::f_str("result", "succeeded"),
+         dlog::f_int("duration_ms", duration_ms)}
+    );
     
     // Success response
     response.resize(3);

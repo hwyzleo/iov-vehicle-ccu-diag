@@ -12,6 +12,8 @@
 #include "diagnostic_server.h"
 #include "cgw_sec_client_proxy.h"
 #include "constants.h"
+#include "diag_log_adapter.h"
+#include "diag_log_context.h"
 #include <iostream>
 #include <sstream>
 #include <memory>
@@ -27,9 +29,9 @@ namespace {
 std::atomic<bool> g_running{true};
 
 void signalHandler(int signal) {
-    if (signal == SIGINT || signal == SIGTERM) {
-        g_running = false;
-    }
+    // 信号处理仍使用 stderr，因为 Logger 可能正在关闭
+    std::cerr << "Interrupt signal (" << signal << ") received.\n";
+    g_running = false;
 }
 
 void printUsage(const char* program_name) {
@@ -104,11 +106,37 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        std::cout << "CGW-DIAG Service starting...\n";
-
         // Setup signal handlers
         std::signal(SIGINT, signalHandler);
         std::signal(SIGTERM, signalHandler);
+
+        // CGW-DIAG-DSN-CR-008: 启动顺序
+        // 加载基础配置 -> 读取 common.log.* / diag.log.* -> Logger::init
+        // -> 创建模块 Logger -> 加载 DidRegistry / VinStore -> 初始化各组件 -> 开放服务
+        DiagLogAdapter::orchestrator().info(diag_events::SERVICE_STARTING,
+            "CGW-DIAG Service Starting"
+        );
+
+        // 加载结构化日志配置并初始化 Logger（在创建业务模块之前）
+        auto log_config = ConfigLoader::loadLogConfig(diag_config_path);
+        auto log_result = DiagLogAdapter::init("cgw-diag", log_config);
+        if (log_result.error != cgw::fw::log::LogError::kOk) {
+            // 严格模式初始化失败时，在开放服务前终止启动
+            std::cerr << "FATAL: Logger init failed: " << log_result.error_message << std::endl;
+            return 1;
+        }
+
+        DiagLogAdapter::orchestrator().info(diag_events::SERVICE_CONFIG_LOADED,
+            "Configuration loaded successfully",
+            {dlog::f_str("diag_config_path", diag_config_path)}
+        );
+
+        DiagLogAdapter::orchestrator().info(diag_events::SERVICE_LOG_INITIALIZED,
+            "Logger initialized successfully",
+            {dlog::f_str("service", "cgw-diag"),
+             dlog::f_str("log_level", cgw::fw::log::logLevelToString(log_config.level)),
+             dlog::f_bool("strict_mode", log_config.strict)}
+        );
 
         // Load configurations
         auto registry = std::make_shared<DidRegistry>(did_registry_path);
@@ -137,7 +165,10 @@ int main(int argc, char* argv[]) {
         try {
             someip_config = ConfigLoader::loadSomeIpConfig(someip_config_path);
         } catch (const std::exception& e) {
-            std::cerr << "Warning: Failed to load SOME/IP config, using defaults: " << e.what() << "\n";
+            DiagLogAdapter::facade().warn("diag.service.config_fallback",
+                "Failed to load SOME/IP config, using defaults",
+                {dlog::f_str("reason", e.what())}
+            );
             someip_config.service_id = constants::CGW_DIAG_SERVICE_ID;
             someip_config.instance_id = constants::CGW_DIAG_INSTANCE_ID;
             someip_config.major_version = constants::CGW_DIAG_MAJOR_VERSION;
@@ -149,7 +180,10 @@ int main(int argc, char* argv[]) {
         try {
             sec_someip_config = ConfigLoader::loadSomeIpConfig(sec_config_path);
         } catch (const std::exception& e) {
-            std::cerr << "Warning: Failed to load CGW-SEC SOME/IP config, using defaults: " << e.what() << "\n";
+            DiagLogAdapter::sec_client().warn("diag.service.config_fallback",
+                "Failed to load CGW-SEC SOME/IP config, using defaults",
+                {dlog::f_str("reason", e.what())}
+            );
             sec_someip_config.service_id = 0x1140;  // CGW-SEC-DSN-CR-003
             sec_someip_config.instance_id = 0x0001;
             sec_someip_config.major_version = 1;
@@ -160,24 +194,38 @@ int main(int argc, char* argv[]) {
         someip_config.ip_address = someip_ip;
         someip_config.port = someip_port;
 
-        std::cout << "Network configuration loaded\n";
-        
+        DiagLogAdapter::facade().info("diag.service.network_configured",
+            "Network configuration loaded",
+            {dlog::f_str("someip_address", someip_ip),
+             dlog::f_int("someip_port", someip_port)}
+        );
+
         // Initialize CGW-SEC client proxy
-        std::cout << "Initializing CGW-SEC client proxy...\n";
+        DiagLogAdapter::sec_client().info("diag.service.sec_client_initializing",
+            "Initializing CGW-SEC client proxy"
+        );
         if (!sec_client_proxy->initialize(sec_someip_config)) {
-            std::cerr << "Error: Failed to initialize CGW-SEC client proxy\n";
+            DiagLogAdapter::sec_client().error("diag.service.sec_client_init_failed",
+                "Failed to initialize CGW-SEC client proxy"
+            );
             return 1;
         }
-        
+
         // Connect to CGW-SEC service
-        std::cout << "Connecting to CGW-SEC service...\n";
+        DiagLogAdapter::sec_client().info("diag.service.sec_client_connecting",
+            "Connecting to CGW-SEC service"
+        );
         if (!sec_client_proxy->connect()) {
-            std::cerr << "Warning: Failed to connect to CGW-SEC service. Security features may be unavailable.\n";
+            DiagLogAdapter::sec_client().warn("diag.service.sec_client_connect_failed",
+                "Failed to connect to CGW-SEC service. Security features may be unavailable."
+            );
             // Continue startup without SEC connection
         } else {
-            std::cout << "Successfully connected to CGW-SEC service\n";
+            DiagLogAdapter::sec_client().info("diag.service.sec_client_connected",
+                "Successfully connected to CGW-SEC service"
+            );
         }
-        
+
         // Create diagnostic server with initialized SEC proxy
         auto diag_server = std::make_shared<DiagnosticServer>(vin_store, std::move(sec_client_proxy));
 
@@ -186,49 +234,58 @@ int main(int argc, char* argv[]) {
         FotaSomeIpService fota_service(facade, std::move(someip_service));
 
         if (!fota_service.initialize(someip_config)) {
-            std::cerr << "Error: Failed to initialize SOME/IP service\n";
+            DiagLogAdapter::facade().error("diag.service.someip_init_failed",
+                "Failed to initialize SOME/IP service"
+            );
             return 1;
         }
 
         if (!fota_service.start()) {
-            std::cerr << "Error: Failed to start SOME/IP service\n";
+            DiagLogAdapter::facade().error("diag.service.someip_start_failed",
+                "Failed to start SOME/IP service"
+            );
             return 1;
         }
 
         if (!fota_service.offerService()) {
-            std::cerr << "Error: Failed to offer SOME/IP service\n";
+            DiagLogAdapter::facade().error("diag.service.someip_offer_failed",
+                "Failed to offer SOME/IP service"
+            );
             return 1;
         }
 
-        // Startup summary in SEC-like style
-        // 使用 stringstream 构建十六进制格式消息，避免线程间 std::cout 格式状态竞争
-        std::cout << "[INFO] DiagSomeipServer: vsomeip application initialized\n";
-        std::cout << "[INFO] DiagSomeipServer: Method handlers registered\n";
-        {
-            std::ostringstream oss;
-            oss << "[INFO] DiagSomeipServer: Service registered: serviceId=0x" << std::hex << someip_config.service_id
-               << ", instanceId=0x" << someip_config.instance_id << std::dec << "\n";
-            std::cout << oss.str();
-        }
-        {
-            std::ostringstream oss;
-            oss << "[INFO] DiagSomeipServer: SOME/IP server started: serviceId=0x" << std::hex << someip_config.service_id
-               << ", instanceId=0x" << someip_config.instance_id << std::dec << "\n";
-            std::cout << oss.str();
-        }
-        std::cout << "VIN Store: " << (vin_store->isVinProvisioned() ? "Provisioned" : "Not provisioned") << "\n";
-        std::cout << "SOME/IP service available on network (TCP)\n";
-        std::cout << "Configuration: " << someip_config_path << "\n";
-        std::cout << "CGW-DIAG Service started successfully\n";
-        // Listening log is now emitted by SomeIpServiceMock after successful bind
+        DiagLogAdapter::facade().info("diag.service.someip_offered",
+            "SOME/IP service offered",
+            {dlog::f_str("someip_service_id", hex_id(someip_config.service_id)),
+             dlog::f_str("someip_instance_id", hex_id(someip_config.instance_id)),
+             dlog::f_str("transport", "TCP"),
+             dlog::f_int("port", someip_config.port)}
+        );
+
+        DiagLogAdapter::vin_store().info("diag.service.vin_store_status",
+            "VIN Store status",
+            {dlog::f_str("provisioned", vin_store->isVinProvisioned() ? "true" : "false")}
+        );
+
+        DiagLogAdapter::orchestrator().info(diag_events::SERVICE_READY,
+            "CGW-DIAG Service started successfully",
+            {dlog::f_str("someip_config_path", someip_config_path),
+             dlog::f_str("registry_version", registry->getRegistryVersion())}
+        );
 
         // Main loop
         while (g_running) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        std::cout << "\nShutting down...\n";
+        DiagLogAdapter::orchestrator().info(diag_events::SERVICE_SHUTTING_DOWN,
+            "Shutting down..."
+        );
         fota_service.stop();
+
+        DiagLogAdapter::orchestrator().info("diag.service.stopped",
+            "CGW-DIAG Service stopped"
+        );
 
         return 0;
 

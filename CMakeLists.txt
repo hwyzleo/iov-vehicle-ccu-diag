@@ -48,6 +48,10 @@ endif ()
 find_package(yaml-cpp REQUIRED)
 include_directories(${YAML_CPP_INCLUDE_DIRS})
 
+# CGW Framework (provides cgw-framework-log: Logger, ContextScope, structured fields)
+# CGW-DIAG-DSN-CR-008
+find_package(CGWFramework REQUIRED)
+
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
@@ -71,6 +75,8 @@ set(LIB_SOURCES
     src/fota_someip_proxy.cpp
     src/vin_store.cpp
     src/diagnostic_server.cpp
+    src/diag_log_adapter.cpp
+    src/diag_log_context.cpp
 )
 
 # 根据 SOME/IP 实现添加源文件
@@ -86,7 +92,7 @@ endif()
 # Create cgw_diag library
 add_library(cgw_diag_lib STATIC ${LIB_SOURCES})
 target_include_directories(cgw_diag_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(cgw_diag_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json)
+target_link_libraries(cgw_diag_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json CGWFramework::cgw-framework)
 
 # 根据 SOME/IP 实现添加链接库
 if(USE_MOCK_SOMEIP)
@@ -121,6 +127,9 @@ add_executable(CgwDiagTests
     tests/test_vin_store.cpp
     tests/test_diagnostic_server.cpp
     tests/test_vin_integration.cpp
+    tests/test_log_adapter.cpp
+    tests/test_log_events.cpp
+    tests/test_log_integration.cpp
 )
 target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)

@@ -1,3 +1,41 @@
+# 统一日志配置（CGW-DIAG-DSN-CR-008 / CGW-FW-SPEC设计 §4）
+common:
+  log:
+    schema_version: 1
+    level: INFO
+    strict: false
+    async:
+      enabled: true
+      queue_size: 4096
+      flush_interval_ms: 1000
+    console:
+      enabled: true
+    file:
+      enabled: false
+      root: /var/log/cgw
+      max_file_size_mb: 20
+      max_files: 5
+      total_budget_mb: 100
+    redact:
+      identifiers: mask
+      payload_max_bytes: 256
+    format: standard
+
+diag:
+  # 日志服务级覆盖（CGW-DIAG-DSN-CR-008 §启动与模块 Logger）
+  log:
+    level: INFO
+    modules:
+      facade: INFO
+      orchestrator: INFO
+      tester: INFO
+      router: WARN
+      transport: WARN
+      did_registry: INFO
+      vin_store: INFO
+      sec_client: INFO
+
+# UDS / 诊断时序与重试配置
 timing:
   p2_server_max_ms: 50
   p2_star_server_max_ms: 5000

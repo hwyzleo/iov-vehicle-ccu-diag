@@ -1,4 +1,6 @@
 #include "did_registry.h"
+#include "diag_log_adapter.h"
+#include "diag_log_context.h"
 #include <stdexcept>
 
 namespace cgw_diag {
@@ -49,27 +51,45 @@ std::vector<DidEntry> DidRegistry::getDidsForEcu(const std::string& ecu_id) cons
 }
 
 void DidRegistry::reload() {
-    auto new_config = ConfigLoader::loadDidRegistry(config_path_);
+    try {
+        auto new_config = ConfigLoader::loadDidRegistry(config_path_);
 
-    std::unordered_map<std::string, size_t> new_id_index;
-    std::unordered_map<uint16_t, size_t> new_address_index;
+        std::unordered_map<std::string, size_t> new_id_index;
+        std::unordered_map<uint16_t, size_t> new_address_index;
 
-    for (size_t i = 0; i < new_config.ecus.size(); ++i) {
-        const auto& ecu = new_config.ecus[i];
-        if (new_id_index.count(ecu.ecu_id)) {
-            throw std::runtime_error("Duplicate ECU ID: " + ecu.ecu_id);
+        for (size_t i = 0; i < new_config.ecus.size(); ++i) {
+            const auto& ecu = new_config.ecus[i];
+            if (new_id_index.count(ecu.ecu_id)) {
+                throw std::runtime_error("Duplicate ECU ID: " + ecu.ecu_id);
+            }
+            if (new_address_index.count(ecu.logical_address)) {
+                throw std::runtime_error("Duplicate ECU logical address: 0x" +
+                    std::to_string(ecu.logical_address));
+            }
+            new_id_index[ecu.ecu_id] = i;
+            new_address_index[ecu.logical_address] = i;
         }
-        if (new_address_index.count(ecu.logical_address)) {
-            throw std::runtime_error("Duplicate ECU logical address: 0x" +
-                std::to_string(ecu.logical_address));
-        }
-        new_id_index[ecu.ecu_id] = i;
-        new_address_index[ecu.logical_address] = i;
+
+        config_ = std::move(new_config);
+        ecu_id_index_ = std::move(new_id_index);
+        ecu_address_index_ = std::move(new_address_index);
+
+        // CGW-DIAG-DSN-CR-008: DidRegistry 校验并加载完成
+        DiagLogAdapter::did_registry().info(diag_events::REGISTRY_LOADED,
+            "DidRegistry loaded successfully",
+            {dlog::f_str("registry_version", config_.registry_version),
+             dlog::f_int("ecu_count", static_cast<int64_t>(config_.ecus.size()))}
+        );
+    } catch (const std::exception& e) {
+        // CGW-DIAG-DSN-CR-008: 配置读取或校验失败
+        DiagLogAdapter::did_registry().error(diag_events::REGISTRY_LOAD_FAILED,
+            "DidRegistry load failed",
+            {dlog::f_str("registry_version", config_.registry_version),
+             dlog::f_str("reason", e.what()),
+             dlog::f_str("error_code", "CGW-FW-0201")}
+        );
+        throw;
     }
-
-    config_ = std::move(new_config);
-    ecu_id_index_ = std::move(new_id_index);
-    ecu_address_index_ = std::move(new_address_index);
 }
 
 void DidRegistry::buildIndices() {

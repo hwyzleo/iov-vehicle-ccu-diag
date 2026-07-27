@@ -6,6 +6,7 @@
 #include "cgw_sec_client_proxy.h"
 #include <memory>
 #include <chrono>
+#include <string>
 
 namespace cgw_diag {
 
@@ -63,6 +64,9 @@ private:
     static constexpr uint32_t LOCKOUT_DURATION_MS = 10000;  // 10 seconds
     std::chrono::steady_clock::time_point lockout_start_;
     bool is_locked_out_ = false;
+
+    // CGW-DIAG-DSN-CR-008: 日志会话关联（0x27 -> 0x2E -> VinStore 写入）
+    std::string log_session_id_;
 };
 
 } // namespace cgw_diag
