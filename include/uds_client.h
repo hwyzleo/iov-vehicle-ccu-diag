@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 struct UdsResponse {
     bool success = false;
@@ -39,4 +39,4 @@ private:
     std::vector<uint8_t> extractData(const std::vector<uint8_t>& response);
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

@@ -6,7 +6,7 @@
 #include <yaml-cpp/yaml.h>
 #include <string>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class ConfigLoader {
 public:
@@ -14,14 +14,14 @@ public:
     static DiagConfig loadDiagConfig(const std::string& file_path);
     static SomeIpServiceConfig loadSomeIpConfig(const std::string& file_path);
 
-    // 加载结构化日志配置（CGW-DIAG-DSN-CR-008）
+    // 加载结构化日志配置（CCU-DIAG-DSN-CR-008）
     // 从 YAML 读取 common.log.* 与 diag.log.*，返回 LogConfig
-    static cgw::fw::log::LogConfig loadLogConfig(const std::string& file_path);
+    static ccu::fw::log::LogConfig loadLogConfig(const std::string& file_path);
     
 private:
     static EcuConfig parseEcuConfig(const YAML::Node& node);
     static DidEntry parseDidEntry(const YAML::Node& node);
-    static void parseLogConfigNode(const YAML::Node& root, cgw::fw::log::LogConfig& log_config);
+    static void parseLogConfigNode(const YAML::Node& root, ccu::fw::log::LogConfig& log_config);
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

@@ -2,17 +2,17 @@
 #include <gmock/gmock.h>
 #include "diagnostic_server.h"
 #include "vin_store.h"
-#include "cgw_sec_client_proxy.h"
+#include "ccu_sec_client_proxy.h"
 #include <filesystem>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 using ::testing::Return;
 using ::testing::_;
 
-// Mock CGW-SEC client proxy for testing
-class MockCgwSecClientProxy : public CgwSecClientProxy {
+// Mock CCU-SEC client proxy for testing
+class MockCcuSecClientProxy : public CcuSecClientProxy {
 public:
     MOCK_METHOD(bool, initialize, (const SomeIpServiceConfig&), (override));
     MOCK_METHOD(bool, connect, (), (override));
@@ -30,7 +30,7 @@ protected:
         temp_dir_ = std::filesystem::temp_directory_path();
         storage_path_ = (temp_dir_ / "test_diag_server_vin.dat").string();
         vin_store_ = createVinStore(storage_path_);
-        mock_sec_proxy_ = std::make_shared<MockCgwSecClientProxy>();
+        mock_sec_proxy_ = std::make_shared<MockCcuSecClientProxy>();
         server_ = std::make_unique<DiagnosticServer>(vin_store_, mock_sec_proxy_);
     }
     
@@ -63,7 +63,7 @@ protected:
     std::filesystem::path temp_dir_;
     std::string storage_path_;
     std::shared_ptr<VinStore> vin_store_;
-    std::shared_ptr<MockCgwSecClientProxy> mock_sec_proxy_;
+    std::shared_ptr<MockCcuSecClientProxy> mock_sec_proxy_;
     std::unique_ptr<DiagnosticServer> server_;
 };
 
@@ -273,4 +273,4 @@ TEST_F(DiagnosticServerTest, ResetSession) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

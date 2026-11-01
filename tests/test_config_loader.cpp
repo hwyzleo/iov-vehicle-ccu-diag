@@ -4,7 +4,7 @@
 #include <fstream>
 #include <filesystem>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 namespace fs = std::filesystem;
@@ -14,7 +14,7 @@ protected:
     fs::path temp_dir_;
 
     void SetUp() override {
-        temp_dir_ = fs::temp_directory_path() / "cgw_diag_test";
+        temp_dir_ = fs::temp_directory_path() / "ccu_diag_test";
         fs::create_directories(temp_dir_);
         createTestDidRegistry();
         createTestDiagConfig();
@@ -57,7 +57,7 @@ ecus:
     logicalAddress: 0x20
     transport: "DoIP"
     readMethod: "SOMEIP_getVersion"
-    someipService: "0x1110"  # CGW-DIAG-DSN-CR-007
+    someipService: "0x1110"  # CCU-DIAG-DSN-CR-007
     fields: ["swVersion", "hwVersion"]
 )");
     }
@@ -108,7 +108,7 @@ TEST_F(ConfigLoaderTest, LoadDidRegistrySuccess) {
     EXPECT_EQ(idcm.logical_address, 0x20);
     EXPECT_EQ(idcm.transport, TransportType::DOIP);
     EXPECT_EQ(idcm.read_method, ReadMethod::SOMEIP_GET_VERSION);
-    EXPECT_EQ(idcm.someip_service, "0x1110");  // CGW-DIAG-DSN-CR-007
+    EXPECT_EQ(idcm.someip_service, "0x1110");  // CCU-DIAG-DSN-CR-007
     ASSERT_EQ(idcm.fields.size(), 2);
     EXPECT_EQ(idcm.fields[0], "swVersion");
     EXPECT_EQ(idcm.fields[1], "hwVersion");
@@ -255,4 +255,4 @@ ecus: []
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

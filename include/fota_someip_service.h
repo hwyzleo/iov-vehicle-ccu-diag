@@ -5,7 +5,7 @@
 #include "someip_types.h"
 #include <memory>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class FotaSomeIpService {
 public:
@@ -35,4 +35,4 @@ private:
     void registerMethodHandlers();
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

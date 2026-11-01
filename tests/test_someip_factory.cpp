@@ -5,7 +5,7 @@
 #include "test_helpers.h"
 #include <memory>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class SomeIpFactoryTest : public ::testing::Test {
@@ -103,9 +103,9 @@ TEST_F(SomeIpFactoryTest, SetRequestTimeout) {
 TEST_F(SomeIpFactoryTest, GetServiceId) {
     auto service = createSomeIpService();
     service->initialize(config_);
-    EXPECT_EQ(service->getServiceId(), 0x1110);  // CGW-DIAG-DSN-CR-007
+    EXPECT_EQ(service->getServiceId(), 0x1110);  // CCU-DIAG-DSN-CR-007
     EXPECT_EQ(service->getInstanceId(), 0x0001);
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

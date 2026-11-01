@@ -5,7 +5,7 @@
 #include "constants.h"
 #include "test_helpers.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class SomeIpProxyTest : public ::testing::Test {
@@ -58,7 +58,7 @@ TEST_F(SomeIpProxyTest, SendRequestWithoutConnection) {
     proxy->initialize(service_config_);
 
     SomeIpMessage request;
-    request.header.service_id = 0x1110;  // CGW-DIAG-DSN-CR-007
+    request.header.service_id = 0x1110;  // CCU-DIAG-DSN-CR-007
     request.header.method_id = constants::METHOD_READ_VIN;
     request.header.message_type = MessageType::REQUEST;
 
@@ -67,4 +67,4 @@ TEST_F(SomeIpProxyTest, SendRequestWithoutConnection) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

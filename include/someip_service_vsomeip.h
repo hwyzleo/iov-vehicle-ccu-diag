@@ -17,7 +17,7 @@ namespace someip = mock_someip;
 namespace someip = vsomeip;
 #endif
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class SomeIpServiceVsomeip : public SomeIpService {
 public:
@@ -73,4 +73,4 @@ private:
     void logWarning(const std::string& message);
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

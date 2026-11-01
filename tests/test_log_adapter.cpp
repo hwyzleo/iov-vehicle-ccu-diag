@@ -3,17 +3,17 @@
 #include "diag_log_context.h"
 #include <regex>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace {
 
 class DiagLogAdapterTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        cgw::fw::log::LogConfig config;
-        config.level = cgw::fw::log::LogLevel::kDebug;
+        ccu::fw::log::LogConfig config;
+        config.level = ccu::fw::log::LogLevel::kDebug;
 
-        auto result = DiagLogAdapter::init("cgw-diag-test", config);
-        ASSERT_EQ(result.error, cgw::fw::log::LogError::kOk);
+        auto result = DiagLogAdapter::init("ccu-diag-test", config);
+        ASSERT_EQ(result.error, ccu::fw::log::LogError::kOk);
     }
 };
 
@@ -27,7 +27,7 @@ TEST_F(DiagLogAdapterTest, IsInitializedFlag) {
 }
 
 // ============================================================
-// 模块 Logger 获取（CGW-DIAG-DSN-CR-008 §启动与模块 Logger）
+// 模块 Logger 获取（CCU-DIAG-DSN-CR-008 §启动与模块 Logger）
 // ============================================================
 TEST_F(DiagLogAdapterTest, GetFacadeLogger) {
     auto logger = DiagLogAdapter::facade();
@@ -83,15 +83,15 @@ TEST_F(DiagLogAdapterTest, FieldTypesWork) {
 }
 
 // ============================================================
-// 敏感度级别验证（CGW-DIAG-DSN-CR-008 §字段与脱敏）
+// 敏感度级别验证（CCU-DIAG-DSN-CR-008 §字段与脱敏）
 // ============================================================
 TEST_F(DiagLogAdapterTest, SensitivityLevelsWork) {
     DiagLogAdapter::orchestrator().info("test.event",
         "Test sensitivity levels",
         {dlog::f_str("normal_field", "normal"),
-         dlog::f_str("identifier_field", "VIN123", cgw::fw::log::Sensitivity::Identifier),
-         dlog::f_str("payload_field", "raw_data", cgw::fw::log::Sensitivity::Payload),
-         dlog::f_str("secret_field", "secret", cgw::fw::log::Sensitivity::Secret)}
+         dlog::f_str("identifier_field", "VIN123", ccu::fw::log::Sensitivity::Identifier),
+         dlog::f_str("payload_field", "raw_data", ccu::fw::log::Sensitivity::Payload),
+         dlog::f_str("secret_field", "secret", ccu::fw::log::Sensitivity::Secret)}
     );
 }
 
@@ -127,7 +127,7 @@ TEST_F(DiagLogAdapterTest, GenerateRequestId) {
 }
 
 // ============================================================
-// 十六进制 ID 格式验证（CGW-FW-SPEC设计 §5.4）
+// 十六进制 ID 格式验证（CCU-FW-SPEC设计 §5.4）
 // ============================================================
 TEST_F(DiagLogAdapterTest, HexIdFormatUint16) {
     EXPECT_EQ(hex_id(static_cast<uint16_t>(0x1110)), "0x1110");
@@ -149,4 +149,4 @@ TEST_F(DiagLogAdapterTest, FlushWorks) {
 }
 
 } // namespace
-} // namespace cgw_diag
+} // namespace ccu_diag

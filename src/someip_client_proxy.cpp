@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <poll.h>
+#include <cerrno>
 #include <cstring>
 
 namespace {
@@ -39,7 +40,7 @@ inline uint32_t readU32BE(const uint8_t* p) {
            static_cast<uint32_t>(p[3]);
 }
 
-inline void serializeHeader(uint8_t buf[16], const cgw_diag::SomeIpHeader& h) {
+inline void serializeHeader(uint8_t buf[16], const ccu_diag::SomeIpHeader& h) {
     writeU16BE(buf + 0, h.service_id);
     writeU16BE(buf + 2, h.method_id);
     writeU32BE(buf + 4, h.length);
@@ -51,7 +52,7 @@ inline void serializeHeader(uint8_t buf[16], const cgw_diag::SomeIpHeader& h) {
     buf[15] = static_cast<uint8_t>(h.return_code);
 }
 
-inline bool deserializeHeader(const uint8_t buf[16], cgw_diag::SomeIpHeader& h) {
+inline bool deserializeHeader(const uint8_t buf[16], ccu_diag::SomeIpHeader& h) {
     h.service_id = readU16BE(buf + 0);
     h.method_id = readU16BE(buf + 2);
     h.length = readU32BE(buf + 4);
@@ -59,8 +60,8 @@ inline bool deserializeHeader(const uint8_t buf[16], cgw_diag::SomeIpHeader& h) 
     h.session_id = readU16BE(buf + 10);
     h.protocol_version = buf[12];
     h.interface_version = buf[13];
-    h.message_type = static_cast<cgw_diag::MessageType>(buf[14]);
-    h.return_code = static_cast<cgw_diag::ReturnCode>(buf[15]);
+    h.message_type = static_cast<ccu_diag::MessageType>(buf[14]);
+    h.return_code = static_cast<ccu_diag::ReturnCode>(buf[15]);
     return true;
 }
 
@@ -100,7 +101,7 @@ inline bool writeAll(int fd, const void* buf, size_t n) {
 
 } // namespace
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 #ifdef USE_MOCK_SOMEIP
 // Mock 实现
@@ -274,4 +275,4 @@ std::unique_ptr<SomeIpClientProxy> createSomeIpClientProxy() {
 }
 #endif
 
-} // namespace cgw_diag
+} // namespace ccu_diag

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 struct TransportResponse {
     bool success = false;
@@ -27,4 +27,4 @@ public:
     virtual std::string getTransportType() const = 0;
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

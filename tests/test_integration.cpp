@@ -22,7 +22,7 @@
 #include <algorithm>
 #include <nlohmann/json.hpp>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class IntegrationTest : public ::testing::Test {
@@ -469,10 +469,10 @@ protected:
         createTestConfig();
 
         service_config_ = getAvailableSomeIpConfig();
-        service_config_.service_id = constants::CGW_DIAG_SERVICE_ID;
-        service_config_.instance_id = constants::CGW_DIAG_INSTANCE_ID;
-        service_config_.major_version = constants::CGW_DIAG_MAJOR_VERSION;
-        service_config_.minor_version = constants::CGW_DIAG_MINOR_VERSION;
+        service_config_.service_id = constants::CCU_DIAG_SERVICE_ID;
+        service_config_.instance_id = constants::CCU_DIAG_INSTANCE_ID;
+        service_config_.major_version = constants::CCU_DIAG_MAJOR_VERSION;
+        service_config_.minor_version = constants::CCU_DIAG_MINOR_VERSION;
     }
 
     void TearDown() override {
@@ -639,4 +639,4 @@ TEST_F(SomeIpIntegrationTest, ProxyGetEcuVersion) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

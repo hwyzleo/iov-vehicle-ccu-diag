@@ -8,7 +8,7 @@
 #include <memory>
 #include <optional>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 struct RoutingResult {
     bool success = false;
@@ -40,4 +40,4 @@ private:
     std::shared_ptr<TransportAdapter> selectTransport(TransportType type);
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

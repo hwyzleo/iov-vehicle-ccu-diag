@@ -4,7 +4,7 @@
 #include <string>
 #include <netinet/in.h>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class DoIpTransport : public TransportAdapter {
 public:
@@ -29,4 +29,4 @@ private:
                                           const std::vector<uint8_t>& payload);
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

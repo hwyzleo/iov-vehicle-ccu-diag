@@ -8,19 +8,19 @@
 #include "diagnostic_router.h"
 #include "uds_client.h"
 #include "mock_transport.h"
-#include "cgw_sec_client_proxy.h"
+#include "ccu_sec_client_proxy.h"
 #include <filesystem>
 #include <fstream>
 #include <memory>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 using ::testing::Return;
 using ::testing::_;
 
-// Mock CGW-SEC client proxy for testing
-class MockCgwSecClientProxy : public CgwSecClientProxy {
+// Mock CCU-SEC client proxy for testing
+class MockCcuSecClientProxy : public CcuSecClientProxy {
 public:
     MOCK_METHOD(bool, initialize, (const SomeIpServiceConfig&), (override));
     MOCK_METHOD(bool, connect, (), (override));
@@ -63,7 +63,7 @@ protected:
                                                         vin_store);
         
         facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
-        mock_sec_proxy = std::make_shared<MockCgwSecClientProxy>();
+        mock_sec_proxy = std::make_shared<MockCcuSecClientProxy>();
         diag_server = std::make_shared<DiagnosticServer>(vin_store, mock_sec_proxy);
     }
     
@@ -108,7 +108,7 @@ vinConfig:
     std::shared_ptr<DiagnosticRouter> router;
     std::shared_ptr<VersionCollector> collector;
     std::shared_ptr<FotaFacade> facade;
-    std::shared_ptr<MockCgwSecClientProxy> mock_sec_proxy;
+    std::shared_ptr<MockCcuSecClientProxy> mock_sec_proxy;
     std::shared_ptr<DiagnosticServer> diag_server;
 };
 
@@ -189,7 +189,7 @@ TEST_F(VinIntegrationTest, VinNotProvisioned) {
 }
 
 TEST_F(VinIntegrationTest, SecurityLockoutAfterFailedAttempts) {
-    // This test verifies CGW-SEC lockout mechanism after repeated
+    // This test verifies CCU-SEC lockout mechanism after repeated
     // failed key submissions — a scenario not covered by FullVinProvisioningFlow.
     
     SecuritySeed seed;
@@ -241,4 +241,4 @@ TEST_F(VinIntegrationTest, SecurityLockoutAfterFailedAttempts) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

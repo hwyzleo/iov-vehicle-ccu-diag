@@ -2,7 +2,7 @@
 #include "do_can_transport.h"
 #include "doip_transport.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 TEST(DoCanTransportTest, GetTransportType) {
@@ -80,4 +80,4 @@ TEST(TransportAdapterTest, DoIpUnsupportedRequest) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

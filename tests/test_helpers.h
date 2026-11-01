@@ -2,7 +2,7 @@
 
 #include "someip_types.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 /**
@@ -11,7 +11,7 @@ namespace tests {
  */
 inline SomeIpServiceConfig getAvailableSomeIpConfig() {
     SomeIpServiceConfig config;
-    config.service_id = 0x1110;  // CGW-DIAG-DSN-CR-007
+    config.service_id = 0x1110;  // CCU-DIAG-DSN-CR-007
     config.instance_id = 0x0001;
     config.major_version = 1;
     config.minor_version = 0;
@@ -21,4 +21,4 @@ inline SomeIpServiceConfig getAvailableSomeIpConfig() {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

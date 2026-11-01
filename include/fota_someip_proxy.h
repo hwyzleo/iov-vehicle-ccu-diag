@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class FotaSomeIpProxy {
 public:
@@ -27,4 +27,4 @@ private:
     std::unique_ptr<SomeIpClientProxy> proxy_;
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

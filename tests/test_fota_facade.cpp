@@ -11,7 +11,7 @@
 #include <memory>
 #include <filesystem>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class FotaFacadeTest : public ::testing::Test {
@@ -300,4 +300,4 @@ TEST_F(FotaFacadeTest, ReadVin) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

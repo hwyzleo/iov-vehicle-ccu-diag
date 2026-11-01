@@ -10,7 +10,7 @@
 #include "someip_service.h"
 #include "vin_store.h"
 #include "diagnostic_server.h"
-#include "cgw_sec_client_proxy.h"
+#include "ccu_sec_client_proxy.h"
 #include "constants.h"
 #include "diag_log_adapter.h"
 #include "diag_log_context.h"
@@ -23,7 +23,7 @@
 #include <thread>
 #include <chrono>
 
-using namespace cgw_diag;
+using namespace ccu_diag;
 
 namespace {
 std::atomic<bool> g_running{true};
@@ -40,7 +40,7 @@ void printUsage(const char* program_name) {
               << "  --did-registry <path>    Path to DID registry YAML\n"
               << "  --diag-config <path>     Path to diag config YAML\n"
               << "  --someip-config <path>   Path to SOME/IP config YAML\n"
-              << "  --sec-config <path>      Path to CGW-SEC SOME/IP config YAML\n"
+              << "  --sec-config <path>      Path to CCU-SEC SOME/IP config YAML\n"
               << "  --can-interface <name>   CAN interface name (default: " << constants::DEFAULT_CAN_INTERFACE << ")\n"
               << "  --can-baudrate <rate>    CAN baudrate (default: " << constants::DEFAULT_CAN_BAUDRATE << ")\n"
               << "  --doip-ip <ip>           DoIP server IP address (default: " << constants::DEFAULT_DOIP_IP << ")\n"
@@ -110,17 +110,17 @@ int main(int argc, char* argv[]) {
         std::signal(SIGINT, signalHandler);
         std::signal(SIGTERM, signalHandler);
 
-        // CGW-DIAG-DSN-CR-008: 启动顺序
+        // CCU-DIAG-DSN-CR-008: 启动顺序
         // 加载基础配置 -> 读取 common.log.* / diag.log.* -> Logger::init
         // -> 创建模块 Logger -> 加载 DidRegistry / VinStore -> 初始化各组件 -> 开放服务
         DiagLogAdapter::orchestrator().info(diag_events::SERVICE_STARTING,
-            "CGW-DIAG Service Starting"
+            "CCU-DIAG Service Starting"
         );
 
         // 加载结构化日志配置并初始化 Logger（在创建业务模块之前）
         auto log_config = ConfigLoader::loadLogConfig(diag_config_path);
-        auto log_result = DiagLogAdapter::init("cgw-diag", log_config);
-        if (log_result.error != cgw::fw::log::LogError::kOk) {
+        auto log_result = DiagLogAdapter::init("ccu-diag", log_config);
+        if (log_result.error != ccu::fw::log::LogError::kOk) {
             // 严格模式初始化失败时，在开放服务前终止启动
             std::cerr << "FATAL: Logger init failed: " << log_result.error_message << std::endl;
             return 1;
@@ -133,8 +133,8 @@ int main(int argc, char* argv[]) {
 
         DiagLogAdapter::orchestrator().info(diag_events::SERVICE_LOG_INITIALIZED,
             "Logger initialized successfully",
-            {dlog::f_str("service", "cgw-diag"),
-             dlog::f_str("log_level", cgw::fw::log::logLevelToString(log_config.level)),
+            {dlog::f_str("service", "ccu-diag"),
+             dlog::f_str("log_level", ccu::fw::log::logLevelToString(log_config.level)),
              dlog::f_bool("strict_mode", log_config.strict)}
         );
 
@@ -153,8 +153,8 @@ int main(int argc, char* argv[]) {
         // Create VIN store
         auto vin_store = std::shared_ptr<VinStore>(createVinStore("config/vin.dat").release());
 
-        // Create CGW-SEC client proxy
-        auto sec_client_proxy = createCgwSecClientProxy();
+        // Create CCU-SEC client proxy
+        auto sec_client_proxy = createCcuSecClientProxy();
 
         // Create version collector and FOTA facade
         auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport, vin_store);
@@ -169,22 +169,22 @@ int main(int argc, char* argv[]) {
                 "Failed to load SOME/IP config, using defaults",
                 {dlog::f_str("reason", e.what())}
             );
-            someip_config.service_id = constants::CGW_DIAG_SERVICE_ID;
-            someip_config.instance_id = constants::CGW_DIAG_INSTANCE_ID;
-            someip_config.major_version = constants::CGW_DIAG_MAJOR_VERSION;
-            someip_config.minor_version = constants::CGW_DIAG_MINOR_VERSION;
+            someip_config.service_id = constants::CCU_DIAG_SERVICE_ID;
+            someip_config.instance_id = constants::CCU_DIAG_INSTANCE_ID;
+            someip_config.major_version = constants::CCU_DIAG_MAJOR_VERSION;
+            someip_config.minor_version = constants::CCU_DIAG_MINOR_VERSION;
         }
 
-        // Load CGW-SEC SOME/IP configuration
+        // Load CCU-SEC SOME/IP configuration
         SomeIpServiceConfig sec_someip_config;
         try {
             sec_someip_config = ConfigLoader::loadSomeIpConfig(sec_config_path);
         } catch (const std::exception& e) {
             DiagLogAdapter::sec_client().warn("diag.service.config_fallback",
-                "Failed to load CGW-SEC SOME/IP config, using defaults",
+                "Failed to load CCU-SEC SOME/IP config, using defaults",
                 {dlog::f_str("reason", e.what())}
             );
-            sec_someip_config.service_id = 0x1140;  // CGW-SEC-DSN-CR-003
+            sec_someip_config.service_id = 0x1140;  // CCU-SEC-DSN-CR-003
             sec_someip_config.instance_id = 0x0001;
             sec_someip_config.major_version = 1;
             sec_someip_config.minor_version = 0;
@@ -200,29 +200,29 @@ int main(int argc, char* argv[]) {
              dlog::f_int("someip_port", someip_port)}
         );
 
-        // Initialize CGW-SEC client proxy
+        // Initialize CCU-SEC client proxy
         DiagLogAdapter::sec_client().info("diag.service.sec_client_initializing",
-            "Initializing CGW-SEC client proxy"
+            "Initializing CCU-SEC client proxy"
         );
         if (!sec_client_proxy->initialize(sec_someip_config)) {
             DiagLogAdapter::sec_client().error("diag.service.sec_client_init_failed",
-                "Failed to initialize CGW-SEC client proxy"
+                "Failed to initialize CCU-SEC client proxy"
             );
             return 1;
         }
 
-        // Connect to CGW-SEC service
+        // Connect to CCU-SEC service
         DiagLogAdapter::sec_client().info("diag.service.sec_client_connecting",
-            "Connecting to CGW-SEC service"
+            "Connecting to CCU-SEC service"
         );
         if (!sec_client_proxy->connect()) {
             DiagLogAdapter::sec_client().warn("diag.service.sec_client_connect_failed",
-                "Failed to connect to CGW-SEC service. Security features may be unavailable."
+                "Failed to connect to CCU-SEC service. Security features may be unavailable."
             );
             // Continue startup without SEC connection
         } else {
             DiagLogAdapter::sec_client().info("diag.service.sec_client_connected",
-                "Successfully connected to CGW-SEC service"
+                "Successfully connected to CCU-SEC service"
             );
         }
 
@@ -268,7 +268,7 @@ int main(int argc, char* argv[]) {
         );
 
         DiagLogAdapter::orchestrator().info(diag_events::SERVICE_READY,
-            "CGW-DIAG Service started successfully",
+            "CCU-DIAG Service started successfully",
             {dlog::f_str("someip_config_path", someip_config_path),
              dlog::f_str("registry_version", registry->getRegistryVersion())}
         );
@@ -284,7 +284,7 @@ int main(int argc, char* argv[]) {
         fota_service.stop();
 
         DiagLogAdapter::orchestrator().info("diag.service.stopped",
-            "CGW-DIAG Service stopped"
+            "CCU-DIAG Service stopped"
         );
 
         return 0;

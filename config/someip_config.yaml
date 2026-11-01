@@ -1,5 +1,5 @@
-# SOME/IP Service Configuration for CGW-DIAG
-# 来源：整车 SOME/IP Service Registry 统一分配（CGW-DIAG-DSN-CR-007）
+# SOME/IP Service Configuration for CCU-DIAG
+# 来源：整车 SOME/IP Service Registry 统一分配（CCU-DIAG-DSN-CR-007）
 # Service ID: 0x1110, Instance ID: 0x0001, Transport: TCP, Port: 51110
 someip:
   service:

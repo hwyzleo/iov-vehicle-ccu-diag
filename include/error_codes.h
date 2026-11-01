@@ -3,31 +3,31 @@
 #include <string>
 #include <unordered_map>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 enum class ErrorCode {
     SUCCESS = 0,
-    // CGW-DIAG-1001: Target ECU unreachable / no route
+    // CCU-DIAG-1001: Target ECU unreachable / no route
     ECU_UNREACHABLE = 1001,
-    // CGW-DIAG-1002: UDS request timeout
+    // CCU-DIAG-1002: UDS request timeout
     REQUEST_TIMEOUT = 1002,
-    // CGW-DIAG-1003: ECU returned NRC (negative response)
+    // CCU-DIAG-1003: ECU returned NRC (negative response)
     NEGATIVE_RESPONSE = 1003,
-    // CGW-DIAG-1004: Version DID not supported / missing
+    // CCU-DIAG-1004: Version DID not supported / missing
     DID_NOT_SUPPORTED = 1004,
-    // CGW-DIAG-1005: Baseline tag missing / unknown
+    // CCU-DIAG-1005: Baseline tag missing / unknown
     BASELINE_MISSING = 1005,
-    // CGW-DIAG-1006: Version data parsing failed
+    // CCU-DIAG-1006: Version data parsing failed
     PARSE_ERROR = 1006,
-    // CGW-DIAG-1007: Target ECU not registered in DID list
+    // CCU-DIAG-1007: Target ECU not registered in DID list
     ECU_NOT_REGISTERED = 1007,
-    // CGW-DIAG-1008: Response pending (NRC 0x78), client should continue polling
+    // CCU-DIAG-1008: Response pending (NRC 0x78), client should continue polling
     RESPONSE_PENDING = 1008,
-    // CGW-DIAG-1009: VIN not provisioned / missing
+    // CCU-DIAG-1009: VIN not provisioned / missing
     VIN_NOT_PROVISIONED = 1009,
-    // CGW-DIAG-1010: VIN write rejected
+    // CCU-DIAG-1010: VIN write rejected
     VIN_WRITE_REJECTED = 1010,
-    // CGW-DIAG-1011: Invalid key (NRC 0x35)
+    // CCU-DIAG-1011: Invalid key (NRC 0x35)
     INVALID_KEY = 1011
 };
 
@@ -42,4 +42,4 @@ private:
     static const std::unordered_map<ErrorCode, std::string> diag_codes_;
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

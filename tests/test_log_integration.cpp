@@ -7,22 +7,22 @@
 #include <atomic>
 #include <vector>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace {
 
 class LogIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        cgw::fw::log::LogConfig config;
-        config.level = cgw::fw::log::LogLevel::kDebug;
+        ccu::fw::log::LogConfig config;
+        config.level = ccu::fw::log::LogLevel::kDebug;
 
-        auto result = DiagLogAdapter::init("cgw-diag-integration-test", config);
-        ASSERT_EQ(result.error, cgw::fw::log::LogError::kOk);
+        auto result = DiagLogAdapter::init("ccu-diag-integration-test", config);
+        ASSERT_EQ(result.error, ccu::fw::log::LogError::kOk);
     }
 };
 
 // ============================================================
-// 上下文传播测试（CGW-DIAG-DSN-CR-008 §上下文传播）
+// 上下文传播测试（CCU-DIAG-DSN-CR-008 §上下文传播）
 // ============================================================
 
 TEST_F(LogIntegrationTest, ContextScopeBasics) {
@@ -60,14 +60,14 @@ TEST_F(LogIntegrationTest, ContextScopeNesting) {
 }
 
 TEST_F(LogIntegrationTest, SomeipChildScopeInheritsTraceId) {
-    // 验证 SOME/IP 子作用域继承 trace_id（CGW-DIAG-DSN-CR-008 §上下文传播 第4点）
+    // 验证 SOME/IP 子作用域继承 trace_id（CCU-DIAG-DSN-CR-008 §上下文传播 第4点）
     std::string parent_trace = "parent-trace-123";
     std::string parent_req = "parent-req-456";
 
     {
         auto parent_scope = make_context_scope(parent_trace, parent_req);
 
-        // 创建 SOME/IP 子作用域（模拟调用 CGW-SEC）
+        // 创建 SOME/IP 子作用域（模拟调用 CCU-SEC）
         {
             auto child_scope = make_someip_child_scope("0x1140", "0x0001");
             auto* ctx = current_context();
@@ -89,7 +89,7 @@ TEST_F(LogIntegrationTest, SomeipChildScopeInheritsTraceId) {
 
 TEST_F(LogIntegrationTest, DiagnosticChildScopeInheritsTraceId) {
     // 验证诊断子作用域继承 trace_id 并附加诊断上下文
-    // （CGW-DIAG-DSN-CR-008 §上下文传播 第2点）
+    // （CCU-DIAG-DSN-CR-008 §上下文传播 第2点）
     std::string parent_trace = "diag-trace-789";
     std::string parent_req = "diag-req-789";
 
@@ -150,7 +150,7 @@ TEST_F(LogIntegrationTest, DiagnosticChildScopeInheritsSomeipContext) {
 
 TEST_F(LogIntegrationTest, FullChainContextPropagation) {
     // 模拟全链路：FOTA -> DIAG Provider -> 逐 ECU Tester/Router/Transport
-    // （CGW-DIAG-DSN-CR-008 §上下文传播）
+    // （CCU-DIAG-DSN-CR-008 §上下文传播）
     std::string trace_id = "fullchain-trace-001";
     std::string request_id = "fullchain-req-001";
 
@@ -203,14 +203,14 @@ TEST_F(LogIntegrationTest, FullChainContextPropagation) {
 
 TEST_F(LogIntegrationTest, DiagToSecContextPropagation) {
     // DIAG -> SEC 调用链上下文传播
-    // （CGW-DIAG-DSN-CR-008 §上下文传播 第4点）
+    // （CCU-DIAG-DSN-CR-008 §上下文传播 第4点）
     std::string trace_id = "sec-trace-001";
     std::string request_id = "sec-req-001";
 
     {
         auto parent_scope = make_context_scope(trace_id, request_id, "diag-sess-001");
 
-        // DIAG 调用 CGW-SEC 时创建 SOME/IP Client 子作用域
+        // DIAG 调用 CCU-SEC 时创建 SOME/IP Client 子作用域
         {
             auto sec_scope = make_someip_child_scope("0x1140", "0x0001");
 
@@ -238,7 +238,7 @@ TEST_F(LogIntegrationTest, DiagToSecContextPropagation) {
 
 TEST_F(LogIntegrationTest, AsyncContextCopy) {
     // 异步任务边界显式复制日志上下文
-    // （CGW-DIAG-DSN-CR-008 §上下文传播 第4点）
+    // （CCU-DIAG-DSN-CR-008 §上下文传播 第4点）
     std::string trace_id = "async-trace-001";
     std::string request_id = "async-req-001";
 
@@ -282,7 +282,7 @@ TEST_F(LogIntegrationTest, SessionIdPropagation) {
 }
 
 // ============================================================
-// 脱敏测试（CGW-DIAG-DSN-CR-008 §字段与脱敏）
+// 脱敏测试（CCU-DIAG-DSN-CR-008 §字段与脱敏）
 // ============================================================
 
 TEST_F(LogIntegrationTest, VinDesensitization) {
@@ -294,13 +294,13 @@ TEST_F(LogIntegrationTest, VinDesensitization) {
 
         DiagLogAdapter::vin_store().info("test.vin_desensitization",
             "VIN should be masked",
-            {dlog::f_str("vin", test_vin, cgw::fw::log::Sensitivity::Identifier)}
+            {dlog::f_str("vin", test_vin, ccu::fw::log::Sensitivity::Identifier)}
         );
 
         // VIN 不应直接拼入 message
         DiagLogAdapter::vin_store().info("test.vin_not_in_message",
             "VIN processing result",
-            {dlog::f_str("vin_hash", test_vin, cgw::fw::log::Sensitivity::Identifier),
+            {dlog::f_str("vin_hash", test_vin, ccu::fw::log::Sensitivity::Identifier),
              dlog::f_str("result", "OK")}
         );
     }
@@ -323,7 +323,7 @@ TEST_F(LogIntegrationTest, PayloadDesensitization) {
         std::string raw_payload = "raw_uds_response_data_with_versions";
         DiagLogAdapter::tester().info("test.payload_raw",
             "Raw payload test",
-            {dlog::f_str("raw_payload", raw_payload, cgw::fw::log::Sensitivity::Payload)}
+            {dlog::f_str("raw_payload", raw_payload, ccu::fw::log::Sensitivity::Payload)}
         );
     }
 }
@@ -335,9 +335,9 @@ TEST_F(LogIntegrationTest, SecretFieldRejection) {
 
         DiagLogAdapter::sec_client().info("test.secret_rejection",
             "Secret fields should be rejected",
-            {dlog::f_str("seed", "0xABCD1234", cgw::fw::log::Sensitivity::Secret),
-             dlog::f_str("key", "0xEF567890", cgw::fw::log::Sensitivity::Secret),
-             dlog::f_str("session_key", "session_key_data", cgw::fw::log::Sensitivity::Secret)}
+            {dlog::f_str("seed", "0xABCD1234", ccu::fw::log::Sensitivity::Secret),
+             dlog::f_str("key", "0xEF567890", ccu::fw::log::Sensitivity::Secret),
+             dlog::f_str("session_key", "session_key_data", ccu::fw::log::Sensitivity::Secret)}
         );
 
         // 验证日志可正常执行（框架拒绝 Secret 字段但不崩溃）
@@ -361,7 +361,7 @@ TEST_F(LogIntegrationTest, WriteDataF190PayloadProhibited) {
 }
 
 // ============================================================
-// 并发与压力测试（CGW-DIAG-DSN-CR-008 §测试-压力测试）
+// 并发与压力测试（CCU-DIAG-DSN-CR-008 §测试-压力测试）
 // ============================================================
 
 TEST_F(LogIntegrationTest, ConcurrentLogging) {
@@ -422,7 +422,7 @@ TEST_F(LogIntegrationTest, ConcurrentContextScopes) {
 
 TEST_F(LogIntegrationTest, LoggingDoesNotBlockBusiness) {
     // 验证普通日志故障不阻断业务
-    // （CGW-DIAG-DSN-CR-008 §实时性与故障降级）
+    // （CCU-DIAG-DSN-CR-008 §实时性与故障降级）
     {
         auto scope = make_context_scope("trace-noblock", "req-noblock");
 
@@ -439,14 +439,14 @@ TEST_F(LogIntegrationTest, LoggingDoesNotBlockBusiness) {
 }
 
 // ============================================================
-// 故障降级测试（CGW-DIAG-DSN-CR-008 §实时性与故障降级）
+// 故障降级测试（CCU-DIAG-DSN-CR-008 §实时性与故障降级）
 // ============================================================
 
 TEST_F(LogIntegrationTest, StrictModeInitFailure) {
     // 验证 strict 模式下的 fail-closed 行为
-    cgw::fw::log::LogConfig config;
+    ccu::fw::log::LogConfig config;
     config.strict = true;
-    config.level = cgw::fw::log::LogLevel::kInfo;
+    config.level = ccu::fw::log::LogLevel::kInfo;
 
     // 使用空服务名测试（框架可能返回错误或接受）
     auto result = DiagLogAdapter::init("", config);
@@ -500,4 +500,4 @@ TEST_F(LogIntegrationTest, AllBusinessEventsEmitted) {
 }
 
 } // namespace
-} // namespace cgw_diag
+} // namespace ccu_diag

@@ -8,7 +8,7 @@
 #include <memory>
 #include <optional>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 // Thread safety: This class is thread-safe. All public methods can be called
 // concurrently from multiple threads. Internal state (baseline_id_, baseline_source_)
@@ -43,4 +43,4 @@ private:
     CollectionStatus determineOverallResult(const std::vector<EcuVersionEntry>& entries);
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

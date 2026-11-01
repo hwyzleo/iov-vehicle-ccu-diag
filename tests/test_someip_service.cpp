@@ -10,7 +10,7 @@
 #include <memory>
 #include <filesystem>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class SomeIpServiceTest : public ::testing::Test {
@@ -63,7 +63,7 @@ TEST_F(SomeIpServiceTest, RegisterMethodHandler) {
 TEST_F(SomeIpServiceTest, GetServiceId) {
     auto service = createSomeIpService();
     service->initialize(config_);
-    EXPECT_EQ(service->getServiceId(), 0x1110);  // CGW-DIAG-DSN-CR-007
+    EXPECT_EQ(service->getServiceId(), 0x1110);  // CCU-DIAG-DSN-CR-007
     EXPECT_EQ(service->getInstanceId(), 0x0001);
 }
 
@@ -79,10 +79,10 @@ protected:
         fota_service = std::make_unique<FotaSomeIpService>(facade, std::move(someip_service));
 
         SomeIpServiceConfig config = getAvailableSomeIpConfig();
-        config.service_id = constants::CGW_DIAG_SERVICE_ID;
-        config.instance_id = constants::CGW_DIAG_INSTANCE_ID;
-        config.major_version = constants::CGW_DIAG_MAJOR_VERSION;
-        config.minor_version = constants::CGW_DIAG_MINOR_VERSION;
+        config.service_id = constants::CCU_DIAG_SERVICE_ID;
+        config.instance_id = constants::CCU_DIAG_INSTANCE_ID;
+        config.major_version = constants::CCU_DIAG_MAJOR_VERSION;
+        config.minor_version = constants::CCU_DIAG_MINOR_VERSION;
         fota_service->initialize(config);
     }
 
@@ -101,7 +101,7 @@ TEST_F(FotaSomeIpServiceTest, HandleReadVinProvisioned) {
     vin_store->writeVin("1234567890ABCDEFG");
 
     SomeIpMessage request;
-    request.header.service_id = constants::CGW_DIAG_SERVICE_ID;
+    request.header.service_id = constants::CCU_DIAG_SERVICE_ID;
     request.header.method_id = constants::METHOD_READ_VIN;
     request.header.message_type = MessageType::REQUEST;
 
@@ -117,7 +117,7 @@ TEST_F(FotaSomeIpServiceTest, HandleReadVinProvisioned) {
 
 TEST_F(FotaSomeIpServiceTest, HandleReadVinNotProvisioned) {
     SomeIpMessage request;
-    request.header.service_id = constants::CGW_DIAG_SERVICE_ID;
+    request.header.service_id = constants::CCU_DIAG_SERVICE_ID;
     request.header.method_id = constants::METHOD_READ_VIN;
     request.header.message_type = MessageType::REQUEST;
 
@@ -129,4 +129,4 @@ TEST_F(FotaSomeIpServiceTest, HandleReadVinNotProvisioned) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

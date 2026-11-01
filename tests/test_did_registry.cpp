@@ -3,7 +3,7 @@
 #include <fstream>
 #include <filesystem>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 namespace fs = std::filesystem;
@@ -13,7 +13,7 @@ protected:
     fs::path temp_dir_;
 
     void SetUp() override {
-        temp_dir_ = fs::temp_directory_path() / "cgw_diag_did_registry_test";
+        temp_dir_ = fs::temp_directory_path() / "ccu_diag_did_registry_test";
         fs::create_directories(temp_dir_);
         createTestConfig();
         registry = std::make_unique<DidRegistry>(configPath());
@@ -55,7 +55,7 @@ ecus:
     logicalAddress: 0x20
     transport: "DoIP"
     readMethod: "SOMEIP_getVersion"
-    someipService: "0x1110"  # CGW-DIAG-DSN-CR-007
+    someipService: "0x1110"  # CCU-DIAG-DSN-CR-007
     fields: ["swVersion", "hwVersion"]
 )");
     }
@@ -214,4 +214,4 @@ TEST_F(DidRegistryTest, ReloadPreservesStateOnFailure) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

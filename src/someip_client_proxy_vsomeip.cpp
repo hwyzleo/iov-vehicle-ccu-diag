@@ -3,7 +3,7 @@
 #include <sstream>
 #include <chrono>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 SomeIpClientProxyVsomeip::SomeIpClientProxyVsomeip() {
     logInfo("SomeIpClientProxyVsomeip created");
@@ -185,7 +185,7 @@ void SomeIpClientProxyVsomeip::initializeApplication() {
     runtime_ = someip::Runtime::get();
     
     // 创建 Application
-    std::string app_name = "CgwDiagClient_" + std::to_string(remote_config_.service_id);
+    std::string app_name = "CcuDiagClient_" + std::to_string(remote_config_.service_id);
     application_ = runtime_->create_application(app_name);
     
     // 初始化应用
@@ -329,4 +329,4 @@ void SomeIpClientProxyVsomeip::logWarning(const std::string& message) {
     std::cout << "[WARN] SomeIpClientProxyVsomeip: " << message << std::endl;
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

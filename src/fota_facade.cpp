@@ -1,7 +1,7 @@
 #include "fota_facade.h"
 #include "error_codes.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 FotaFacade::FotaFacade(std::shared_ptr<VersionCollector> collector,
                        std::shared_ptr<DidRegistry> registry,
@@ -37,4 +37,4 @@ std::optional<std::string> FotaFacade::readVin() {
     return vin_store_->readVin();
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

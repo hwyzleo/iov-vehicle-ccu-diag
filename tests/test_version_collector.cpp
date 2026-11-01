@@ -11,7 +11,7 @@
 #include <filesystem>
 #include <algorithm>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class VersionCollectorTest : public ::testing::Test {
@@ -311,4 +311,4 @@ ecus: []
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

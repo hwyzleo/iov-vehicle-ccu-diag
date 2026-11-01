@@ -6,22 +6,22 @@
 #include "constants.h"
 #include <regex>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace {
 
 class LogEventsTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        cgw::fw::log::LogConfig config;
-        config.level = cgw::fw::log::LogLevel::kDebug;
+        ccu::fw::log::LogConfig config;
+        config.level = ccu::fw::log::LogLevel::kDebug;
 
-        auto result = DiagLogAdapter::init("cgw-diag-events-test", config);
-        ASSERT_EQ(result.error, cgw::fw::log::LogError::kOk);
+        auto result = DiagLogAdapter::init("ccu-diag-events-test", config);
+        ASSERT_EQ(result.error, ccu::fw::log::LogError::kOk);
     }
 };
 
 // ============================================================
-// 事件名格式验证（CGW-DIAG-DSN-CR-008 §事件目录）
+// 事件名格式验证（CCU-DIAG-DSN-CR-008 §事件目录）
 // 事件名使用小写点分命名
 // ============================================================
 TEST_F(LogEventsTest, EventNameFormat) {
@@ -49,7 +49,7 @@ TEST_F(LogEventsTest, EventNameFormat) {
 }
 
 // ============================================================
-// 所有模块 Logger 可调用（CGW-DIAG-DSN-CR-008 §启动与模块 Logger）
+// 所有模块 Logger 可调用（CCU-DIAG-DSN-CR-008 §启动与模块 Logger）
 // ============================================================
 TEST_F(LogEventsTest, AllModuleLoggersCallable) {
     DiagLogAdapter::facade().info(diag_events::INVENTORY_REQUEST_ACCEPTED,
@@ -71,19 +71,19 @@ TEST_F(LogEventsTest, AllModuleLoggersCallable) {
 }
 
 // ============================================================
-// 错误码映射验证（CGW-DIAG-DSN-CR-008 §事件目录）
+// 错误码映射验证（CCU-DIAG-DSN-CR-008 §事件目录）
 // ============================================================
 TEST_F(LogEventsTest, DiagErrorCodes) {
-    // 验证 DIAG 业务错误码 CGW-DIAG-1001~1011
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_UNREACHABLE), "CGW-DIAG-1001");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REQUEST_TIMEOUT), "CGW-DIAG-1002");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::NEGATIVE_RESPONSE), "CGW-DIAG-1003");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::DID_NOT_SUPPORTED), "CGW-DIAG-1004");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::PARSE_ERROR), "CGW-DIAG-1006");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED), "CGW-DIAG-1007");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED), "CGW-DIAG-1009");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED), "CGW-DIAG-1010");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVALID_KEY), "CGW-DIAG-1011");
+    // 验证 DIAG 业务错误码 CCU-DIAG-1001~1011
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_UNREACHABLE), "CCU-DIAG-1001");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REQUEST_TIMEOUT), "CCU-DIAG-1002");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::NEGATIVE_RESPONSE), "CCU-DIAG-1003");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::DID_NOT_SUPPORTED), "CCU-DIAG-1004");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::PARSE_ERROR), "CCU-DIAG-1006");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED), "CCU-DIAG-1007");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED), "CCU-DIAG-1009");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED), "CCU-DIAG-1010");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVALID_KEY), "CCU-DIAG-1011");
 
     // 错误码字符串非空
     EXPECT_FALSE(ErrorCodeMapper::toString(ErrorCode::ECU_UNREACHABLE).empty());
@@ -98,16 +98,16 @@ TEST_F(LogEventsTest, NrcMapping) {
 }
 
 TEST_F(LogEventsTest, FrameworkErrorCodes) {
-    // 验证 framework 错误码（CGW-FW-0201~0205）
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kConfigInvalid), 201);
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kInitFailed), 202);
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kSinkFailed), 203);
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kQueueOverflow), 204);
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kSensitiveViolation), 205);
+    // 验证 framework 错误码（CCU-FW-0201~0205）
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kConfigInvalid), 201);
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kInitFailed), 202);
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kSinkFailed), 203);
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kQueueOverflow), 204);
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kSensitiveViolation), 205);
 }
 
 // ============================================================
-// 事件字段验证（CGW-DIAG-DSN-CR-008 §事件目录 / §字段与脱敏）
+// 事件字段验证（CCU-DIAG-DSN-CR-008 §事件目录 / §字段与脱敏）
 // ============================================================
 TEST_F(LogEventsTest, RegistryLoadedFields) {
     // diag.registry.loaded: registry_version, ecu_count
@@ -126,7 +126,7 @@ TEST_F(LogEventsTest, RegistryLoadFailedFields) {
         "DidRegistry load failed",
         {dlog::f_str("registry_version", "1.0.0"),
          dlog::f_str("reason", "duplicate ECU ID"),
-         dlog::f_str("error_code", "CGW-FW-0201")}
+         dlog::f_str("error_code", "CCU-FW-0201")}
     );
 }
 
@@ -182,7 +182,7 @@ TEST_F(LogEventsTest, TesterRequestFailedFields) {
          dlog::f_str("nrc", "present"),
          dlog::f_int("attempt", 1),
          dlog::f_int("duration_ms", 52),
-         dlog::f_str("error_code", "CGW-DIAG-1003")}
+         dlog::f_str("error_code", "CCU-DIAG-1003")}
     );
 }
 
@@ -194,7 +194,7 @@ TEST_F(LogEventsTest, RouteFailedFields) {
         {dlog::f_str("ecu_id", "BMS"),
          dlog::f_str("logical_address", "0x001A"),
          dlog::f_str("transport", "DoCAN"),
-         dlog::f_str("error_code", "CGW-DIAG-1001")}
+         dlog::f_str("error_code", "CCU-DIAG-1001")}
     );
 }
 
@@ -216,7 +216,7 @@ TEST_F(LogEventsTest, VinReadFailedFields) {
         "VIN read failed",
         {dlog::f_str("operation", "readVin"),
          dlog::f_str("result", "not_provisioned"),
-         dlog::f_str("error_code", "CGW-DIAG-1009")}
+         dlog::f_str("error_code", "CCU-DIAG-1009")}
     );
 }
 
@@ -229,7 +229,7 @@ TEST_F(LogEventsTest, SecurityAccessFailedFields) {
          dlog::f_str("security_level", "LEVEL_1"),
          dlog::f_str("operation", "verifyKey"),
          dlog::f_str("result", "invalid_key"),
-         dlog::f_str("error_code", "CGW-DIAG-1011")}
+         dlog::f_str("error_code", "CCU-DIAG-1011")}
     );
 }
 
@@ -254,31 +254,31 @@ TEST_F(LogEventsTest, VinWriteFailedFields) {
          dlog::f_str("operation", "writeVin"),
          dlog::f_str("result", "failed"),
          dlog::f_int("duration_ms", 5),
-         dlog::f_str("error_code", "CGW-DIAG-1010")}
+         dlog::f_str("error_code", "CCU-DIAG-1010")}
     );
 }
 
 // ============================================================
-// 敏感类型验证（CGW-DIAG-DSN-CR-008 §字段与脱敏）
+// 敏感类型验证（CCU-DIAG-DSN-CR-008 §字段与脱敏）
 // ============================================================
 TEST_F(LogEventsTest, SensitivityClassification) {
     // VIN 按 Identifier 处理：默认掩码或不可逆摘要
     DiagLogAdapter::vin_store().info("test.event",
         "VIN as Identifier",
-        {dlog::f_str("vin", "LSVAU2180N2123456", cgw::fw::log::Sensitivity::Identifier)}
+        {dlog::f_str("vin", "LSVAU2180N2123456", ccu::fw::log::Sensitivity::Identifier)}
     );
 
     // UDS/SOME-IP 原始 payload 按 Payload 处理
     DiagLogAdapter::tester().info("test.event",
         "Payload as Payload",
-        {dlog::f_str("raw_payload", "raw_data_hex", cgw::fw::log::Sensitivity::Payload)}
+        {dlog::f_str("raw_payload", "raw_data_hex", ccu::fw::log::Sensitivity::Payload)}
     );
 
     // 0x27 seed/key 按 Secret 直接拒绝
     DiagLogAdapter::sec_client().info("test.event",
         "Secret field rejection",
-        {dlog::f_str("seed", "0xABCD1234", cgw::fw::log::Sensitivity::Secret),
-         dlog::f_str("key", "0xEF567890", cgw::fw::log::Sensitivity::Secret)}
+        {dlog::f_str("seed", "0xABCD1234", ccu::fw::log::Sensitivity::Secret),
+         dlog::f_str("key", "0xEF567890", ccu::fw::log::Sensitivity::Secret)}
     );
 }
 
@@ -297,10 +297,10 @@ TEST_F(LogEventsTest, VinNotInMessage) {
     // VIN 不得拼入 message
     DiagLogAdapter::vin_store().info("test.vin_not_in_message",
         "VIN processing result",
-        {dlog::f_str("vin_hash", "masked_value", cgw::fw::log::Sensitivity::Identifier),
+        {dlog::f_str("vin_hash", "masked_value", ccu::fw::log::Sensitivity::Identifier),
          dlog::f_str("result", "OK")}
     );
 }
 
 } // namespace
-} // namespace cgw_diag
+} // namespace ccu_diag

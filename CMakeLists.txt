@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(CgwDiagService)
+project(CcuDiagService)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,9 +48,9 @@ endif ()
 find_package(yaml-cpp REQUIRED)
 include_directories(${YAML_CPP_INCLUDE_DIRS})
 
-# CGW Framework (provides cgw-framework-log: Logger, ContextScope, structured fields)
-# CGW-DIAG-DSN-CR-008
-find_package(CGWFramework REQUIRED)
+# CCU Framework (provides ccu-framework-log: Logger, ContextScope, structured fields)
+# CCU-DIAG-DSN-CR-008
+find_package(CCUFramework REQUIRED)
 
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
@@ -70,7 +70,7 @@ set(LIB_SOURCES
     src/fota_facade.cpp
     src/someip_service.cpp
     src/someip_client_proxy.cpp
-    src/cgw_sec_client_proxy.cpp
+    src/ccu_sec_client_proxy.cpp
     src/fota_someip_service.cpp
     src/fota_someip_proxy.cpp
     src/vin_store.cpp
@@ -89,28 +89,28 @@ else()
     )
 endif()
 
-# Create cgw_diag library
-add_library(cgw_diag_lib STATIC ${LIB_SOURCES})
-target_include_directories(cgw_diag_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(cgw_diag_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json CGWFramework::cgw-framework)
+# Create ccu_diag library
+add_library(ccu_diag_lib STATIC ${LIB_SOURCES})
+target_include_directories(ccu_diag_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(ccu_diag_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json CCUFramework::ccu-framework-log)
 
 # 根据 SOME/IP 实现添加链接库
 if(USE_MOCK_SOMEIP)
     # 模拟实现不需要额外链接
 else()
-    target_link_libraries(cgw_diag_lib PUBLIC 
+    target_link_libraries(ccu_diag_lib PUBLIC 
         vsomeip3
         ${Boost_LIBRARIES}
     )
 endif()
 
 # Main application executable
-add_executable(cgw_diag src/main.cpp)
-target_include_directories(cgw_diag PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(cgw_diag PRIVATE cgw_diag_lib)
+add_executable(ccu_diag src/main.cpp)
+target_include_directories(ccu_diag PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(ccu_diag PRIVATE ccu_diag_lib)
 
 enable_testing()
-add_executable(CgwDiagTests
+add_executable(CcuDiagTests
     tests/test_error_codes.cpp
     tests/test_data_models.cpp
     tests/test_config_loader.cpp
@@ -131,23 +131,23 @@ add_executable(CgwDiagTests
     tests/test_log_events.cpp
     tests/test_log_integration.cpp
 )
-target_include_directories(CgwDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(CgwDiagTests PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)
+target_include_directories(CcuDiagTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(CcuDiagTests PRIVATE ccu_diag_lib GTest::GTest GTest::gmock GTest::Main)
 
 # 根据 SOME/IP 实现添加链接库
 if(USE_MOCK_SOMEIP)
     # 模拟实现不需要额外链接
 else()
-    target_link_libraries(CgwDiagTests PRIVATE 
+    target_link_libraries(CcuDiagTests PRIVATE 
         vsomeip3
         ${Boost_LIBRARIES}
     )
 endif()
-add_test(NAME CgwDiagTests COMMAND CgwDiagTests)
+add_test(NAME CcuDiagTests COMMAND CcuDiagTests)
 
-add_executable(test_cgw_sec_client_proxy
-    tests/test_cgw_sec_client_proxy.cpp
+add_executable(test_ccu_sec_client_proxy
+    tests/test_ccu_sec_client_proxy.cpp
 )
-target_include_directories(test_cgw_sec_client_proxy PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(test_cgw_sec_client_proxy PRIVATE cgw_diag_lib GTest::GTest GTest::gmock GTest::Main)
-add_test(NAME test_cgw_sec_client_proxy COMMAND test_cgw_sec_client_proxy)
+target_include_directories(test_ccu_sec_client_proxy PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(test_ccu_sec_client_proxy PRIVATE ccu_diag_lib GTest::GTest GTest::gmock GTest::Main)
+add_test(NAME test_ccu_sec_client_proxy COMMAND test_ccu_sec_client_proxy)

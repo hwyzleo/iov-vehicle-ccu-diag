@@ -6,7 +6,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class VinStore {
 public:
@@ -35,4 +35,4 @@ public:
 // Factory function for creating VinStore instance
 std::unique_ptr<VinStore> createVinStore(const std::string& storage_path = "");
 
-} // namespace cgw_diag
+} // namespace ccu_diag

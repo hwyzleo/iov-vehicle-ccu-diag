@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 // SOME/IP Service ID
 using ServiceId = uint16_t;
@@ -89,4 +89,4 @@ struct SomeIpEventConfig {
 using SomeIpRequestHandler = std::function<SomeIpMessage(const SomeIpMessage& request)>;
 using SomeIpNotificationHandler = std::function<void(const SomeIpMessage& notification)>;
 
-} // namespace cgw_diag
+} // namespace ccu_diag

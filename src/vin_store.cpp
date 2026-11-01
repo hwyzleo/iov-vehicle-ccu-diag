@@ -5,7 +5,7 @@
 #include <cctype>
 #include <iostream>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class VinStoreImpl : public VinStore {
 public:
@@ -119,4 +119,4 @@ std::unique_ptr<VinStore> createVinStore(const std::string& storage_path) {
     return std::make_unique<VinStoreImpl>(storage_path);
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

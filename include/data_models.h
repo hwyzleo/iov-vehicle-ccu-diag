@@ -5,7 +5,7 @@
 #include <optional>
 #include <cstdint>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 enum class ReadMethod {
     UDS_0x22,
@@ -101,4 +101,4 @@ struct DiagConfig {
     uint8_t max_retry_count = 2;
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

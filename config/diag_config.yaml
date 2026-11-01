@@ -1,4 +1,4 @@
-# 统一日志配置（CGW-DIAG-DSN-CR-008 / CGW-FW-SPEC设计 §4）
+# 统一日志配置（CCU-DIAG-DSN-CR-008 / CCU-FW-SPEC设计 §4）
 common:
   log:
     schema_version: 1
@@ -12,7 +12,7 @@ common:
       enabled: true
     file:
       enabled: false
-      root: /var/log/cgw
+      root: /var/log/ccu
       max_file_size_mb: 20
       max_files: 5
       total_budget_mb: 100
@@ -22,7 +22,7 @@ common:
     format: standard
 
 diag:
-  # 日志服务级覆盖（CGW-DIAG-DSN-CR-008 §启动与模块 Logger）
+  # 日志服务级覆盖（CCU-DIAG-DSN-CR-008 §启动与模块 Logger）
   log:
     level: INFO
     modules:

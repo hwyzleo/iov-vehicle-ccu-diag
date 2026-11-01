@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 namespace {
 const char* transportTypeToString(TransportType type) {
@@ -52,7 +52,7 @@ VehicleSoftwareSnapshot VersionCollector::collectVehicleInventory() {
     } else {
         snapshot.vin.clear();
         snapshot.vin_source = VinSource::UNKNOWN;
-        // CGW-DIAG-DSN-CR-008: VIN 未预置或 VinStore 访问失败
+        // CCU-DIAG-DSN-CR-008: VIN 未预置或 VinStore 访问失败
         DiagLogAdapter::vin_store().warn(diag_events::VIN_READ_FAILED,
             "VIN not provisioned",
             {dlog::f_str("operation", "readVin"),
@@ -74,7 +74,7 @@ VehicleSoftwareSnapshot VersionCollector::collectVehicleInventory() {
 
     snapshot.overall_result = determineOverallResult(snapshot.ecu_list);
 
-    // CGW-DIAG-DSN-CR-008: 整车采集完成
+    // CCU-DIAG-DSN-CR-008: 整车采集完成
     auto end = std::chrono::steady_clock::now();
     auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         end - start).count();
@@ -116,7 +116,7 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
         entry.status = EcuStatus::MISSING;
         entry.error_code = ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED);
         entry.source = ReadMethod::UDS_0x22;
-        // CGW-DIAG-DSN-CR-008: ECU 未登记
+        // CCU-DIAG-DSN-CR-008: ECU 未登记
         DiagLogAdapter::tester().warn(diag_events::TESTER_REQUEST_FAILED,
             "ECU not registered",
             {dlog::f_str("ecu_id", ecu_id),
@@ -129,7 +129,7 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
 
     if (ecu_config->read_method == ReadMethod::UDS_0x22) {
         for (const auto& did_entry : ecu_config->dids) {
-            // CGW-DIAG-DSN-CR-008: 为每个目标 ECU 创建诊断子作用域
+            // CCU-DIAG-DSN-CR-008: 为每个目标 ECU 创建诊断子作用域
             auto scope = make_diagnostic_child_scope(
                 ecu_id,
                 hex_id(ecu_config->logical_address),
@@ -162,7 +162,7 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
                 }
 
                 entry.status = EcuStatus::OK;
-                // CGW-DIAG-DSN-CR-008: 单 ECU 读取成功
+                // CCU-DIAG-DSN-CR-008: 单 ECU 读取成功
                 DiagLogAdapter::tester().info(diag_events::TESTER_REQUEST_SUCCEEDED,
                     "UDS request succeeded",
                     {dlog::f_str("ecu_id", ecu_id),
@@ -194,7 +194,7 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
 
                 entry.error_code = ErrorCodeMapper::toDiagCode(result.error_code);
 
-                // CGW-DIAG-DSN-CR-008: 不可达、超时、NRC、缺失或解析失败
+                // CCU-DIAG-DSN-CR-008: 不可达、超时、NRC、缺失或解析失败
                 DiagLogAdapter::tester().warn(diag_events::TESTER_REQUEST_FAILED,
                     "UDS request failed",
                     {dlog::f_str("ecu_id", ecu_id),
@@ -259,4 +259,4 @@ CollectionStatus VersionCollector::determineOverallResult(const std::vector<EcuV
     }
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

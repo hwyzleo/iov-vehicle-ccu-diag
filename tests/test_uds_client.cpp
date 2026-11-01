@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class UdsClientTest : public ::testing::Test {
@@ -188,4 +188,4 @@ TEST_F(UdsClientTest, CreateReadDataByIdentifierRequest) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

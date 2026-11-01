@@ -6,7 +6,7 @@
 #include <optional>
 #include <unordered_map>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 // Thread safety: This class is NOT thread-safe.
 // Concurrent calls to const methods are safe after construction/reload completes.
@@ -48,4 +48,4 @@ private:
     void buildIndices();
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

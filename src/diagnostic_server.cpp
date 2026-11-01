@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <chrono>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 DiagnosticServer::DiagnosticServer(std::shared_ptr<VinStore> vin_store,
-                                   std::shared_ptr<CgwSecClientProxy> sec_client_proxy)
+                                   std::shared_ptr<CcuSecClientProxy> sec_client_proxy)
     : vin_store_(std::move(vin_store))
     , sec_client_proxy_(std::move(sec_client_proxy)) {
 }
@@ -30,15 +30,15 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
 
     // Sub-function 0x01: Request seed
     if (sub_function == 0x01) {
-        // CGW-DIAG-DSN-CR-008: 生成日志会话 ID 关联 0x27/0x2E
+        // CCU-DIAG-DSN-CR-008: 生成日志会话 ID 关联 0x27/0x2E
         log_session_id_ = "diag-sess-" + std::to_string(
             std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
 
-        // Get seed from CGW-SEC
+        // Get seed from CCU-SEC
         auto seed_result = sec_client_proxy_->getSeed(SecLevel::LEVEL_1);
         if (!seed_result.has_value()) {
-            // CGW-DIAG-DSN-CR-008: SEC 调用失败
+            // CCU-DIAG-DSN-CR-008: SEC 调用失败
             DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
                 "Security access getSeed failed",
                 {dlog::f_str("session_id", log_session_id_),
@@ -72,7 +72,7 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
         // Extract key from request (skip sub-function byte)
         std::vector<uint8_t> key(request.begin() + 1, request.end());
         
-        // Verify key with CGW-SEC
+        // Verify key with CCU-SEC
         auto verify_result = sec_client_proxy_->verifyKey(
             SecLevel::LEVEL_1, seed_id_, key);
         
@@ -96,7 +96,7 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
                 lockout_start_ = std::chrono::steady_clock::now();
             }
             
-            // CGW-DIAG-DSN-CR-008: 0x27 解锁失败
+            // CCU-DIAG-DSN-CR-008: 0x27 解锁失败
             DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
                 "Security access verifyKey failed: invalid key",
                 {dlog::f_str("session_id", log_session_id_),
@@ -109,7 +109,7 @@ ErrorCode DiagnosticServer::handleSecurityAccess(uint8_t sub_function,
             return ErrorCode::INVALID_KEY;
         } else {
             // Other errors (service unavailable, timeout, etc.)
-            // CGW-DIAG-DSN-CR-008: SEC 调用失败
+            // CCU-DIAG-DSN-CR-008: SEC 调用失败
             DiagLogAdapter::sec_client().error(diag_events::SECURITY_ACCESS_FAILED,
                 "Security access verifyKey failed",
                 {dlog::f_str("session_id", log_session_id_),
@@ -154,7 +154,7 @@ ErrorCode DiagnosticServer::handleWriteDataByIdentifier(uint16_t did,
         write_end - write_start).count();
 
     if (!write_ok) {
-        // CGW-DIAG-DSN-CR-008: VIN 受限写入失败
+        // CCU-DIAG-DSN-CR-008: VIN 受限写入失败
         DiagLogAdapter::vin_store().error(diag_events::VIN_WRITE_FAILED,
             "VIN write failed",
             {dlog::f_str("session_id", log_session_id_),
@@ -166,7 +166,7 @@ ErrorCode DiagnosticServer::handleWriteDataByIdentifier(uint16_t did,
         return ErrorCode::VIN_WRITE_REJECTED;
     }
 
-    // CGW-DIAG-DSN-CR-008: VIN 受限写入成功
+    // CCU-DIAG-DSN-CR-008: VIN 受限写入成功
     DiagLogAdapter::vin_store().info(diag_events::VIN_WRITE_SUCCEEDED,
         "VIN write succeeded",
         {dlog::f_str("session_id", log_session_id_),
@@ -223,4 +223,4 @@ bool DiagnosticServer::validateVin(const std::vector<uint8_t>& data) const {
     return VinStore::isValidVin(vin);
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

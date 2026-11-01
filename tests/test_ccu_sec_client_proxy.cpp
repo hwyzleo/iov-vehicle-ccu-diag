@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "cgw_sec_client_proxy.h"
+#include "ccu_sec_client_proxy.h"
 #include "someip_client_proxy.h"
 #include "someip_types.h"
 
-using namespace cgw_diag;
+using namespace ccu_diag;
 using ::testing::_;
 using ::testing::Return;
 
@@ -20,13 +20,13 @@ public:
     MOCK_METHOD(uint32_t, getRequestTimeout, (), (const, override));
 };
 
-class CgwSecClientProxyTest : public ::testing::Test {
+class CcuSecClientProxyTest : public ::testing::Test {
 protected:
     void SetUp() override {
         auto mock = std::make_unique<MockSomeIpClientProxy>();
         mock_ptr_ = mock.get();
-        proxy_ = createCgwSecClientProxy(std::move(mock));
-        config_.service_id = 0x1110;  // CGW-DIAG-DSN-CR-007
+        proxy_ = createCcuSecClientProxy(std::move(mock));
+        config_.service_id = 0x1110;  // CCU-DIAG-DSN-CR-007
         config_.instance_id = 0x0001;
         config_.ip_address = "127.0.0.1";
         config_.port = 30509;
@@ -41,29 +41,29 @@ protected:
     }
 
     MockSomeIpClientProxy* mock_ptr_ = nullptr;
-    std::unique_ptr<CgwSecClientProxy> proxy_;
+    std::unique_ptr<CcuSecClientProxy> proxy_;
     SomeIpServiceConfig config_;
 };
 
-TEST_F(CgwSecClientProxyTest, InitializeSuccess) {
+TEST_F(CcuSecClientProxyTest, InitializeSuccess) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_TRUE(proxy_->initialize(config_));
 }
 
-TEST_F(CgwSecClientProxyTest, ConnectWithoutInitialize) {
+TEST_F(CcuSecClientProxyTest, ConnectWithoutInitialize) {
     // No proxy created yet, connect should fail
-    auto raw_proxy = createCgwSecClientProxy();
+    auto raw_proxy = createCcuSecClientProxy();
     EXPECT_FALSE(raw_proxy->connect());
 }
 
-TEST_F(CgwSecClientProxyTest, ConnectSuccess) {
+TEST_F(CcuSecClientProxyTest, ConnectSuccess) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, connect()).WillOnce(Return(true));
     proxy_->initialize(config_);
     EXPECT_TRUE(proxy_->connect());
 }
 
-TEST_F(CgwSecClientProxyTest, Disconnect) {
+TEST_F(CcuSecClientProxyTest, Disconnect) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, connect()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, disconnect()).Times(1);
@@ -72,21 +72,21 @@ TEST_F(CgwSecClientProxyTest, Disconnect) {
     proxy_->disconnect();
 }
 
-TEST_F(CgwSecClientProxyTest, IsConnectedWhenConnected) {
+TEST_F(CcuSecClientProxyTest, IsConnectedWhenConnected) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     proxy_->initialize(config_);
     EXPECT_TRUE(proxy_->isConnected());
 }
 
-TEST_F(CgwSecClientProxyTest, IsConnectedWhenDisconnected) {
+TEST_F(CcuSecClientProxyTest, IsConnectedWhenDisconnected) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(false));
     proxy_->initialize(config_);
     EXPECT_FALSE(proxy_->isConnected());
 }
 
-TEST_F(CgwSecClientProxyTest, GetSeedWhenDisconnected) {
+TEST_F(CcuSecClientProxyTest, GetSeedWhenDisconnected) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(false));
     proxy_->initialize(config_);
@@ -94,7 +94,7 @@ TEST_F(CgwSecClientProxyTest, GetSeedWhenDisconnected) {
     EXPECT_FALSE(result.has_value());
 }
 
-TEST_F(CgwSecClientProxyTest, GetSeedSuccess) {
+TEST_F(CcuSecClientProxyTest, GetSeedSuccess) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
 
@@ -115,7 +115,7 @@ TEST_F(CgwSecClientProxyTest, GetSeedSuccess) {
     EXPECT_EQ(result->seed[2], 0xCC);
 }
 
-TEST_F(CgwSecClientProxyTest, GetSeedTransportError) {
+TEST_F(CcuSecClientProxyTest, GetSeedTransportError) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, sendRequest(_))
@@ -126,7 +126,7 @@ TEST_F(CgwSecClientProxyTest, GetSeedTransportError) {
     EXPECT_FALSE(result.has_value());
 }
 
-TEST_F(CgwSecClientProxyTest, GetSeedMalformedResponseTooShort) {
+TEST_F(CcuSecClientProxyTest, GetSeedMalformedResponseTooShort) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
 
@@ -139,7 +139,7 @@ TEST_F(CgwSecClientProxyTest, GetSeedMalformedResponseTooShort) {
     EXPECT_FALSE(result.has_value());
 }
 
-TEST_F(CgwSecClientProxyTest, GetSeedMalformedResponseEmpty) {
+TEST_F(CcuSecClientProxyTest, GetSeedMalformedResponseEmpty) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, sendRequest(_))
@@ -150,7 +150,7 @@ TEST_F(CgwSecClientProxyTest, GetSeedMalformedResponseEmpty) {
     EXPECT_FALSE(result.has_value());
 }
 
-TEST_F(CgwSecClientProxyTest, GetSeedExceptionSafety) {
+TEST_F(CcuSecClientProxyTest, GetSeedExceptionSafety) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, sendRequest(_))
@@ -161,7 +161,7 @@ TEST_F(CgwSecClientProxyTest, GetSeedExceptionSafety) {
     EXPECT_FALSE(result.has_value());
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyWhenDisconnected) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyWhenDisconnected) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(false));
     proxy_->initialize(config_);
@@ -170,7 +170,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyWhenDisconnected) {
     EXPECT_EQ(result, SecResult::SERVICE_UNAVAILABLE);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeySuccess) {
+TEST_F(CcuSecClientProxyTest, VerifyKeySuccess) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
 
@@ -184,7 +184,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeySuccess) {
     EXPECT_EQ(result, SecResult::SUCCESS);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyInvalidKeyNrc0x35) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyInvalidKeyNrc0x35) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
 
@@ -198,7 +198,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyInvalidKeyNrc0x35) {
     EXPECT_EQ(result, SecResult::INVALID_KEY);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyUnknownNrc) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyUnknownNrc) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
 
@@ -212,7 +212,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyUnknownNrc) {
     EXPECT_EQ(result, SecResult::UNKNOWN_ERROR);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyTransportTimeout) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyTransportTimeout) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, sendRequest(_))
@@ -224,7 +224,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyTransportTimeout) {
     EXPECT_EQ(result, SecResult::TIMEOUT);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyTransportNotReachable) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyTransportNotReachable) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, sendRequest(_))
@@ -236,7 +236,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyTransportNotReachable) {
     EXPECT_EQ(result, SecResult::SERVICE_UNAVAILABLE);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyTransportNotReady) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyTransportNotReady) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, sendRequest(_))
@@ -248,7 +248,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyTransportNotReady) {
     EXPECT_EQ(result, SecResult::SERVICE_UNAVAILABLE);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyEmptyPayload) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyEmptyPayload) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, sendRequest(_))
@@ -260,7 +260,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyEmptyPayload) {
     EXPECT_EQ(result, SecResult::UNKNOWN_ERROR);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyExceptionSafety) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyExceptionSafety) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, sendRequest(_))
@@ -272,27 +272,27 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyExceptionSafety) {
     EXPECT_EQ(result, SecResult::SERVICE_UNAVAILABLE);
 }
 
-TEST_F(CgwSecClientProxyTest, SetRequestTimeout) {
+TEST_F(CcuSecClientProxyTest, SetRequestTimeout) {
     EXPECT_CALL(*mock_ptr_, setRequestTimeout(5000)).Times(1);
     proxy_->setRequestTimeout(5000);
 }
 
-TEST_F(CgwSecClientProxyTest, GetRequestTimeout) {
+TEST_F(CcuSecClientProxyTest, GetRequestTimeout) {
     EXPECT_CALL(*mock_ptr_, getRequestTimeout()).WillOnce(Return(3000));
     EXPECT_EQ(proxy_->getRequestTimeout(), 3000u);
 }
 
-TEST_F(CgwSecClientProxyTest, SetRequestTimeoutWithoutProxy) {
-    auto raw_proxy = createCgwSecClientProxy();
+TEST_F(CcuSecClientProxyTest, SetRequestTimeoutWithoutProxy) {
+    auto raw_proxy = createCcuSecClientProxy();
     raw_proxy->setRequestTimeout(5000);  // Should not crash
 }
 
-TEST_F(CgwSecClientProxyTest, GetRequestTimeoutWithoutProxy) {
-    auto raw_proxy = createCgwSecClientProxy();
+TEST_F(CcuSecClientProxyTest, GetRequestTimeoutWithoutProxy) {
+    auto raw_proxy = createCcuSecClientProxy();
     EXPECT_EQ(raw_proxy->getRequestTimeout(), 0u);
 }
 
-TEST_F(CgwSecClientProxyTest, VerifyKeyRequestPayloadFormat) {
+TEST_F(CcuSecClientProxyTest, VerifyKeyRequestPayloadFormat) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
 
@@ -308,7 +308,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyRequestPayloadFormat) {
     proxy_->verifyKey(SecLevel::LEVEL_1, 0x12345678, key);
 
     // Verify request structure
-    EXPECT_EQ(captured_request.header.service_id, 0x1110);  // CGW-DIAG-DSN-CR-007
+    EXPECT_EQ(captured_request.header.service_id, 0x1110);  // CCU-DIAG-DSN-CR-007
     EXPECT_EQ(captured_request.header.method_id, 0x0002);
     EXPECT_EQ(captured_request.header.message_type, MessageType::REQUEST);
     EXPECT_EQ(captured_request.header.length, 8u + 1 + 4 + 2);  // header + level + seed_id + key
@@ -324,7 +324,7 @@ TEST_F(CgwSecClientProxyTest, VerifyKeyRequestPayloadFormat) {
     EXPECT_EQ(captured_request.payload[6], 0xBB);  // key byte 1
 }
 
-TEST_F(CgwSecClientProxyTest, GetSeedRequestPayloadFormat) {
+TEST_F(CcuSecClientProxyTest, GetSeedRequestPayloadFormat) {
     EXPECT_CALL(*mock_ptr_, initialize(_)).WillOnce(Return(true));
     EXPECT_CALL(*mock_ptr_, isConnected()).WillOnce(Return(true));
 
@@ -341,7 +341,7 @@ TEST_F(CgwSecClientProxyTest, GetSeedRequestPayloadFormat) {
     proxy_->initialize(config_);
     proxy_->getSeed(SecLevel::LEVEL_1);
 
-    EXPECT_EQ(captured_request.header.service_id, 0x1110);  // CGW-DIAG-DSN-CR-007
+    EXPECT_EQ(captured_request.header.service_id, 0x1110);  // CCU-DIAG-DSN-CR-007
     EXPECT_EQ(captured_request.header.method_id, 0x0001);
     EXPECT_EQ(captured_request.header.message_type, MessageType::REQUEST);
     EXPECT_EQ(captured_request.header.length, 8u + 1);  // header + level

@@ -5,7 +5,7 @@
 #include <cstring>
 #include <chrono>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 DoCanTransport::DoCanTransport(const std::string& interface_name, uint32_t baudrate)
     : interface_name_(interface_name), baudrate_(baudrate) {
@@ -56,7 +56,7 @@ TransportResponse DoCanTransport::sendRequest(uint16_t logical_address,
         } else {
             response.success = false;
             response.error_message = "Unsupported request";
-            // CGW-DIAG-DSN-CR-008: DoCAN 传输异常
+            // CCU-DIAG-DSN-CR-008: DoCAN 传输异常
             DiagLogAdapter::transport().warn(diag_events::TRANSPORT_FAILED,
                 "DoCAN transport request unsupported",
                 {dlog::f_str("transport", "DoCAN"),
@@ -68,7 +68,7 @@ TransportResponse DoCanTransport::sendRequest(uint16_t logical_address,
     } catch (const std::exception& e) {
         response.success = false;
         response.error_message = e.what();
-        // CGW-DIAG-DSN-CR-008: DoCAN 传输异常
+        // CCU-DIAG-DSN-CR-008: DoCAN 传输异常
         DiagLogAdapter::transport().error(diag_events::TRANSPORT_FAILED,
             "DoCAN transport exception",
             {dlog::f_str("transport", "DoCAN"),
@@ -108,4 +108,4 @@ std::vector<uint8_t> DoCanTransport::createCanFrame(uint16_t can_id,
     return frame;
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

@@ -1,7 +1,7 @@
 #include "error_codes.h"
 #include <unordered_map>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::error_strings_ = {
     {ErrorCode::SUCCESS, "Success"},
@@ -20,17 +20,17 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::error_strings_
 
 const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = {
     {ErrorCode::SUCCESS, "SUCCESS"},
-    {ErrorCode::ECU_UNREACHABLE, "CGW-DIAG-1001"},
-    {ErrorCode::REQUEST_TIMEOUT, "CGW-DIAG-1002"},
-    {ErrorCode::NEGATIVE_RESPONSE, "CGW-DIAG-1003"},
-    {ErrorCode::DID_NOT_SUPPORTED, "CGW-DIAG-1004"},
-    {ErrorCode::BASELINE_MISSING, "CGW-DIAG-1005"},
-    {ErrorCode::PARSE_ERROR, "CGW-DIAG-1006"},
-    {ErrorCode::ECU_NOT_REGISTERED, "CGW-DIAG-1007"},
-    {ErrorCode::RESPONSE_PENDING, "CGW-DIAG-1008"},
-    {ErrorCode::VIN_NOT_PROVISIONED, "CGW-DIAG-1009"},
-    {ErrorCode::VIN_WRITE_REJECTED, "CGW-DIAG-1010"},
-    {ErrorCode::INVALID_KEY, "CGW-DIAG-1011"}
+    {ErrorCode::ECU_UNREACHABLE, "CCU-DIAG-1001"},
+    {ErrorCode::REQUEST_TIMEOUT, "CCU-DIAG-1002"},
+    {ErrorCode::NEGATIVE_RESPONSE, "CCU-DIAG-1003"},
+    {ErrorCode::DID_NOT_SUPPORTED, "CCU-DIAG-1004"},
+    {ErrorCode::BASELINE_MISSING, "CCU-DIAG-1005"},
+    {ErrorCode::PARSE_ERROR, "CCU-DIAG-1006"},
+    {ErrorCode::ECU_NOT_REGISTERED, "CCU-DIAG-1007"},
+    {ErrorCode::RESPONSE_PENDING, "CCU-DIAG-1008"},
+    {ErrorCode::VIN_NOT_PROVISIONED, "CCU-DIAG-1009"},
+    {ErrorCode::VIN_WRITE_REJECTED, "CCU-DIAG-1010"},
+    {ErrorCode::INVALID_KEY, "CCU-DIAG-1011"}
 };
 
 std::string ErrorCodeMapper::toString(ErrorCode code) {
@@ -65,4 +65,4 @@ ErrorCode ErrorCodeMapper::fromNrc(uint8_t nrc) {
     }
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

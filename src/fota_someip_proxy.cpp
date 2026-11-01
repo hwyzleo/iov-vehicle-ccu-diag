@@ -2,7 +2,7 @@
 #include "constants.h"
 #include <nlohmann/json.hpp>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 FotaSomeIpProxy::FotaSomeIpProxy(std::unique_ptr<SomeIpClientProxy> proxy)
     : proxy_(std::move(proxy)) {
@@ -33,7 +33,7 @@ VehicleSoftwareSnapshot FotaSomeIpProxy::collectVehicleInventory() {
     }
 
     SomeIpMessage request;
-    request.header.service_id = constants::CGW_DIAG_SERVICE_ID;
+    request.header.service_id = constants::CCU_DIAG_SERVICE_ID;
     request.header.method_id = constants::METHOD_COLLECT_VEHICLE_INVENTORY;
     request.header.message_type = MessageType::REQUEST;
 
@@ -90,7 +90,7 @@ EcuVersionEntry FotaSomeIpProxy::getEcuVersion(const std::string& ecu_id) {
     }
 
     SomeIpMessage request;
-    request.header.service_id = constants::CGW_DIAG_SERVICE_ID;
+    request.header.service_id = constants::CCU_DIAG_SERVICE_ID;
     request.header.method_id = constants::METHOD_GET_ECU_VERSION;
     request.header.message_type = MessageType::REQUEST;
     request.payload.assign(ecu_id.begin(), ecu_id.end());
@@ -152,7 +152,7 @@ std::string FotaSomeIpProxy::getRegistryVersion() {
     }
 
     SomeIpMessage request;
-    request.header.service_id = constants::CGW_DIAG_SERVICE_ID;
+    request.header.service_id = constants::CCU_DIAG_SERVICE_ID;
     request.header.method_id = constants::METHOD_GET_REGISTRY_VERSION;
     request.header.message_type = MessageType::REQUEST;
 
@@ -169,4 +169,4 @@ void FotaSomeIpProxy::setRequestTimeout(uint32_t timeout_ms) {
     proxy_->setRequestTimeout(timeout_ms);
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

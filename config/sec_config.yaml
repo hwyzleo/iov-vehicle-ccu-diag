@@ -1,5 +1,5 @@
-# SOME/IP Service Configuration for CGW-SEC
-# 来源：整车 SOME/IP Service Registry 统一分配（CGW-SEC-DSN-CR-003）
+# SOME/IP Service Configuration for CCU-SEC
+# 来源：整车 SOME/IP Service Registry 统一分配（CCU-SEC-DSN-CR-003）
 # Service ID: 0x1140, Instance ID: 0x0001, Transport: TCP, Port: 51140
 someip:
   service:

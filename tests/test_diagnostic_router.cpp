@@ -8,7 +8,7 @@
 #include <functional>
 #include <filesystem>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class DiagnosticRouterTest : public ::testing::Test {
@@ -198,4 +198,4 @@ TEST_F(DiagnosticRouterTest, RouteRequestSomeIpSkipsDidValidation) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

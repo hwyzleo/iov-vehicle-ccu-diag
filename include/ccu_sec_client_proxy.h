@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class SomeIpClientProxy;
 
@@ -29,9 +29,9 @@ struct SecuritySeed {
     std::vector<uint8_t> seed;
 };
 
-class CgwSecClientProxy {
+class CcuSecClientProxy {
 public:
-    virtual ~CgwSecClientProxy() = default;
+    virtual ~CcuSecClientProxy() = default;
 
     virtual bool initialize(const SomeIpServiceConfig& sec_service_config) = 0;
     virtual bool connect() = 0;
@@ -46,8 +46,8 @@ public:
     virtual uint32_t getRequestTimeout() const = 0;
 };
 
-std::unique_ptr<CgwSecClientProxy> createCgwSecClientProxy();
-std::unique_ptr<CgwSecClientProxy> createCgwSecClientProxy(
+std::unique_ptr<CcuSecClientProxy> createCcuSecClientProxy();
+std::unique_ptr<CcuSecClientProxy> createCcuSecClientProxy(
     std::unique_ptr<SomeIpClientProxy> proxy);
 
-} // namespace cgw_diag
+} // namespace ccu_diag

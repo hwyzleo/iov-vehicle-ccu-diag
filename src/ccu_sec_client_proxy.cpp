@@ -1,10 +1,10 @@
-#include "cgw_sec_client_proxy.h"
+#include "ccu_sec_client_proxy.h"
 #include "someip_client_proxy.h"
 #include "diag_log_adapter.h"
 #include "diag_log_context.h"
 #include <stdexcept>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 namespace {
 const char* secResultToString(SecResult result) {
@@ -20,25 +20,25 @@ const char* secResultToString(SecResult result) {
 }
 } // namespace
 
-// CGW-SEC service method IDs (from design document)
+// CCU-SEC service method IDs (from design document)
 constexpr MethodId METHOD_GET_SEED = 0x0001;
 constexpr MethodId METHOD_VERIFY_KEY = 0x0002;
 
-// UDS NRC codes from CGW-SEC (application-level, in SOME/IP payload)
+// UDS NRC codes from CCU-SEC (application-level, in SOME/IP payload)
 constexpr uint8_t NRC_POSITIVE_RESPONSE = 0x00;
 constexpr uint8_t NRC_INVALID_KEY = 0x35;
 
 // SOME/IP header size: service_id(2) + method_id(2) + length(4) = 8 bytes
 constexpr uint32_t SOMEIP_HEADER_SIZE = 8;
 
-class CgwSecClientProxyImpl : public CgwSecClientProxy {
+class CcuSecClientProxyImpl : public CcuSecClientProxy {
 public:
-    CgwSecClientProxyImpl() = default;
+    CcuSecClientProxyImpl() = default;
 
-    explicit CgwSecClientProxyImpl(std::unique_ptr<SomeIpClientProxy> proxy)
+    explicit CcuSecClientProxyImpl(std::unique_ptr<SomeIpClientProxy> proxy)
         : someip_proxy_(std::move(proxy)) {}
 
-    ~CgwSecClientProxyImpl() override = default;
+    ~CcuSecClientProxyImpl() override = default;
 
     bool initialize(const SomeIpServiceConfig& sec_service_config) override {
         sec_service_config_ = sec_service_config;
@@ -79,7 +79,7 @@ public:
             return std::nullopt;
         }
 
-        // CGW-DIAG-DSN-CR-008: DIAG 调用 CGW-SEC 时创建 SOME/IP Client 子作用域
+        // CCU-DIAG-DSN-CR-008: DIAG 调用 CCU-SEC 时创建 SOME/IP Client 子作用域
         auto scope = make_someip_child_scope(
             hex_id(sec_service_config_.service_id),
             hex_id(METHOD_GET_SEED)
@@ -132,7 +132,7 @@ public:
                        static_cast<uint32_t>(response.payload[3]);
         seed.seed.assign(response.payload.begin() + 4, response.payload.end());
 
-        // CGW-DIAG-DSN-CR-008: 仅记录非密钥元数据（seed_id、seed 长度），
+        // CCU-DIAG-DSN-CR-008: 仅记录非密钥元数据（seed_id、seed 长度），
         // 不记录 seed 原值
         DiagLogAdapter::sec_client().info("diag.security.get_seed.succeeded",
             "getSeed succeeded",
@@ -153,7 +153,7 @@ public:
             return SecResult::SERVICE_UNAVAILABLE;
         }
 
-        // CGW-DIAG-DSN-CR-008: DIAG 调用 CGW-SEC 时创建 SOME/IP Client 子作用域
+        // CCU-DIAG-DSN-CR-008: DIAG 调用 CCU-SEC 时创建 SOME/IP Client 子作用域
         auto scope = make_someip_child_scope(
             hex_id(sec_service_config_.service_id),
             hex_id(METHOD_VERIFY_KEY)
@@ -205,7 +205,7 @@ public:
 
         uint8_t nrc = response.payload[0];
         if (nrc == NRC_POSITIVE_RESPONSE) {
-            // CGW-DIAG-DSN-CR-008: verifyKey 成功（不记录 key 原值）
+            // CCU-DIAG-DSN-CR-008: verifyKey 成功（不记录 key 原值）
             DiagLogAdapter::sec_client().info("diag.security.verify_key.succeeded",
                 "verifyKey succeeded",
                 {dlog::f_str("security_level", "LEVEL_1"),
@@ -256,13 +256,13 @@ private:
     std::unique_ptr<SomeIpClientProxy> someip_proxy_;
 };
 
-std::unique_ptr<CgwSecClientProxy> createCgwSecClientProxy() {
-    return std::make_unique<CgwSecClientProxyImpl>();
+std::unique_ptr<CcuSecClientProxy> createCcuSecClientProxy() {
+    return std::make_unique<CcuSecClientProxyImpl>();
 }
 
-std::unique_ptr<CgwSecClientProxy> createCgwSecClientProxy(
+std::unique_ptr<CcuSecClientProxy> createCcuSecClientProxy(
         std::unique_ptr<SomeIpClientProxy> proxy) {
-    return std::make_unique<CgwSecClientProxyImpl>(std::move(proxy));
+    return std::make_unique<CcuSecClientProxyImpl>(std::move(proxy));
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

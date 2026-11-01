@@ -1,10 +1,10 @@
-# iov-vehicle-cgw-diag
+# iov-vehicle-ccu-diag
 
-车联网车端中央网关（CGW）诊断服务模块
+车联网车端中央计算单元（CCU）诊断服务模块
 
 ## 项目概述
 
-本项目实现了车联网车端中央网关的诊断业务功能，包括：
+本项目实现了车联网车端中央计算单元的诊断业务功能，包括：
 
 - **UDS 诊断客户端**：实现统一诊断服务（UDS）协议通信
 - **DID 注册表管理**：管理诊断标识符（DID）配置
@@ -15,7 +15,7 @@
 ## 目录结构
 
 ```
-iov-vehicle-cgw-diag/
+iov-vehicle-ccu-diag/
 ├── CMakeLists.txt          # CMake 构建配置
 ├── README.md               # 项目说明文档
 ├── LICENSE                 # MIT 许可证
@@ -111,7 +111,7 @@ ctest --output-on-failure
 ### 命令行选项
 
 ```bash
-cgw_diag [选项]
+ccu_diag [选项]
 
 选项：
   --vin <VIN>              采集车辆软件清单
@@ -131,16 +131,16 @@ cgw_diag [选项]
 
 ```bash
 # 采集车辆软件清单
-./build/cgw_diag --vin LVSHFFAN5KF000001
+./build/ccu_diag --vin LVSHFFAN5KF000001
 
 # 获取指定 ECU 版本
-./build/cgw_diag --ecu BMS
+./build/ccu_diag --ecu BMS
 
 # 打印注册表版本
-./build/cgw_diag --registry-version
+./build/ccu_diag --registry-version
 
 # 使用自定义配置
-./build/cgw_diag --vin LVSHFFAN5KF000001 \
+./build/ccu_diag --vin LVSHFFAN5KF000001 \
   --did-registry config/did_registry.yaml \
   --diag-config config/diag_config.yaml \
   --can-interface can1 \
@@ -211,10 +211,10 @@ retry:
 cd build && ctest --output-on-failure
 
 # 或者直接运行测试可执行文件
-./build/CgwDiagTests
+./build/CcuDiagTests
 
 # 运行特定测试
-./build/CgwDiagTests --gtest_filter="*ConfigLoader*"
+./build/CcuDiagTests --gtest_filter="*ConfigLoader*"
 ```
 
 ### 测试覆盖率
@@ -248,7 +248,7 @@ cd build && ctest --output-on-failure
 
 ## SOME/IP 服务
 
-CGW-DIAG 现在作为独立进程运行，通过 SOME/IP 提供服务间通信能力。
+CCU-DIAG 现在作为独立进程运行，通过 SOME/IP 提供服务间通信能力。
 
 ### 服务配置
 
@@ -257,7 +257,7 @@ SOME/IP 配置文件位于 `config/someip_config.yaml`。
 ### 命令行参数
 
 ```
-./cgw_diag [options]
+./ccu_diag [options]
 Options:
   --did-registry <path>    Path to DID registry YAML
   --diag-config <path>     Path to diag config YAML
@@ -284,4 +284,4 @@ Options:
 ## 联系方式
 
 - 项目维护者：hwyz_leo
-- 项目链接：https://github.com/hwyz_leo/iov-vehicle-cgw-diag
+- 项目链接：https://github.com/hwyzleo/iov-vehicle-ccu-diag

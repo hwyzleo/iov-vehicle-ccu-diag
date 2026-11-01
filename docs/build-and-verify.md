@@ -1,6 +1,6 @@
 # 构建与验证指南
 
-本文档详细说明如何构建、测试和验证 iov-vehicle-cgw-diag 项目。
+本文档详细说明如何构建、测试和验证 iov-vehicle-ccu-diag 项目。
 
 ## 构建环境要求
 
@@ -110,7 +110,7 @@ make -j4
 ctest --output-on-failure
 
 # 或直接运行测试可执行文件
-./CgwDiagTests
+./CcuDiagTests
 ```
 
 ## 构建产物
@@ -119,9 +119,9 @@ ctest --output-on-failure
 
 | 文件 | 说明 |
 |------|------|
-| `cgw_diag` | 主程序可执行文件 |
-| `libcgw_diag_lib.a` | 静态库文件 |
-| `CgwDiagTests` | 测试可执行文件 |
+| `ccu_diag` | 主程序可执行文件 |
+| `libccu_diag_lib.a` | 静态库文件 |
+| `CcuDiagTests` | 测试可执行文件 |
 | `compile_commands.json` | 编译命令数据库（用于 IDE） |
 
 ## 验证步骤
@@ -130,26 +130,26 @@ ctest --output-on-failure
 
 ```bash
 # 检查可执行文件是否生成
-ls -la build/cgw_diag
+ls -la build/ccu_diag
 
 # 检查库文件是否生成
-ls -la build/libcgw_diag_lib.a
+ls -la build/libccu_diag_lib.a
 
 # 检查测试文件是否生成
-ls -la build/CgwDiagTests
+ls -la build/CcuDiagTests
 ```
 
 ### 2. 验证程序功能
 
 ```bash
 # 显示帮助信息
-./build/cgw_diag --help
+./build/ccu_diag --help
 
 # 显示版本信息
-./build/cgw_diag --version
+./build/ccu_diag --version
 
 # 显示注册表版本
-./build/cgw_diag --registry-version
+./build/ccu_diag --registry-version
 ```
 
 ### 3. 运行单元测试
@@ -163,8 +163,8 @@ ctest --output-on-failure
 
 ```
 Test project /path/to/build
-    Start 1: CgwDiagTests
-1/1 Test #1: CgwDiagTests ....................   Passed    X.XX sec
+    Start 1: CcuDiagTests
+1/1 Test #1: CcuDiagTests ....................   Passed    X.XX sec
 
 100% tests passed, 0 tests failed out of 1
 
@@ -175,20 +175,20 @@ Total Test time (real) =   X.XX sec
 
 ```bash
 # 运行所有测试
-./build/CgwDiagTests
+./build/CcuDiagTests
 
 # 运行特定测试套件
-./build/CgwDiagTests --gtest_filter="*ConfigLoader*"
+./build/CcuDiagTests --gtest_filter="*ConfigLoader*"
 
 # 运行特定测试用例
-./build/CgwDiagTests --gtest_filter="ConfigLoaderTest.LoadDiagConfig"
+./build/CcuDiagTests --gtest_filter="ConfigLoaderTest.LoadDiagConfig"
 ```
 
 ### 5. 验证配置文件
 
 ```bash
 # 检查配置文件语法
-./build/cgw_diag --registry-version
+./build/ccu_diag --registry-version
 ```
 
 如果配置文件格式正确，将输出注册表版本号。
@@ -237,7 +237,7 @@ error: 'xxx' is not a member of 'std'
 ```
 
 **解决方案：**
-- 查看详细错误信息：`./build/CgwDiagTests --gtest_print_time=0`
+- 查看详细错误信息：`./build/CcuDiagTests --gtest_print_time=0`
 - 检查测试环境是否正确配置
 
 ## 清理构建
@@ -271,7 +271,7 @@ rm -rf build/
 cmake -G Xcode ..
 
 # 打开项目
-open CgwDiagService.xcodeproj
+open CcuDiagService.xcodeproj
 ```
 
 ## 性能优化
@@ -303,10 +303,10 @@ CMake 会自动检测变更并仅重新编译必要的文件。
 
 ```bash
 # 使用 GDB 调试
-gdb ./build/cgw_diag
+gdb ./build/ccu_diag
 
 # 使用 LLDB 调试 (macOS)
-lldb ./build/cgw_diag
+lldb ./build/ccu_diag
 ```
 
 ### 内存检查
@@ -314,7 +314,7 @@ lldb ./build/cgw_diag
 使用 Valgrind 检查内存问题（Linux）：
 
 ```bash
-valgrind --leak-check=full ./build/CgwDiagTests
+valgrind --leak-check=full ./build/CcuDiagTests
 ```
 
 ## 持续集成

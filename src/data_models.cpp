@@ -1,6 +1,6 @@
 #include "data_models.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 std::string vinSourceToString(VinSource source) {
     switch (source) {
@@ -15,4 +15,4 @@ VinSource stringToVinSource(const std::string& str) {
     return VinSource::UNKNOWN;
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

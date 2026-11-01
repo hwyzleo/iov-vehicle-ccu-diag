@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <iostream>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 FotaSomeIpService::FotaSomeIpService(std::shared_ptr<FotaFacade> facade,
                                      std::unique_ptr<SomeIpService> service)
@@ -71,7 +71,7 @@ void FotaSomeIpService::registerMethodHandlers() {
 }
 
 SomeIpMessage FotaSomeIpService::handleCollectVehicleInventory(const SomeIpMessage& request) {
-    // CGW-DIAG-DSN-CR-008: SOME/IP Provider 收到 FOTA 请求时建立 ContextScope
+    // CCU-DIAG-DSN-CR-008: SOME/IP Provider 收到 FOTA 请求时建立 ContextScope
     auto trace_id = generate_trace_id();
     auto request_id = generate_request_id();
     auto scope = make_someip_context_scope(
@@ -135,7 +135,7 @@ SomeIpMessage FotaSomeIpService::handleCollectVehicleInventory(const SomeIpMessa
 }
 
 SomeIpMessage FotaSomeIpService::handleGetEcuVersion(const SomeIpMessage& request) {
-    // CGW-DIAG-DSN-CR-008: 建立请求上下文
+    // CCU-DIAG-DSN-CR-008: 建立请求上下文
     auto trace_id = generate_trace_id();
     auto request_id = generate_request_id();
     auto scope = make_someip_context_scope(
@@ -199,7 +199,7 @@ SomeIpMessage FotaSomeIpService::handleGetEcuVersion(const SomeIpMessage& reques
 }
 
 SomeIpMessage FotaSomeIpService::handleGetRegistryVersion(const SomeIpMessage& request) {
-    // CGW-DIAG-DSN-CR-008: 建立请求上下文
+    // CCU-DIAG-DSN-CR-008: 建立请求上下文
     auto trace_id = generate_trace_id();
     auto request_id = generate_request_id();
     auto scope = make_someip_context_scope(
@@ -226,7 +226,7 @@ SomeIpMessage FotaSomeIpService::handleGetRegistryVersion(const SomeIpMessage& r
 }
 
 SomeIpMessage FotaSomeIpService::handleReadVin(const SomeIpMessage& request) {
-    // CGW-DIAG-DSN-CR-008: 建立请求上下文
+    // CCU-DIAG-DSN-CR-008: 建立请求上下文
     auto trace_id = generate_trace_id();
     auto request_id = generate_request_id();
     auto scope = make_someip_context_scope(
@@ -259,4 +259,4 @@ SomeIpMessage FotaSomeIpService::handleReadVin(const SomeIpMessage& request) {
     return response;
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

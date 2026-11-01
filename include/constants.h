@@ -4,7 +4,7 @@
 #include <string>
 #include "someip_types.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace constants {
 
 // UDS Service IDs
@@ -44,13 +44,13 @@ constexpr uint16_t DEFAULT_DOIP_PORT = 13400;
 inline const std::string APP_VERSION = "1.0.0";
 
 // SOME/IP Service IDs
-// 来源：整车 SOME/IP Service Registry 统一分配（CGW-DIAG-DSN-CR-007）
-constexpr ServiceId CGW_DIAG_SERVICE_ID = 0x1110;
-constexpr uint16_t CGW_DIAG_INSTANCE_ID = 0x0001;
-constexpr uint8_t CGW_DIAG_MAJOR_VERSION = 1;
-constexpr uint32_t CGW_DIAG_MINOR_VERSION = 0;
+// 来源：整车 SOME/IP Service Registry 统一分配（CCU-DIAG-DSN-CR-007）
+constexpr ServiceId CCU_DIAG_SERVICE_ID = 0x1110;
+constexpr uint16_t CCU_DIAG_INSTANCE_ID = 0x0001;
+constexpr uint8_t CCU_DIAG_MAJOR_VERSION = 1;
+constexpr uint32_t CCU_DIAG_MINOR_VERSION = 0;
 
-// SOME/IP Method IDs (CGW-DIAG-DSN-CR-006)
+// SOME/IP Method IDs (CCU-DIAG-DSN-CR-006)
 constexpr MethodId METHOD_READ_VIN = 0x0001;
 constexpr MethodId METHOD_COLLECT_VEHICLE_INVENTORY = 0x0002;
 constexpr MethodId METHOD_GET_ECU_VERSION = 0x0003;
@@ -66,4 +66,4 @@ constexpr uint16_t DEFAULT_SOMEIP_PORT = 51110;
 constexpr uint32_t DEFAULT_SOMEIP_REQUEST_TIMEOUT_MS = 2000;
 
 } // namespace constants
-} // namespace cgw_diag
+} // namespace ccu_diag

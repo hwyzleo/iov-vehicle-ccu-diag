@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <arpa/inet.h>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 DoIpTransport::DoIpTransport(const std::string& ip_address, uint16_t port)
     : ip_address_(ip_address), port_(port), socket_fd_(-1), connected_(false) {
@@ -55,7 +55,7 @@ TransportResponse DoIpTransport::sendRequest(uint16_t logical_address,
         } else {
             response.success = false;
             response.error_message = "Unsupported request";
-            // CGW-DIAG-DSN-CR-008: DoIP 传输异常
+            // CCU-DIAG-DSN-CR-008: DoIP 传输异常
             DiagLogAdapter::transport().warn(diag_events::TRANSPORT_FAILED,
                 "DoIP transport request unsupported",
                 {dlog::f_str("transport", "DoIP"),
@@ -67,7 +67,7 @@ TransportResponse DoIpTransport::sendRequest(uint16_t logical_address,
     } catch (const std::exception& e) {
         response.success = false;
         response.error_message = e.what();
-        // CGW-DIAG-DSN-CR-008: DoIP 传输异常
+        // CCU-DIAG-DSN-CR-008: DoIP 传输异常
         DiagLogAdapter::transport().error(diag_events::TRANSPORT_FAILED,
             "DoIP transport exception",
             {dlog::f_str("transport", "DoIP"),
@@ -161,4 +161,4 @@ std::vector<uint8_t> DoIpTransport::createDoIpPacket(uint16_t logical_address,
     return packet;
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "error_codes.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 TEST(ErrorCodeMapperTest, ToStringReturnsCorrectString) {
@@ -21,17 +21,17 @@ TEST(ErrorCodeMapperTest, ToStringReturnsCorrectString) {
 
 TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::SUCCESS), "SUCCESS");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_UNREACHABLE), "CGW-DIAG-1001");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REQUEST_TIMEOUT), "CGW-DIAG-1002");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::NEGATIVE_RESPONSE), "CGW-DIAG-1003");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::DID_NOT_SUPPORTED), "CGW-DIAG-1004");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::BASELINE_MISSING), "CGW-DIAG-1005");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::PARSE_ERROR), "CGW-DIAG-1006");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED), "CGW-DIAG-1007");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::RESPONSE_PENDING), "CGW-DIAG-1008");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED), "CGW-DIAG-1009");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED), "CGW-DIAG-1010");
-    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVALID_KEY), "CGW-DIAG-1011");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_UNREACHABLE), "CCU-DIAG-1001");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REQUEST_TIMEOUT), "CCU-DIAG-1002");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::NEGATIVE_RESPONSE), "CCU-DIAG-1003");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::DID_NOT_SUPPORTED), "CCU-DIAG-1004");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::BASELINE_MISSING), "CCU-DIAG-1005");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::PARSE_ERROR), "CCU-DIAG-1006");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::ECU_NOT_REGISTERED), "CCU-DIAG-1007");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::RESPONSE_PENDING), "CCU-DIAG-1008");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED), "CCU-DIAG-1009");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED), "CCU-DIAG-1010");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVALID_KEY), "CCU-DIAG-1011");
 }
 
 TEST(ErrorCodeMapperTest, ToStringUnknownCodeReturnsFallback) {
@@ -62,4 +62,4 @@ TEST(ErrorCodeMapperTest, FromNrcMapsCorrectly) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

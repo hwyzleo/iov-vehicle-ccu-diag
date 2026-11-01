@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class MockTransport : public TransportAdapter {
@@ -60,4 +60,4 @@ private:
 };
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# iov-vehicle-cgw-diag 构建脚本
+# iov-vehicle-ccu-diag 构建脚本
 #
 # 用法: ./scripts/build.sh [选项]
 #
@@ -275,13 +275,13 @@ show_summary() {
     echo "构建目录:   ${BUILD_DIR}"
     echo ""
     echo "构建产物:"
-    echo "  - 主程序:      ${BUILD_DIR}/cgw_diag"
-    echo "  - 静态库:      ${BUILD_DIR}/libcgw_diag_lib.a"
-    echo "  - 测试程序:    ${BUILD_DIR}/CgwDiagTests"
+    echo "  - 主程序:      ${BUILD_DIR}/ccu_diag"
+    echo "  - 静态库:      ${BUILD_DIR}/libccu_diag_lib.a"
+    echo "  - 测试程序:    ${BUILD_DIR}/CcuDiagTests"
     echo ""
     echo "使用方法:"
-    echo "  ${BUILD_DIR}/cgw_diag --help"
-    echo "  ${BUILD_DIR}/CgwDiagTests"
+    echo "  ${BUILD_DIR}/ccu_diag --help"
+    echo "  ${BUILD_DIR}/CcuDiagTests"
     echo "=========================================="
 }
 
@@ -317,7 +317,7 @@ parse_args() {
 # 主函数
 main() {
     echo "=========================================="
-    echo "iov-vehicle-cgw-diag 构建脚本"
+    echo "iov-vehicle-ccu-diag 构建脚本"
     echo "=========================================="
     echo ""
 

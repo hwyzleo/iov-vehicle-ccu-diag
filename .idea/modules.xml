@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/iov-vehicle-cgw-diag.iml" filepath="$PROJECT_DIR$/.idea/iov-vehicle-cgw-diag.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/iov-vehicle-ccu-diag.iml" filepath="$PROJECT_DIR$/.idea/iov-vehicle-ccu-diag.iml" />
     </modules>
   </component>
 </project>

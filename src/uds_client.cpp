@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <thread>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 UdsClient::UdsClient(std::shared_ptr<TransportAdapter> transport, const DiagConfig& config)
     : transport_(transport), config_(config) {
@@ -133,4 +133,4 @@ std::vector<uint8_t> UdsClient::extractData(const std::vector<uint8_t>& response
     return {};
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag

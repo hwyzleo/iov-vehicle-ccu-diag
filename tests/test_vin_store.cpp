@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 class VinStoreTest : public ::testing::Test {
@@ -118,4 +118,4 @@ TEST_F(VinStoreTest, ResetVinUnauthorized) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

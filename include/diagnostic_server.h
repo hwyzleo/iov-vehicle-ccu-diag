@@ -3,12 +3,12 @@
 #include "vin_store.h"
 #include "data_models.h"
 #include "error_codes.h"
-#include "cgw_sec_client_proxy.h"
+#include "ccu_sec_client_proxy.h"
 #include <memory>
 #include <chrono>
 #include <string>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 // UDS Service IDs for diagnostic server
 constexpr uint8_t UDS_SECURITY_ACCESS = 0x27;
@@ -24,7 +24,7 @@ enum class SecurityLevel {
 class DiagnosticServer {
 public:
     DiagnosticServer(std::shared_ptr<VinStore> vin_store,
-                     std::shared_ptr<CgwSecClientProxy> sec_client_proxy);
+                     std::shared_ptr<CcuSecClientProxy> sec_client_proxy);
     ~DiagnosticServer() = default;
     
     // Handle UDS Security Access (0x27)
@@ -53,11 +53,11 @@ private:
     bool validateVin(const std::vector<uint8_t>& data) const;
     
     std::shared_ptr<VinStore> vin_store_;
-    std::shared_ptr<CgwSecClientProxy> sec_client_proxy_;
+    std::shared_ptr<CcuSecClientProxy> sec_client_proxy_;
     SecurityLevel security_level_ = SecurityLevel::LOCKED;
     bool vin_write_session_active_ = false;
     
-    // Security access state for CGW-SEC integration
+    // Security access state for CCU-SEC integration
     uint32_t seed_id_ = 0;
     uint8_t failed_attempts_ = 0;
     static constexpr uint8_t MAX_FAILED_ATTEMPTS = 3;
@@ -65,8 +65,8 @@ private:
     std::chrono::steady_clock::time_point lockout_start_;
     bool is_locked_out_ = false;
 
-    // CGW-DIAG-DSN-CR-008: 日志会话关联（0x27 -> 0x2E -> VinStore 写入）
+    // CCU-DIAG-DSN-CR-008: 日志会话关联（0x27 -> 0x2E -> VinStore 写入）
     std::string log_session_id_;
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

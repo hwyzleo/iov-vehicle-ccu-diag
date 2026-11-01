@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class SomeIpClientProxy {
 public:
@@ -25,4 +25,4 @@ public:
 // Factory function
 std::unique_ptr<SomeIpClientProxy> createSomeIpClientProxy();
 
-} // namespace cgw_diag
+} // namespace ccu_diag

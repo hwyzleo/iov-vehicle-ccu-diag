@@ -7,7 +7,7 @@
 #include <string>
 #include <optional>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class FotaFacade {
 public:
@@ -27,4 +27,4 @@ private:
     std::shared_ptr<VinStore> vin_store_;
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

@@ -2,7 +2,7 @@
 
 #include "transport_adapter.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class DoCanTransport : public TransportAdapter {
 public:
@@ -22,4 +22,4 @@ private:
     std::vector<uint8_t> createCanFrame(uint16_t can_id, const std::vector<uint8_t>& data);
 };
 
-} // namespace cgw_diag
+} // namespace ccu_diag

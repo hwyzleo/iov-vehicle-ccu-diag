@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 class SomeIpService {
 public:
@@ -34,4 +34,4 @@ public:
 // Factory function
 std::unique_ptr<SomeIpService> createSomeIpService();
 
-} // namespace cgw_diag
+} // namespace ccu_diag

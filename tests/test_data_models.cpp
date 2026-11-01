@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "data_models.h"
 
-namespace cgw_diag {
+namespace ccu_diag {
 namespace tests {
 
 TEST(DataModelsTest, EcuConfigCreation) {
@@ -101,4 +101,4 @@ TEST(DataModelsTest, DiagConfigDefaults) {
 }
 
 } // namespace tests
-} // namespace cgw_diag
+} // namespace ccu_diag

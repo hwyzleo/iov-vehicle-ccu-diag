@@ -3,7 +3,7 @@
 #include "diag_log_context.h"
 #include <stdexcept>
 
-namespace cgw_diag {
+namespace ccu_diag {
 
 DidRegistry::DidRegistry(const std::string& config_path)
     : config_path_(config_path) {
@@ -74,19 +74,19 @@ void DidRegistry::reload() {
         ecu_id_index_ = std::move(new_id_index);
         ecu_address_index_ = std::move(new_address_index);
 
-        // CGW-DIAG-DSN-CR-008: DidRegistry 校验并加载完成
+        // CCU-DIAG-DSN-CR-008: DidRegistry 校验并加载完成
         DiagLogAdapter::did_registry().info(diag_events::REGISTRY_LOADED,
             "DidRegistry loaded successfully",
             {dlog::f_str("registry_version", config_.registry_version),
              dlog::f_int("ecu_count", static_cast<int64_t>(config_.ecus.size()))}
         );
     } catch (const std::exception& e) {
-        // CGW-DIAG-DSN-CR-008: 配置读取或校验失败
+        // CCU-DIAG-DSN-CR-008: 配置读取或校验失败
         DiagLogAdapter::did_registry().error(diag_events::REGISTRY_LOAD_FAILED,
             "DidRegistry load failed",
             {dlog::f_str("registry_version", config_.registry_version),
              dlog::f_str("reason", e.what()),
-             dlog::f_str("error_code", "CGW-FW-0201")}
+             dlog::f_str("error_code", "CCU-FW-0201")}
         );
         throw;
     }
@@ -110,4 +110,4 @@ void DidRegistry::buildIndices() {
     }
 }
 
-} // namespace cgw_diag
+} // namespace ccu_diag
