@@ -1,0 +1,41 @@
+# =============================================================================
+# packaging/systemd/ccu-diag.service - CCU-DIAG baseline unit
+# (CCU-DIAG-DSN-CR-009 §6.1)
+# =============================================================================
+# CCU-DIAG owns this baseline unit and installs it through the
+# ccu-diag-runtime component. Platform-specific values (User/Group,
+# capability, device/interface allow-list, memory/task/fd limits, enable
+# policy, vsomeip environment) are fixed by the CCU-BUILD Platform Manifest
+# or an authorized drop-in; the baseline must not default to root.
+#
+# /etc/ccu is read-only. /var/lib/ccu/diag is the only writable state path
+# (VIN and other device instance state), preserved across deploy/rollback.
+#
+# SEC unavailable must keep the existing business degradation semantics, so
+# ordering uses After=/Wants= and never Requires=.
+#
+# VSOMEIP_CONFIGURATION / VSOMEIP_APPLICATION_NAME / shared vsomeip JSON are
+# platform runtime assets and are intentionally NOT hard-coded here. The
+# platform drop-in 10-vsomeip.conf overrides PrivateTmp where required by the
+# vsomeip routing socket.
+# =============================================================================
+[Unit]
+Description=CCU Diagnostic Gateway Service
+After=network.target ccu-sec.service
+Wants=ccu-sec.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ccu_diag
+Restart=on-failure
+RestartSec=2s
+# Must be >= the measured bounded shutdown budget (SIGTERM -> stop()).
+TimeoutStopSec=30s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/ccu/diag
+
+[Install]
+WantedBy=multi-user.target

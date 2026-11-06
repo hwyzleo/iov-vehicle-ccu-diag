@@ -254,5 +254,49 @@ ecus: []
     EXPECT_TRUE(config.ecus.empty());
 }
 
+// CCU-DIAG-DSN-CR-002 §1.1：进程 vsomeip application 名可配置，且必须与平台
+// vsomeip.json 的 applications 登记名一致（ccu-diag/0x1110）。
+TEST_F(ConfigLoaderTest, LoadSomeIpApplicationName) {
+    auto path = tempPath("test_someip_config.yaml");
+    writeFile(path, R"(
+someip:
+  application_name: ccu-diag
+  service:
+    service_id: 0x1110
+    instance_id: 0x0001
+    major_version: 1
+    minor_version: 0
+  network:
+    ip_address: "127.0.0.1"
+    port: 51110
+)");
+
+    SomeIpServiceConfig config = ConfigLoader::loadSomeIpConfig(path);
+    EXPECT_EQ(config.application_name, "ccu-diag");
+    EXPECT_EQ(config.service_id, constants::CCU_DIAG_SERVICE_ID);
+    EXPECT_EQ(config.instance_id, constants::CCU_DIAG_INSTANCE_ID);
+    EXPECT_EQ(config.port, constants::DEFAULT_SOMEIP_PORT);
+}
+
+// application_name 缺省时留空，由 someip_backend.h 回落 constants 缺省值。
+TEST_F(ConfigLoaderTest, LoadSomeIpApplicationNameOptional) {
+    auto path = tempPath("test_someip_config_no_app.yaml");
+    writeFile(path, R"(
+someip:
+  service:
+    service_id: 0x1110
+    instance_id: 0x0001
+    major_version: 1
+    minor_version: 0
+  network:
+    ip_address: "127.0.0.1"
+    port: 51110
+)");
+
+    SomeIpServiceConfig config = ConfigLoader::loadSomeIpConfig(path);
+    EXPECT_TRUE(config.application_name.empty());
+    EXPECT_EQ(constants::DEFAULT_SOMEIP_APPLICATION_NAME, std::string("ccu-diag"));
+}
+
 } // namespace tests
 } // namespace ccu_diag

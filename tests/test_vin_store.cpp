@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "vin_store.h"
+#include "constants.h"
 #include <filesystem>
 #include <fstream>
 
@@ -70,6 +71,12 @@ TEST_F(VinStoreTest, VinValidation) {
     EXPECT_TRUE(VinStore::isValidVin("1234567890ABCDEFG"));
     EXPECT_FALSE(VinStore::isValidVin("1234567890"));  // Too short
     EXPECT_FALSE(VinStore::isValidVin("1234567890ABCDEFI"));  // Invalid char 'I'
+}
+
+TEST_F(VinStoreTest, DefaultVinStoragePathIsDeviceStateLocation) {
+    // CCU-DIAG-DSN-CR-009 §6.2: VIN is device instance state, not
+    // release-managed configuration; deploy/rollback must preserve it.
+    EXPECT_EQ(constants::DEFAULT_VIN_STORAGE_PATH, "/var/lib/ccu/diag/vin.dat");
 }
 
 TEST_F(VinStoreTest, ResetVin) {

@@ -19,9 +19,10 @@ iov-vehicle-ccu-diag/
 ├── CMakeLists.txt          # CMake 构建配置
 ├── README.md               # 项目说明文档
 ├── LICENSE                 # MIT 许可证
-├── config/                 # 配置文件目录
-│   ├── diag_config.yaml    # 诊断参数配置
-│   └── did_registry.yaml   # DID 注册表配置
+├── config/                 # 配置目录（只安装 diag.default.yaml + schema）
+│   ├── diag.default.yaml   # 统一正式配置模板（安装为 /etc/ccu/conf.d/diag.yaml）
+│   ├── schema/             # diag.yaml 的 JSON Schema
+│   └── dev/                # 本地开发夹具，永不安装
 ├── include/                # 头文件目录
 │   ├── config_loader.h     # 配置加载器
 │   ├── constants.h         # 常量定义
@@ -51,11 +52,13 @@ iov-vehicle-ccu-diag/
 
 ### 依赖项
 
-- **CMake** >= 3.10
+- **CMake** >= 3.24
 - **C++17** 编译器
 - **yaml-cpp**：YAML 配置文件解析
 - **nlohmann_json**：JSON 数据处理
-- **Google Test**：单元测试框架
+- **Google Test**：单元测试框架（仅 `BUILD_TESTING=ON` 时查找）
+- **CCUFramework**：已安装的 Framework SDK（`find_package(CCUFramework CONFIG REQUIRED)`）
+- **vsomeip3 / Boost**：仅在 `USE_MOCK_SOMEIP=OFF` 的真实后端构建需要
 
 ### 安装依赖
 
@@ -96,14 +99,21 @@ sudo apt-get install cmake libyaml-cpp-dev nlohmann-json3-dev libgtest-dev
 # 创建构建目录
 mkdir build && cd build
 
-# 配置项目
-cmake ..
+# 开发/CI：显式启用 mock SOME/IP 与测试
+cmake .. -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_INSTALL_PREFIX=/usr \
+  -DUSE_MOCK_SOMEIP=ON \
+  -DBUILD_TESTING=ON \
+  -DCMAKE_PREFIX_PATH="$HOME/.local"
 
 # 编译
-make -j$(nproc)
+cmake --build . -j$(nproc)
 
 # 运行测试
 ctest --output-on-failure
+
+# 生产 TARGET 构建由 CCU-BUILD 显式传入：
+#   -DUSE_MOCK_SOMEIP=OFF -DBUILD_TESTING=OFF
 ```
 
 ## 使用方法
@@ -114,37 +124,37 @@ ctest --output-on-failure
 ccu_diag [选项]
 
 选项：
-  --vin <VIN>              采集车辆软件清单
-  --ecu <ECU_ID>           获取指定 ECU 版本
-  --registry-version       打印注册表版本
+  --diag-config <path>     统一 DIAG 配置 YAML（默认 /etc/ccu/conf.d/diag.yaml）
+  --common-config <path>   公共配置 YAML（开发/测试覆盖，默认 /etc/ccu/common.yaml）
+  --did-registry <path>    开发/测试覆盖：legacy DID 注册表 YAML
+  --someip-config <path>   开发/测试覆盖：legacy SOME/IP 配置 YAML
+  --sec-config <path>      开发/测试覆盖：legacy CCU-SEC SOME/IP 配置 YAML
+  --can-interface <name>   CAN 接口名称
+  --can-baudrate <rate>    CAN 波特率
+  --doip-ip <ip>           DoIP 服务器 IP 地址
+  --doip-port <port>       DoIP 服务器端口
+  --someip-ip <ip>         SOME/IP 监听地址
+  --someip-port <port>     SOME/IP 监听端口
   --version                打印应用版本
-  --did-registry <path>    DID 注册表 YAML 路径
-  --diag-config <path>     诊断配置 YAML 路径
-  --can-interface <name>   CAN 接口名称（默认：can0）
-  --can-baudrate <rate>    CAN 波特率（默认：500000）
-  --doip-ip <ip>           DoIP 服务器 IP 地址（默认：192.168.1.1）
-  --doip-port <port>       DoIP 服务器端口（默认：13400）
   --help                   显示帮助信息
 ```
 
 ### 示例
 
 ```bash
-# 采集车辆软件清单
-./build/ccu_diag --vin LVSHFFAN5KF000001
+# 打印版本
+./build/ccu_diag --version
 
-# 获取指定 ECU 版本
-./build/ccu_diag --ecu BMS
+# 使用开发夹具运行（统一配置 + 公共配置）
+./build/ccu_diag \
+  --diag-config config/dev/diag.yaml \
+  --common-config config/dev/common.yaml
 
-# 打印注册表版本
-./build/ccu_diag --registry-version
-
-# 使用自定义配置
-./build/ccu_diag --vin LVSHFFAN5KF000001 \
-  --did-registry config/did_registry.yaml \
-  --diag-config config/diag_config.yaml \
-  --can-interface can1 \
-  --doip-ip 192.168.1.100
+# 开发/测试覆盖单一域
+./build/ccu_diag \
+  --diag-config config/dev/diag.yaml \
+  --common-config config/dev/common.yaml \
+  --did-registry config/dev/legacy/did_registry.yaml
 ```
 
 ### 输出格式
@@ -170,37 +180,31 @@ ccu_diag [选项]
 
 ## 配置说明
 
-### DID 注册表配置 (did_registry.yaml)
+CCU-DIAG-DSN-CR-009 起，正式服务配置只有单一文件
+`/etc/ccu/conf.d/diag.yaml`，顶层只有 `diag:` 根节点。公共
+`common.log.*` 来自 BUILD 提供的 `/etc/ccu/common.yaml`，不得在
+`diag.yaml` 内联顶层 `common:`。
 
 ```yaml
-registryVersion: "2026.07.0"
-baselineDids: [0xF195, 0xF188, 0xF187, 0xF193]
-ecus:
-  - ecuId: "BMS"
-    logicalAddress: 0x1A
-    transport: "DoCAN"
-    readMethod: "UDS_0x22"
-    securityRequired: false
-    dids:
-      - did: 0xF195
-        field: "swVersion"
-        encoding: "ASCII"
-        length: 16
+diag:
+  log:        # 服务级日志覆盖（common.log.* 不在本文件）
+  timing:     # UDS / 诊断时序
+  retry:      # 重试次数
+  transport:  # CAN / DoIP 非秘密参数（平台值由 BUILD overlay 提供）
+  registry:   # 原 did_registry.yaml：registryVersion / baselineDids / ecus
+  someip:     # 原 someip_config.yaml：provider 寻址与方法/事件
+  sec_client:
+    someip:   # 原 sec_config.yaml：CCU-SEC 对端配置
 ```
 
-### 诊断参数配置 (diag_config.yaml)
-
-```yaml
-timing:
-  p2_server_max_ms: 50
-  p2_star_server_max_ms: 5000
-  s3_session_timeout_ms: 5000
-  tester_present_interval_ms: 2000
-  request_timeout_ms: 2000
-  retry_interval_ms: 100
-retry:
-  max_count: 2
-```
+- `config/diag.default.yaml` 是仓库维护的安全默认模板；安装时重命名为
+  `diag.yaml`，并由 BUILD 平台完整文件整文件覆盖。
+- `config/schema/diag.schema.yaml` 是仓库维护的 Draft-07 schema；BUILD 与
+  `ci/verify-config-schema.py` 使用同一版本校验默认/平台/最终文件。
+- 旧四份配置保留在 `config/dev/legacy/` 仅作开发/测试覆盖入口，不进入
+  `ccu-diag-runtime` 安装集。
+- VIN 是设备实例状态，默认 `/var/lib/ccu/diag/vin.dat`，不进入发布包；
+  部署与回退必须 preserve。
 
 ## 测试
 
@@ -252,16 +256,20 @@ CCU-DIAG 现在作为独立进程运行，通过 SOME/IP 提供服务间通信�
 
 ### 服务配置
 
-SOME/IP 配置文件位于 `config/someip_config.yaml`。
+SOME/IP provider 配置位于统一 `diag.yaml` 的 `diag.someip` 子树；CCU-SEC
+对端配置位于 `diag.sec_client.someip`。二者共用同一个进程 application
+`ccu-diag`。
 
 ### 命令行参数
 
 ```
 ./ccu_diag [options]
 Options:
-  --did-registry <path>    Path to DID registry YAML
-  --diag-config <path>     Path to diag config YAML
-  --someip-config <path>   Path to SOME/IP config YAML
+  --diag-config <path>     Path to unified DIAG config YAML
+  --common-config <path>   Path to common config YAML (dev/test override)
+  --did-registry <path>    Dev/test override: legacy DID registry YAML
+  --someip-config <path>   Dev/test override: legacy SOME/IP config YAML
+  --sec-config <path>      Dev/test override: legacy CCU-SEC SOME/IP config YAML
   --can-interface <name>   CAN interface name
   --can-baudrate <rate>    CAN baudrate
   --doip-ip <ip>           DoIP server IP address
@@ -280,6 +288,21 @@ Options:
 | collectVehicleInventory | 0x0002 | 触发一轮采集，返回 VehicleSoftwareSnapshot |
 | getEcuVersion | 0x0003 | 按单 ECU 读取版本 |
 | getRegistryVersion | 0x0004 | 返回当前 DidRegistry 版本 |
+
+## BUILD 接入（服务侧契约）
+
+CCU-DIAG-DSN-CR-009 定义的服务侧交付契约：
+
+- 安装 component：`ccu-diag-runtime`（仅 `ccu_diag`、`ccu-diag.service`、
+  `diag.yaml`、`diag.schema.yaml`）。
+- 生产 configure 输入：`BUILD_TESTING=OFF`、`USE_MOCK_SOMEIP=OFF`。
+- 正式配置：`/etc/ccu/common.yaml`（BUILD 提供）+ `/etc/ccu/conf.d/diag.yaml`
+  （服务默认模板 + 平台整文件覆盖）。
+- 实例状态：`/var/lib/ccu/diag/**`（preserve，不进入普通发布包）。
+- 配置校验：`config/schema/diag.schema.yaml` + `ci/verify-config-schema.py`。
+- smoke 入口：`tests/smoke/smoke-diag.sh`。
+- `services.yaml` / `release-sets.yaml` / dependency lock 的正式登记由对应
+  CCU-BUILD CR 授权；本仓库不直接修改 BUILD 清单。
 
 ## 联系方式
 

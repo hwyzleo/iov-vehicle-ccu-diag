@@ -1,6 +1,10 @@
 # Prerequisites
 *.d
 
+# systemd unit drop-ins are platform assets and must stay version controlled
+!packaging/systemd/*.service.d/
+!packaging/systemd/*.service.d/*.conf
+
 # Compiled Object files
 *.slo
 *.lo
@@ -43,6 +47,7 @@
 build/
 Build/
 build-*/
+cmake-build-*/
 
 # CMake generated files
 CMakeFiles/

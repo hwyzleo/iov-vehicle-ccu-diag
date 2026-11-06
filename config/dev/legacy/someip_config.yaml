@@ -1,7 +1,16 @@
+# CCU-DIAG 开发/测试夹具（legacy SOME/IP 单文件格式）
+# 仅用于 --someip-config 开发/测试覆盖入口，不进入 ccu-diag-runtime。
+# 正式配置已迁移到 config/diag.default.yaml 的 diag.someip 子树。
 # SOME/IP Service Configuration for CCU-DIAG
 # 来源：整车 SOME/IP Service Registry 统一分配（CCU-DIAG-DSN-CR-007）
 # Service ID: 0x1110, Instance ID: 0x0001, Transport: TCP, Port: 51110
 someip:
+  # 本进程 vsomeip application 名：必须与平台 /etc/ccu/someip/vsomeip.json
+  # 的 applications 登记名一致（ccu-diag = 0x1110）。一个进程只有一个
+  # application，service(0x1110) 与 SEC client proxy(0x1140) 共用它。
+  # 空值/缺省时回落 "ccu-diag"。
+  application_name: ccu-diag
+
   service:
     service_id: 0x1110
     instance_id: 0x0001

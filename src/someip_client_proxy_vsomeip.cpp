@@ -1,4 +1,5 @@
 #include "someip_client_proxy_vsomeip.h"
+#include "constants.h"
 #include <iostream>
 #include <sstream>
 #include <chrono>
@@ -181,17 +182,22 @@ uint32_t SomeIpClientProxyVsomeip::getRequestTimeout() const {
 }
 
 void SomeIpClientProxyVsomeip::initializeApplication() {
-    // 获取 Runtime
+    // client proxy 与 service 必须复用同一进程 application（同一个已登记名），
+    // 否则第二个名字未在 vsomeip.json 登记，会落到默认 routing 域外。
+    std::string app_name = remote_config_.application_name;
+    if (app_name.empty()) {
+        app_name = constants::DEFAULT_SOMEIP_APPLICATION_NAME;
+    }
+
+    application_ = acquireProcessApplication(app_name);
+    if (!application_) {
+        throw std::runtime_error("failed to acquire process vsomeip application: " + app_name);
+    }
+
+    // runtime_ 供 create_request/create_payload 使用：与 application 同一 Runtime。
     runtime_ = someip::Runtime::get();
-    
-    // 创建 Application
-    std::string app_name = "CcuDiagClient_" + std::to_string(remote_config_.service_id);
-    application_ = runtime_->create_application(app_name);
-    
-    // 初始化应用
-    application_->init();
-    
-    logInfo("Application initialized: " + app_name);
+
+    logInfo("Application acquired: " + app_name);
 }
 
 void SomeIpClientProxyVsomeip::registerServiceDiscovery() {

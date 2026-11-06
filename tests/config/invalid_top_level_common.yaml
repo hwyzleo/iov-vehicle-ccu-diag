@@ -1,0 +1,118 @@
+diag:
+  log:
+    level: INFO
+    modules:
+      facade: INFO
+      orchestrator: INFO
+      tester: INFO
+      router: WARN
+      transport: WARN
+      did_registry: INFO
+      vin_store: INFO
+      sec_client: INFO
+  timing:
+    p2_server_max_ms: 50
+    p2_star_server_max_ms: 5000
+    s3_session_timeout_ms: 5000
+    tester_present_interval_ms: 2000
+    request_timeout_ms: 2000
+    retry_interval_ms: 100
+  retry:
+    max_count: 2
+  transport:
+    can:
+      baudrate: 500000
+    doip:
+      port: 13400
+  registry:
+    registryVersion: 2026.07.1
+    baselineDids:
+    - 61845
+    - 61832
+    - 61831
+    - 61843
+    ecus:
+    - ecuId: BMS
+      logicalAddress: 26
+      transport: DoCAN
+      readMethod: UDS_0x22
+      securityRequired: false
+      dids:
+      - did: 61845
+        field: swVersion
+        encoding: ASCII
+        length: 16
+      - did: 61831
+        field: partNumber
+        encoding: ASCII
+        length: 11
+      - did: 40961
+        field: calibrationId
+        encoding: HEX
+        length: 4
+    - ecuId: IDCM
+      logicalAddress: 32
+      transport: DoIP
+      readMethod: SOMEIP_getVersion
+      someipService: '0x1234'
+      fields:
+      - swVersion
+      - hwVersion
+    - ecuId: VCU
+      logicalAddress: 33
+      transport: DoCAN
+      readMethod: UDS_0x22
+      securityRequired: false
+      dids:
+      - did: 61845
+        field: swVersion
+        encoding: ASCII
+        length: 16
+      - did: 61832
+        field: ecuSoftwareNumber
+        encoding: ASCII
+        length: 11
+      - did: 61843
+        field: hwVersion
+        encoding: ASCII
+        length: 8
+  someip:
+    application_name: ccu-diag
+    service:
+      service_id: 4368
+      instance_id: 1
+      major_version: 1
+      minor_version: 0
+    methods:
+      read_vin:
+        method_id: 1
+      collect_vehicle_inventory:
+        method_id: 2
+      get_ecu_version:
+        method_id: 3
+      get_registry_version:
+        method_id: 4
+    events:
+      inventory_result:
+        event_id: 32769
+    timing:
+      request_timeout_ms: 2000
+    sd:
+      enabled: true
+      mode: static
+  sec_client:
+    someip:
+      application_name: ccu-diag
+      service:
+        service_id: 4416
+        instance_id: 1
+        major_version: 1
+        minor_version: 0
+      timing:
+        request_timeout_ms: 2000
+      sd:
+        enabled: true
+        mode: static
+common:
+  log:
+    level: INFO

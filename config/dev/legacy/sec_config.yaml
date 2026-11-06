@@ -1,3 +1,6 @@
+# CCU-DIAG 开发/测试夹具（legacy CCU-SEC 单文件格式）
+# 仅用于 --sec-config 开发/测试覆盖入口，不进入 ccu-diag-runtime。
+# 正式配置已迁移到 config/diag.default.yaml 的 diag.sec_client.someip 子树。
 # SOME/IP Service Configuration for CCU-SEC
 # 来源：整车 SOME/IP Service Registry 统一分配（CCU-SEC-DSN-CR-003）
 # Service ID: 0x1140, Instance ID: 0x0001, Transport: TCP, Port: 51140

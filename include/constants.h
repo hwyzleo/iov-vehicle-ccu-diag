@@ -29,10 +29,16 @@ constexpr uint32_t RETRY_INTERVAL_MS = 100;
 // Retry parameters
 constexpr uint8_t MAX_RETRY_COUNT = 2;
 
-// Configuration file paths
-inline const std::string DEFAULT_DID_REGISTRY_PATH = "config/did_registry.yaml";
-inline const std::string DEFAULT_DIAG_CONFIG_PATH = "config/diag_config.yaml";
-inline const std::string DEFAULT_SOMEIP_CONFIG_PATH = "config/someip_config.yaml";
+// Configuration file paths (CCU-DIAG-DSN-CR-009 §5.3)
+// Production loads the unified diag.yaml plus the BUILD-owned common.yaml.
+// Legacy per-domain files are development/test overrides only and are never
+// relied on by the production unit.
+inline const std::string DEFAULT_DIAG_CONFIG_PATH = "/etc/ccu/conf.d/diag.yaml";
+inline const std::string DEFAULT_COMMON_CONFIG_PATH = "/etc/ccu/common.yaml";
+
+// Device instance state (NOT release-managed configuration; preserve on
+// deploy/rollback). CCU-DIAG-DSN-CR-009 §6.2 / CCU-DIAG-SPEC设计 §8.3.
+inline const std::string DEFAULT_VIN_STORAGE_PATH = "/var/lib/ccu/diag/vin.dat";
 
 // Transport defaults
 inline const std::string DEFAULT_CAN_INTERFACE = "can0";
@@ -60,8 +66,20 @@ constexpr MethodId METHOD_GET_REGISTRY_VERSION = 0x0004;
 constexpr EventId EVENT_INVENTORY_RESULT = 0x8001;
 
 // SOME/IP Network Configuration
-inline const std::string DEFAULT_SEC_CONFIG_PATH = "config/sec_config.yaml";
 inline const std::string DEFAULT_SOMEIP_ADDRESS = "127.0.0.1";
+
+// CCU-SEC SOME/IP endpoint defaults (Service Registry SSOT: CCU-SEC-DSN-CR-003)
+constexpr ServiceId CCU_SEC_SERVICE_ID = 0x1140;
+constexpr uint16_t CCU_SEC_INSTANCE_ID = 0x0001;
+constexpr uint8_t CCU_SEC_MAJOR_VERSION = 1;
+constexpr uint32_t CCU_SEC_MINOR_VERSION = 0;
+inline const std::string DEFAULT_SEC_SOMEIP_ADDRESS = "127.0.0.1";
+constexpr uint16_t DEFAULT_SEC_SOMEIP_PORT = 51140;
+
+// 进程 vsomeip application 名（平台 vsomeip.json applications 登记名）。
+// 一个进程只允许一个 application；service(0x1110) 与 client proxy(0x1140)
+// 复用同一实例，名字必须与平台配置一致，否则无法加入 tbox-someip routing 域。
+inline const std::string DEFAULT_SOMEIP_APPLICATION_NAME = "ccu-diag";
 constexpr uint16_t DEFAULT_SOMEIP_PORT = 51110;
 constexpr uint32_t DEFAULT_SOMEIP_REQUEST_TIMEOUT_MS = 2000;
 

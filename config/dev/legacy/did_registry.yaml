@@ -1,3 +1,6 @@
+# CCU-DIAG 开发/测试夹具（legacy DID registry 单文件格式）
+# 仅用于 --did-registry 开发/测试覆盖入口，不进入 ccu-diag-runtime。
+# 正式配置已迁移到 config/diag.default.yaml 的 diag.registry 子树。
 registryVersion: "2026.07.1"
 baselineDids: [0xF195, 0xF188, 0xF187, 0xF193]
 ecus:
@@ -45,7 +48,7 @@ ecus:
         length: 8
 
 vinConfig:
-  storagePath: "config/vin.dat"
+  storagePath: "/var/lib/ccu/diag/vin.dat"
   writeOnce: true
   securityLevel: 1
   allowedDids: [0xF190]

@@ -71,6 +71,10 @@ struct SomeIpServiceConfig {
     uint32_t minor_version = 0;
     std::string ip_address;
     uint16_t port = 0;
+    // 本进程 vsomeip application 名（必须在平台 vsomeip.json 的 applications
+    // 列表中登记，如 ccu-diag/0x1110）。空值表示使用
+    // constants::DEFAULT_SOMEIP_APPLICATION_NAME。见 someip_backend.h。
+    std::string application_name;
 };
 
 // SOME/IP Method Configuration

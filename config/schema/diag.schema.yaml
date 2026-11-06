@@ -1,0 +1,322 @@
+# =============================================================================
+# config/schema/diag.schema.yaml - CCU-DIAG unified diag.yaml schema
+# (CCU-DIAG-DSN-CR-009 §5.2)
+# =============================================================================
+# JSON Schema Draft-07, consumed by CCU-BUILD (same locked version as the
+# installed schema copy) and by ci/verify-config-schema.py.
+#
+# Requirements:
+#   * Only the service root diag: is allowed; top-level common: is rejected.
+#   * Old pre-migration root nodes (timing/retry/registry/someip/...) are
+#     rejected through additionalProperties:false instead of being ignored.
+#   * Types, required fields, enums, integer ranges and array elements are
+#     checked for the complete diag: subtree.
+#   * DID registry version/ECU/parse constraints are preserved.
+#   * SOME/IP Service/Instance/Method/Event IDs stay registry-assigned;
+#     provider and SEC client share one process application name.
+#   * No secret/provisioning fields: unknown fields are rejected everywhere.
+#   * common.yaml is validated separately by CCU-BUILD.
+# =============================================================================
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://ccu/diag.schema.yaml"
+title: CCU-DIAG unified diag.yaml
+description: "CCU-DIAG service configuration contract (diag: subtree only)."
+type: object
+additionalProperties: false
+required: [diag]
+
+definitions:
+  log_level:
+    type: string
+    enum: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF]
+
+  someip_service:
+    type: object
+    additionalProperties: false
+    required: [service_id, instance_id, major_version, minor_version]
+    properties:
+      service_id:
+        type: integer
+        minimum: 1
+        maximum: 65535
+      instance_id:
+        type: integer
+        minimum: 0
+        maximum: 65535
+      major_version:
+        type: integer
+        minimum: 0
+        maximum: 255
+      minor_version:
+        type: integer
+        minimum: 0
+        maximum: 4294967295
+
+  someip_network:
+    type: object
+    additionalProperties: false
+    required: [ip_address, port]
+    properties:
+      ip_address:
+        type: string
+        minLength: 1
+      port:
+        type: integer
+        minimum: 1
+        maximum: 65535
+
+  someip_timing:
+    type: object
+    additionalProperties: false
+    properties:
+      request_timeout_ms:
+        type: integer
+        minimum: 1
+
+  someip_sd:
+    type: object
+    additionalProperties: false
+    properties:
+      enabled:
+        type: boolean
+      mode:
+        type: string
+        enum: [static, dynamic]
+
+  did_entry:
+    type: object
+    additionalProperties: false
+    required: [did, field, encoding, length]
+    properties:
+      did:
+        type: integer
+        minimum: 0
+        maximum: 65535
+      field:
+        type: string
+        minLength: 1
+      encoding:
+        type: string
+        enum: [ASCII, HEX, BCD]
+      length:
+        type: integer
+        minimum: 1
+        maximum: 255
+
+  ecu:
+    type: object
+    additionalProperties: false
+    required: [ecuId, logicalAddress, transport, readMethod]
+    properties:
+      ecuId:
+        type: string
+        minLength: 1
+      logicalAddress:
+        type: integer
+        minimum: 0
+        maximum: 65535
+      transport:
+        type: string
+        enum: [DoCAN, DoIP]
+      readMethod:
+        type: string
+        enum: [UDS_0x22, SOMEIP_getVersion]
+      securityRequired:
+        type: boolean
+      someipService:
+        type: string
+        pattern: "^0x[0-9A-Fa-f]{1,4}$"
+      fields:
+        type: array
+        items:
+          type: string
+          minLength: 1
+      dids:
+        type: array
+        items:
+          $ref: "#/definitions/did_entry"
+    if:
+      properties:
+        readMethod:
+          const: UDS_0x22
+    then:
+      required: [dids]
+    else:
+      if:
+        properties:
+          readMethod:
+            const: SOMEIP_getVersion
+      then:
+        required: [someipService, fields]
+
+properties:
+  diag:
+    type: object
+    additionalProperties: false
+    required: [log, timing, retry, transport, registry, someip, sec_client]
+    properties:
+      log:
+        type: object
+        additionalProperties: false
+        properties:
+          level:
+            $ref: "#/definitions/log_level"
+          modules:
+            type: object
+            additionalProperties:
+              $ref: "#/definitions/log_level"
+
+      timing:
+        type: object
+        additionalProperties: false
+        required:
+          - p2_server_max_ms
+          - p2_star_server_max_ms
+          - s3_session_timeout_ms
+          - tester_present_interval_ms
+          - request_timeout_ms
+          - retry_interval_ms
+        properties:
+          p2_server_max_ms:
+            type: integer
+            minimum: 1
+            maximum: 600000
+          p2_star_server_max_ms:
+            type: integer
+            minimum: 1
+            maximum: 600000
+          s3_session_timeout_ms:
+            type: integer
+            minimum: 1
+            maximum: 600000
+          tester_present_interval_ms:
+            type: integer
+            minimum: 1
+            maximum: 600000
+          request_timeout_ms:
+            type: integer
+            minimum: 1
+            maximum: 600000
+          retry_interval_ms:
+            type: integer
+            minimum: 0
+            maximum: 600000
+
+      retry:
+        type: object
+        additionalProperties: false
+        required: [max_count]
+        properties:
+          max_count:
+            type: integer
+            minimum: 0
+            maximum: 10
+
+      transport:
+        type: object
+        additionalProperties: false
+        properties:
+          can:
+            type: object
+            additionalProperties: false
+            properties:
+              interface:
+                type: string
+                minLength: 1
+              baudrate:
+                type: integer
+                minimum: 1
+          doip:
+            type: object
+            additionalProperties: false
+            properties:
+              ip:
+                type: string
+                minLength: 1
+              port:
+                type: integer
+                minimum: 1
+                maximum: 65535
+
+      registry:
+        type: object
+        additionalProperties: false
+        required: [registryVersion, baselineDids, ecus]
+        properties:
+          registryVersion:
+            type: string
+            minLength: 1
+          baselineDids:
+            type: array
+            minItems: 1
+            items:
+              type: integer
+              minimum: 0
+              maximum: 65535
+          ecus:
+            type: array
+            items:
+              $ref: "#/definitions/ecu"
+
+      someip:
+        type: object
+        additionalProperties: false
+        required: [application_name, service]
+        properties:
+          application_name:
+            type: string
+            minLength: 1
+            pattern: "^[a-z][a-z0-9-]*$"
+          service:
+            $ref: "#/definitions/someip_service"
+          network:
+            $ref: "#/definitions/someip_network"
+          methods:
+            type: object
+            additionalProperties:
+              type: object
+              additionalProperties: false
+              required: [method_id]
+              properties:
+                method_id:
+                  type: integer
+                  minimum: 1
+                  maximum: 32767
+          events:
+            type: object
+            additionalProperties:
+              type: object
+              additionalProperties: false
+              required: [event_id]
+              properties:
+                event_id:
+                  type: integer
+                  minimum: 32768
+                  maximum: 65535
+          timing:
+            $ref: "#/definitions/someip_timing"
+          sd:
+            $ref: "#/definitions/someip_sd"
+
+      sec_client:
+        type: object
+        additionalProperties: false
+        required: [someip]
+        properties:
+          someip:
+            type: object
+            additionalProperties: false
+            required: [application_name, service]
+            properties:
+              application_name:
+                type: string
+                minLength: 1
+                pattern: "^[a-z][a-z0-9-]*$"
+              service:
+                $ref: "#/definitions/someip_service"
+              network:
+                $ref: "#/definitions/someip_network"
+              timing:
+                $ref: "#/definitions/someip_timing"
+              sd:
+                $ref: "#/definitions/someip_sd"

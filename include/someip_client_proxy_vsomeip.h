@@ -2,20 +2,14 @@
 
 #include "someip_client_proxy.h"
 #include "someip_types.h"
+#include "someip_backend.h"
 #include <memory>
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
 #include <thread>
 
-// 根据编译选项选择 SOME/IP 实现
-#ifdef USE_MOCK_SOMEIP
-#include "mock_someip.h"
-namespace someip = mock_someip;
-#else
-#include <vsomeip/vsomeip.hpp>
-namespace someip = vsomeip;
-#endif
+// 后端选择（vsomeip / mock）与进程级 application 单例见 someip_backend.h。
 
 namespace ccu_diag {
 

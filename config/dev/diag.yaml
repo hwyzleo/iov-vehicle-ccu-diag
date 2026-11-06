@@ -1,0 +1,133 @@
+# =============================================================================
+# config/dev/diag.yaml - CCU-DIAG 开发夹具（统一服务配置）
+# =============================================================================
+# 仅用于本地开发/测试，不进入 ccu-diag-runtime install component。在
+# config/diag.default.yaml 的安全默认之上提供开发期平台值（CAN 接口、
+# DoIP 地址、SOME/IP 与 CCU-SEC 本机端点）。
+#
+# 使用方式（源码树外运行，验证不依赖 WorkingDirectory）：
+#   ./build/ccu_diag --diag-config config/dev/diag.yaml \
+#                    --common-config config/dev/common.yaml
+# =============================================================================
+diag:
+  log:
+    level: INFO
+    modules:
+      facade: INFO
+      orchestrator: INFO
+      tester: INFO
+      router: WARN
+      transport: WARN
+      did_registry: INFO
+      vin_store: INFO
+      sec_client: INFO
+
+  timing:
+    p2_server_max_ms: 50
+    p2_star_server_max_ms: 5000
+    s3_session_timeout_ms: 5000
+    tester_present_interval_ms: 2000
+    request_timeout_ms: 2000
+    retry_interval_ms: 100
+  retry:
+    max_count: 2
+
+  transport:
+    can:
+      interface: can0
+      baudrate: 500000
+    doip:
+      ip: 192.168.1.1
+      port: 13400
+
+  registry:
+    registryVersion: "2026.07.1"
+    baselineDids: [0xF195, 0xF188, 0xF187, 0xF193]
+    ecus:
+      - ecuId: "BMS"
+        logicalAddress: 0x1A
+        transport: "DoCAN"
+        readMethod: "UDS_0x22"
+        securityRequired: false
+        dids:
+          - did: 0xF195
+            field: "swVersion"
+            encoding: "ASCII"
+            length: 16
+          - did: 0xF187
+            field: "partNumber"
+            encoding: "ASCII"
+            length: 11
+          - did: 0xA001
+            field: "calibrationId"
+            encoding: "HEX"
+            length: 4
+      - ecuId: "IDCM"
+        logicalAddress: 0x20
+        transport: "DoIP"
+        readMethod: "SOMEIP_getVersion"
+        someipService: "0x1234"
+        fields: ["swVersion", "hwVersion"]
+      - ecuId: "VCU"
+        logicalAddress: 0x21
+        transport: "DoCAN"
+        readMethod: "UDS_0x22"
+        securityRequired: false
+        dids:
+          - did: 0xF195
+            field: "swVersion"
+            encoding: "ASCII"
+            length: 16
+          - did: 0xF188
+            field: "ecuSoftwareNumber"
+            encoding: "ASCII"
+            length: 11
+          - did: 0xF193
+            field: "hwVersion"
+            encoding: "ASCII"
+            length: 8
+
+  someip:
+    application_name: ccu-diag
+    service:
+      service_id: 0x1110
+      instance_id: 0x0001
+      major_version: 1
+      minor_version: 0
+    network:
+      ip_address: "127.0.0.1"
+      port: 51110
+    methods:
+      read_vin:
+        method_id: 0x0001
+      collect_vehicle_inventory:
+        method_id: 0x0002
+      get_ecu_version:
+        method_id: 0x0003
+      get_registry_version:
+        method_id: 0x0004
+    events:
+      inventory_result:
+        event_id: 0x8001
+    timing:
+      request_timeout_ms: 2000
+    sd:
+      enabled: true
+      mode: "static"
+
+  sec_client:
+    someip:
+      application_name: ccu-diag
+      service:
+        service_id: 0x1140
+        instance_id: 0x0001
+        major_version: 1
+        minor_version: 0
+      network:
+        ip_address: "127.0.0.1"
+        port: 51140
+      timing:
+        request_timeout_ms: 2000
+      sd:
+        enabled: true
+        mode: "static"

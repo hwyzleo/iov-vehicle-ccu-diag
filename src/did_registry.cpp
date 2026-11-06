@@ -10,6 +10,10 @@ DidRegistry::DidRegistry(const std::string& config_path)
     reload();
 }
 
+DidRegistry::DidRegistry(const DidRegistryConfig& config) {
+    applyConfig(config);
+}
+
 std::string DidRegistry::getRegistryVersion() const {
     return config_.registry_version;
 }
@@ -51,9 +55,15 @@ std::vector<DidEntry> DidRegistry::getDidsForEcu(const std::string& ecu_id) cons
 }
 
 void DidRegistry::reload() {
-    try {
-        auto new_config = ConfigLoader::loadDidRegistry(config_path_);
+    if (config_path_.empty()) {
+        throw std::runtime_error(
+            "DidRegistry reload requires a configuration file path");
+    }
+    applyConfig(ConfigLoader::loadDidRegistry(config_path_));
+}
 
+void DidRegistry::applyConfig(DidRegistryConfig new_config) {
+    try {
         std::unordered_map<std::string, size_t> new_id_index;
         std::unordered_map<uint16_t, size_t> new_address_index;
 

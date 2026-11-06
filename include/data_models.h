@@ -101,4 +101,14 @@ struct DiagConfig {
     uint8_t max_retry_count = 2;
 };
 
+// CAN / DoIP non-secret transport parameters (CCU-DIAG-DSN-CR-009 §5.1).
+// Platform interface/IP values are supplied by the BUILD platform overlay;
+// empty/zero fields fall back to constants::DEFAULT_* in ConfigLoader.
+struct TransportConfig {
+    std::string can_interface;
+    uint32_t can_baudrate = 0;
+    std::string doip_ip;
+    uint16_t doip_port = 0;
+};
+
 } // namespace ccu_diag

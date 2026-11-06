@@ -1,4 +1,5 @@
 #include "someip_service_vsomeip.h"
+#include "constants.h"
 #include <iostream>
 #include <sstream>
 #include <chrono>
@@ -155,17 +156,22 @@ uint16_t SomeIpServiceVsomeip::getInstanceId() const {
 }
 
 void SomeIpServiceVsomeip::initializeApplication() {
-    // 获取 Runtime
+    // 使用进程级共享 application（名字必须在平台 vsomeip.json 的 applications
+    // 列表中登记：ccu-diag/0x1110），否则无法加入 tbox-someip routing 域。
+    std::string app_name = config_.application_name;
+    if (app_name.empty()) {
+        app_name = constants::DEFAULT_SOMEIP_APPLICATION_NAME;
+    }
+
+    application_ = acquireProcessApplication(app_name);
+    if (!application_) {
+        throw std::runtime_error("failed to acquire process vsomeip application: " + app_name);
+    }
+
+    // runtime_ 供 create_response/create_payload 使用：与 application 同一 Runtime。
     runtime_ = someip::Runtime::get();
-    
-    // 创建 Application
-    std::string app_name = "CcuDiagService_" + std::to_string(config_.service_id);
-    application_ = runtime_->create_application(app_name);
-    
-    // 初始化应用
-    application_->init();
-    
-    logInfo("Application initialized: " + app_name);
+
+    logInfo("Application acquired: " + app_name);
 }
 
 void SomeIpServiceVsomeip::registerMethods() {

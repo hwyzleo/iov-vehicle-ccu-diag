@@ -187,7 +187,25 @@ configure_project() {
     mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR"
 
-    cmake .. -DCMAKE_BUILD_TYPE=Debug
+    # 开发/CI 默认显式启用 mock SOME/IP 与测试；生产 TARGET 构建由
+    # CCU-BUILD 传入 USE_MOCK_SOMEIP=OFF、BUILD_TESTING=OFF
+    # (CCU-DIAG-DSN-CR-009 §4.1)。
+    local build_testing="ON"
+    if [ "$RUN_TESTS" = false ]; then
+        build_testing="OFF"
+    fi
+
+    # 依赖与测试框架统一从 CCU 框架 SDK prefix 解析（与 ci/run-ci-gates.sh、
+    # docs/build-and-verify.md §3 一致，CCU-DIAG-DSN-CR-009 §4.2），避免误用
+    # 其他路径下的不匹配 GTest 头文件/库。
+    local sdk_prefix="${CCU_FRAMEWORK_PREFIX:-$HOME/.local}"
+
+    cmake .. -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DUSE_MOCK_SOMEIP=ON \
+        -DBUILD_TESTING="$build_testing" \
+        -DCMAKE_PREFIX_PATH="$sdk_prefix" \
+        -DCCUFramework_DIR="$sdk_prefix/lib/cmake/CCUFramework"
 
     if [ $? -ne 0 ]; then
         print_error "CMake 配置失败"
@@ -254,7 +272,8 @@ install_project() {
 
     cd "$BUILD_DIR"
 
-    sudo make install
+    # 仅安装 ccu-diag-runtime rootfs component（CCU-DIAG-DSN-CR-009 §3.2）。
+    sudo cmake --install "$BUILD_DIR" --prefix /usr --component ccu-diag-runtime
 
     if [ $? -ne 0 ]; then
         print_error "安装失败"
@@ -277,7 +296,7 @@ show_summary() {
     echo "构建产物:"
     echo "  - 主程序:      ${BUILD_DIR}/ccu_diag"
     echo "  - 静态库:      ${BUILD_DIR}/libccu_diag_lib.a"
-    echo "  - 测试程序:    ${BUILD_DIR}/CcuDiagTests"
+    echo "  - 测试程序:    ${BUILD_DIR}/CcuDiagTests (仅 BUILD_TESTING=ON)"
     echo ""
     echo "使用方法:"
     echo "  ${BUILD_DIR}/ccu_diag --help"

@@ -37,16 +37,19 @@ void signalHandler(int signal) {
 void printUsage(const char* program_name) {
     std::cerr << "Usage: " << program_name << " [options]\n"
               << "Options:\n"
-              << "  --did-registry <path>    Path to DID registry YAML\n"
-              << "  --diag-config <path>     Path to diag config YAML\n"
-              << "  --someip-config <path>   Path to SOME/IP config YAML\n"
-              << "  --sec-config <path>      Path to CCU-SEC SOME/IP config YAML\n"
-              << "  --can-interface <name>   CAN interface name (default: " << constants::DEFAULT_CAN_INTERFACE << ")\n"
-              << "  --can-baudrate <rate>    CAN baudrate (default: " << constants::DEFAULT_CAN_BAUDRATE << ")\n"
-              << "  --doip-ip <ip>           DoIP server IP address (default: " << constants::DEFAULT_DOIP_IP << ")\n"
-              << "  --doip-port <port>       DoIP server port (default: " << constants::DEFAULT_DOIP_PORT << ")\n"
-              << "  --someip-ip <ip>         SOME/IP listen address (default: " << constants::DEFAULT_SOMEIP_ADDRESS << ")\n"
-              << "  --someip-port <port>     SOME/IP listen port (default: " << constants::DEFAULT_SOMEIP_PORT << ")\n"
+              << "  --diag-config <path>     Path to unified DIAG config (default: "
+              << constants::DEFAULT_DIAG_CONFIG_PATH << ")\n"
+              << "  --common-config <path>   Path to common config (dev/test override; default: "
+              << constants::DEFAULT_COMMON_CONFIG_PATH << ")\n"
+              << "  --did-registry <path>    Dev/test override: legacy DID registry YAML\n"
+              << "  --someip-config <path>   Dev/test override: legacy SOME/IP config YAML\n"
+              << "  --sec-config <path>      Dev/test override: legacy CCU-SEC SOME/IP config YAML\n"
+              << "  --can-interface <name>   CAN interface name\n"
+              << "  --can-baudrate <rate>    CAN baudrate\n"
+              << "  --doip-ip <ip>           DoIP server IP address\n"
+              << "  --doip-port <port>       DoIP server port\n"
+              << "  --someip-ip <ip>         SOME/IP listen address\n"
+              << "  --someip-port <port>     SOME/IP listen port\n"
               << "  --version                Print application version\n"
               << "  --help                   Show this help message\n";
 }
@@ -54,40 +57,60 @@ void printUsage(const char* program_name) {
 } // namespace
 
 int main(int argc, char* argv[]) {
-    std::string did_registry_path = constants::DEFAULT_DID_REGISTRY_PATH;
+    // Production defaults (CCU-DIAG-DSN-CR-009 §5.3). The production unit
+    // relies only on these; per-domain paths are explicit dev/test overrides.
     std::string diag_config_path = constants::DEFAULT_DIAG_CONFIG_PATH;
-    std::string someip_config_path = constants::DEFAULT_SOMEIP_CONFIG_PATH;
-    std::string sec_config_path = constants::DEFAULT_SEC_CONFIG_PATH;
-    std::string can_interface = constants::DEFAULT_CAN_INTERFACE;
-    uint32_t can_baudrate = constants::DEFAULT_CAN_BAUDRATE;
-    std::string doip_ip = constants::DEFAULT_DOIP_IP;
-    uint16_t doip_port = constants::DEFAULT_DOIP_PORT;
-    std::string someip_ip = constants::DEFAULT_SOMEIP_ADDRESS;
-    uint16_t someip_port = constants::DEFAULT_SOMEIP_PORT;
+    std::string common_config_path = constants::DEFAULT_COMMON_CONFIG_PATH;
+    std::string did_registry_path;
+    std::string someip_config_path;
+    std::string sec_config_path;
+
+    // Command-line transport overrides (applied on top of diag.transport).
+    bool has_can_interface = false;
+    bool has_can_baudrate = false;
+    bool has_doip_ip = false;
+    bool has_doip_port = false;
+    bool has_someip_ip = false;
+    bool has_someip_port = false;
+    std::string can_interface;
+    uint32_t can_baudrate = 0;
+    std::string doip_ip;
+    uint16_t doip_port = 0;
+    std::string someip_ip;
+    uint16_t someip_port = 0;
+
     bool show_version = false;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        if (arg == "--did-registry" && i + 1 < argc) {
-            did_registry_path = argv[++i];
-        } else if (arg == "--diag-config" && i + 1 < argc) {
+        if (arg == "--diag-config" && i + 1 < argc) {
             diag_config_path = argv[++i];
+        } else if (arg == "--common-config" && i + 1 < argc) {
+            common_config_path = argv[++i];
+        } else if (arg == "--did-registry" && i + 1 < argc) {
+            did_registry_path = argv[++i];
         } else if (arg == "--someip-config" && i + 1 < argc) {
             someip_config_path = argv[++i];
         } else if (arg == "--sec-config" && i + 1 < argc) {
             sec_config_path = argv[++i];
         } else if (arg == "--can-interface" && i + 1 < argc) {
             can_interface = argv[++i];
+            has_can_interface = true;
         } else if (arg == "--can-baudrate" && i + 1 < argc) {
             can_baudrate = static_cast<uint32_t>(std::stoul(argv[++i]));
+            has_can_baudrate = true;
         } else if (arg == "--doip-ip" && i + 1 < argc) {
             doip_ip = argv[++i];
+            has_doip_ip = true;
         } else if (arg == "--doip-port" && i + 1 < argc) {
             doip_port = static_cast<uint16_t>(std::stoi(argv[++i]));
+            has_doip_port = true;
         } else if (arg == "--someip-ip" && i + 1 < argc) {
             someip_ip = argv[++i];
+            has_someip_ip = true;
         } else if (arg == "--someip-port" && i + 1 < argc) {
             someip_port = static_cast<uint16_t>(std::stoi(argv[++i]));
+            has_someip_port = true;
         } else if (arg == "--version") {
             show_version = true;
         } else if (arg == "--help") {
@@ -117,8 +140,18 @@ int main(int argc, char* argv[]) {
             "CCU-DIAG Service Starting"
         );
 
+        // CCU-DIAG-DSN-CR-009: unified diag.yaml + BUILD-owned common.yaml.
+        // Fail closed on missing/migrated/unknown configuration.
+        UnifiedDiagConfig unified;
+        try {
+            unified = ConfigLoader::loadUnifiedConfig(diag_config_path, common_config_path);
+        } catch (const std::exception& e) {
+            std::cerr << "FATAL: config error: " << e.what() << std::endl;
+            return 1;
+        }
+
         // 加载结构化日志配置并初始化 Logger（在创建业务模块之前）
-        auto log_config = ConfigLoader::loadLogConfig(diag_config_path);
+        auto log_config = unified.log;
         auto log_result = DiagLogAdapter::init("ccu-diag", log_config);
         if (log_result.error != ccu::fw::log::LogError::kOk) {
             // 严格模式初始化失败时，在开放服务前终止启动
@@ -128,7 +161,8 @@ int main(int argc, char* argv[]) {
 
         DiagLogAdapter::orchestrator().info(diag_events::SERVICE_CONFIG_LOADED,
             "Configuration loaded successfully",
-            {dlog::f_str("diag_config_path", diag_config_path)}
+            {dlog::f_str("diag_config_path", diag_config_path),
+             dlog::f_str("common_config_path", common_config_path)}
         );
 
         DiagLogAdapter::orchestrator().info(diag_events::SERVICE_LOG_INITIALIZED,
@@ -138,20 +172,48 @@ int main(int argc, char* argv[]) {
              dlog::f_bool("strict_mode", log_config.strict)}
         );
 
-        // Load configurations
-        auto registry = std::make_shared<DidRegistry>(did_registry_path);
-        auto diag_config = ConfigLoader::loadDiagConfig(diag_config_path);
+        // Load DID registry: unified subtree unless a dev/test override is given.
+        std::shared_ptr<DidRegistry> registry;
+        if (!did_registry_path.empty()) {
+            registry = std::make_shared<DidRegistry>(did_registry_path);
+        } else {
+            registry = std::make_shared<DidRegistry>(unified.registry);
+        }
+
+        // Apply command-line transport overrides on top of diag.transport.
+        TransportConfig transport = unified.transport;
+        if (has_can_interface) {
+            transport.can_interface = can_interface;
+        }
+        if (has_can_baudrate) {
+            transport.can_baudrate = can_baudrate;
+        }
+        if (has_doip_ip) {
+            transport.doip_ip = doip_ip;
+        }
+        if (has_doip_port) {
+            transport.doip_port = doip_port;
+        }
+        if (has_someip_ip) {
+            unified.someip.ip_address = someip_ip;
+        }
+        if (has_someip_port) {
+            unified.someip.port = someip_port;
+        }
 
         // Create transports
-        auto docan_transport = std::make_shared<DoCanTransport>(can_interface, can_baudrate);
-        auto doip_transport = std::make_shared<DoIpTransport>(doip_ip, doip_port);
+        auto docan_transport = std::make_shared<DoCanTransport>(
+            transport.can_interface, transport.can_baudrate);
+        auto doip_transport = std::make_shared<DoIpTransport>(
+            transport.doip_ip, transport.doip_port);
 
         // Create UDS client and router
-        auto uds_client = std::make_shared<UdsClient>(docan_transport, diag_config);
+        auto uds_client = std::make_shared<UdsClient>(docan_transport, unified.diag);
         auto router = std::make_shared<DiagnosticRouter>(registry, uds_client, docan_transport, doip_transport);
 
-        // Create VIN store
-        auto vin_store = std::shared_ptr<VinStore>(createVinStore("config/vin.dat").release());
+        // Create VIN store (device instance state; never release-managed config)
+        auto vin_store = std::shared_ptr<VinStore>(
+            createVinStore(constants::DEFAULT_VIN_STORAGE_PATH).release());
 
         // Create CCU-SEC client proxy
         auto sec_client_proxy = createCcuSecClientProxy();
@@ -160,44 +222,37 @@ int main(int argc, char* argv[]) {
         auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport, vin_store);
         auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
 
-        // Load SOME/IP configuration
-        SomeIpServiceConfig someip_config;
-        try {
-            someip_config = ConfigLoader::loadSomeIpConfig(someip_config_path);
-        } catch (const std::exception& e) {
-            DiagLogAdapter::facade().warn("diag.service.config_fallback",
-                "Failed to load SOME/IP config, using defaults",
-                {dlog::f_str("reason", e.what())}
-            );
-            someip_config.service_id = constants::CCU_DIAG_SERVICE_ID;
-            someip_config.instance_id = constants::CCU_DIAG_INSTANCE_ID;
-            someip_config.major_version = constants::CCU_DIAG_MAJOR_VERSION;
-            someip_config.minor_version = constants::CCU_DIAG_MINOR_VERSION;
+        // SOME/IP provider config: unified subtree by default, explicit
+        // dev/test override supported.
+        SomeIpServiceConfig someip_config = unified.someip;
+        if (!someip_config_path.empty()) {
+            try {
+                someip_config = ConfigLoader::loadSomeIpConfig(someip_config_path);
+            } catch (const std::exception& e) {
+                DiagLogAdapter::facade().warn("diag.service.config_fallback",
+                    "Failed to load SOME/IP override, using unified config",
+                    {dlog::f_str("reason", e.what())}
+                );
+            }
         }
 
-        // Load CCU-SEC SOME/IP configuration
-        SomeIpServiceConfig sec_someip_config;
-        try {
-            sec_someip_config = ConfigLoader::loadSomeIpConfig(sec_config_path);
-        } catch (const std::exception& e) {
-            DiagLogAdapter::sec_client().warn("diag.service.config_fallback",
-                "Failed to load CCU-SEC SOME/IP config, using defaults",
-                {dlog::f_str("reason", e.what())}
-            );
-            sec_someip_config.service_id = 0x1140;  // CCU-SEC-DSN-CR-003
-            sec_someip_config.instance_id = 0x0001;
-            sec_someip_config.major_version = 1;
-            sec_someip_config.minor_version = 0;
+        // CCU-SEC SOME/IP config: unified subtree by default.
+        SomeIpServiceConfig sec_someip_config = unified.sec_someip;
+        if (!sec_config_path.empty()) {
+            try {
+                sec_someip_config = ConfigLoader::loadSomeIpConfig(sec_config_path);
+            } catch (const std::exception& e) {
+                DiagLogAdapter::sec_client().warn("diag.service.config_fallback",
+                    "Failed to load CCU-SEC SOME/IP override, using unified config",
+                    {dlog::f_str("reason", e.what())}
+                );
+            }
         }
-
-        // Override network config from command line
-        someip_config.ip_address = someip_ip;
-        someip_config.port = someip_port;
 
         DiagLogAdapter::facade().info("diag.service.network_configured",
             "Network configuration loaded",
-            {dlog::f_str("someip_address", someip_ip),
-             dlog::f_int("someip_port", someip_port)}
+            {dlog::f_str("someip_address", someip_config.ip_address),
+             dlog::f_int("someip_port", someip_config.port)}
         );
 
         // Initialize CCU-SEC client proxy
@@ -264,12 +319,13 @@ int main(int argc, char* argv[]) {
 
         DiagLogAdapter::vin_store().info("diag.service.vin_store_status",
             "VIN Store status",
-            {dlog::f_str("provisioned", vin_store->isVinProvisioned() ? "true" : "false")}
+            {dlog::f_str("provisioned", vin_store->isVinProvisioned() ? "true" : "false"),
+             dlog::f_str("storage_path", constants::DEFAULT_VIN_STORAGE_PATH)}
         );
 
         DiagLogAdapter::orchestrator().info(diag_events::SERVICE_READY,
             "CCU-DIAG Service started successfully",
-            {dlog::f_str("someip_config_path", someip_config_path),
+            {dlog::f_str("diag_config_path", diag_config_path),
              dlog::f_str("registry_version", registry->getRegistryVersion())}
         );
 

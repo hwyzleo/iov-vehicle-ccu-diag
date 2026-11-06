@@ -14,6 +14,9 @@ namespace ccu_diag {
 class DidRegistry {
 public:
     explicit DidRegistry(const std::string& config_path);
+    // Construct from an already-parsed unified configuration subtree
+    // (CCU-DIAG-DSN-CR-009 §5.3). No filesystem access, no reload path.
+    explicit DidRegistry(const DidRegistryConfig& config);
     
     // Get registry version
     std::string getRegistryVersion() const;
@@ -46,6 +49,7 @@ private:
     std::unordered_map<uint16_t, size_t> ecu_address_index_;
     
     void buildIndices();
+    void applyConfig(DidRegistryConfig new_config);
 };
 
 } // namespace ccu_diag
