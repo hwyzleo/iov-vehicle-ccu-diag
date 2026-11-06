@@ -48,7 +48,9 @@ find_package(nlohmann_json CONFIG REQUIRED)
 if(NOT USE_MOCK_SOMEIP)
     message(STATUS "Using real vsomeip SOME/IP backend")
     find_package(vsomeip3 REQUIRED)
-    find_package(Boost REQUIRED COMPONENTS system thread log)
+    # vsomeip3 只传递 system/thread；本仓库源码不使用 boost/log，
+    # 且 Orin sysroot 未提供 libboost_log（TARGET readiness 修正）。
+    find_package(Boost REQUIRED COMPONENTS system thread)
 else()
     message(STATUS "Using mock SOME/IP backend (NON_PRODUCTION)")
 endif()
