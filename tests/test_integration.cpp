@@ -110,7 +110,7 @@ ecus:
         encoding: "ASCII"
         length: 16
       - did: 0xF188
-        field: "ecuSoftwareNumber"
+        field: "softwarePartNumber"
         encoding: "ASCII"
         length: 11
       - did: 0xF193

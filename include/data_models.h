@@ -101,7 +101,13 @@ struct DidRegistryConfig {
 
 struct EcuVersionEntry {
     std::string ecu_id;
+    // CCU-DIAG-DSN-CR-012 D1: five independent facts, never derived from each
+    // other. part_number = DID 0xF187 (assembly/spare part number),
+    // software_part_number = DID 0xF188 (ECU software part number),
+    // sw_version = DID 0xF195, hw_version = DID 0xF193,
+    // serial_number = DID 0xF18C.
     std::optional<std::string> part_number;
+    std::optional<std::string> software_part_number;
     std::optional<std::string> sw_version;
     std::optional<std::string> hw_version;
     // CCU-DIAG-DSN-CR-011: ECU serial number (DID 0xF18C), optional.

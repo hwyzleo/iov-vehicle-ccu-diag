@@ -1,12 +1,13 @@
 {
-  "_comment": "CCU-DIAG deployment seed (CCU-DIAG-DSN-CR-010 §4.1 / CR-011). Used only when diag.inventory.mode=seed and no instance-state record exists yet; imported once, never overwrites an existing record. ecuId values must all be registered in diag.registry.ecus. partNumber = 总成零件号 (DID 0xF187)；serialNumber = ECU 序列号 (DID 0xF18C)。schemaVersion 保持 1：serialNumber 为可选增量字段（开发阶段不升版）。",
+  "_comment": "CCU-DIAG deployment seed (CCU-DIAG-DSN-CR-010 §4.1 / CR-011 / CR-012)。仅当 diag.inventory.mode=seed 且无实例状态记录时导入一次，不覆盖已有记录。ecuId 必须全部登记在 diag.registry.ecus。partNumber = 总成/备件零件号 (DID 0xF187)；softwarePartNumber = ECU 软件零件号 (DID 0xF188)；serialNumber = ECU 序列号 (DID 0xF18C)。schemaVersion 保持 1：softwarePartNumber/serialNumber 为可选增益字段（开发阶段不升版）。每个 ECU 的 softwarePartNumber 与 swVersion 必须非空，否则导入按 CCU-DIAG-1013 fail-closed。注意：下列 softwarePartNumber 为开发阶段占位值，平台/BUILD 必须提供经批准的软件零件号后方可宣称 seed 模式验收通过。",
   "schemaVersion": 1,
-  "registryVersion": "2026.11.1",
+  "registryVersion": "2026.11.2",
   "baselineCode": "XREHC3LAAA0000001-v0.1",
   "ecus": [
     {
       "ecuId": "TBOX",
       "partNumber": "00000001AA",
+      "softwarePartNumber": "00000003AA",
       "serialNumber": "00000002AA00000001",
       "swVersion": "V0.0.1",
       "hwVersion": "00"
@@ -14,6 +15,7 @@
     {
       "ecuId": "CCU",
       "partNumber": "00000007AA",
+      "softwarePartNumber": "00000009AA",
       "serialNumber": "00000008AA00000001",
       "swVersion": "V0.0.1",
       "hwVersion": "00"
@@ -21,6 +23,7 @@
     {
       "ecuId": "DCU_COCKPIT",
       "partNumber": "00000004AA",
+      "softwarePartNumber": "00000006AA",
       "serialNumber": "00000005AA00000001",
       "swVersion": "V0.0.1",
       "hwVersion": "00"
@@ -28,6 +31,7 @@
     {
       "ecuId": "DCU_ADAS",
       "partNumber": "00000010AA",
+      "softwarePartNumber": "00000012AA",
       "serialNumber": "00000011AA00000001",
       "swVersion": "V0.0.1",
       "hwVersion": "00"

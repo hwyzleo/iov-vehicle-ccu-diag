@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <config_loader.h>
 #include <constants.h>
+#include <ecu_inventory_store.h>
 #include <log_types.h>
 
 #include <filesystem>
@@ -350,8 +351,46 @@ TEST_F(UnifiedConfigTest, ShippedDefaultTemplateLoads) {
               constants::DEFAULT_INVENTORY_SEED_PATH);
 }
 
-TEST_F(UnifiedConfigTest, InventorySeedModeParsed) {
-    writeCommon();
+// CCU-DIAG-DSN-CR-012: the shipped seed must stay a valid release input for
+// the shipped registry - every ECU declares a non-empty approved software part
+// number (DID 0xF188) and software version (DID 0xF195), and the seed's registry
+// version matches the registry actually deployed with it.
+TEST_F(UnifiedConfigTest, ShippedSeedMatchesShippedRegistry) {
+    const fs::path repo = CCU_DIAG_SOURCE_DIR;
+    UnifiedDiagConfig config = ConfigLoader::loadUnifiedConfig(
+        repo / "config" / "diag.default.yaml",
+        repo / "config" / "dev" / "common.yaml");
+
+    std::vector<std::string> known_ecu_ids;
+    for (const auto& ecu : config.registry.ecus) {
+        known_ecu_ids.push_back(ecu.ecu_id);
+    }
+    ASSERT_FALSE(known_ecu_ids.empty());
+
+    std::ifstream seed_file(repo / "config" / "ecu-inventory.seed.json",
+                            std::ios::binary);
+    ASSERT_TRUE(seed_file.is_open());
+    std::string seed_text((std::istreambuf_iterator<char>(seed_file)),
+                          std::istreambuf_iterator<char>());
+
+    EcuInventoryRecord record;
+    std::string detail;
+    ASSERT_TRUE(EcuInventoryStore::parseSeedFile(seed_text,
+                                                 config.registry.registry_version,
+                                                 known_ecu_ids, record, detail))
+        << detail;
+    EXPECT_FALSE(record.ecus.empty());
+    EXPECT_EQ(record.registry_version, config.registry.registry_version);
+    for (const auto& fact : record.ecus) {
+        EXPECT_FALSE(fact.software_part_number.empty()) << fact.ecu_id;
+        EXPECT_FALSE(fact.sw_version.empty()) << fact.ecu_id;
+        // Five independent facts: the software part number is never a copy of
+        // the assembly part number (CCU-DIAG-DSN-CR-012 D1).
+        EXPECT_NE(fact.software_part_number, fact.part_number) << fact.ecu_id;
+    }
+}
+
+TEST_F(UnifiedConfigTest, InventorySeedModeParsed) {    writeCommon();
     writeUnified("", "", true, R"(
   inventory:
     mode: seed

@@ -48,11 +48,11 @@ void writeText(const fs::path& path, const std::string& text) {
 std::string seedJson() {
     return R"({
       "schemaVersion": 1,
-      "registryVersion": "2026.07.1",
+      "registryVersion": "2026.11.2",
       "baselineCode": "BASE-001",
       "ecus": [
-        {"ecuId":"BMS","partNumber":"PN-BMS","swVersion":"1.0.0","hwVersion":"HW-BMS"},
-        {"ecuId":"VCU","partNumber":"PN-VCU","swVersion":"1.0.0","hwVersion":"HW-VCU"}
+        {"ecuId":"BMS","partNumber":"PN-BMS","softwarePartNumber":"SPN-BMS","swVersion":"1.0.0","hwVersion":"HW-BMS"},
+        {"ecuId":"VCU","partNumber":"PN-VCU","softwarePartNumber":"SPN-VCU","swVersion":"1.0.0","hwVersion":"HW-VCU"}
       ]
     })";
 }
@@ -225,6 +225,12 @@ TEST_F(InventoryIntegrationTest, SeedModeEndToEndWithoutDownlinkDiagnostics) {
     EXPECT_EQ(snapshot.ecu_list[0].ecu_id, "BMS");
     EXPECT_EQ(snapshot.ecu_list[0].sw_version.value_or(""), "1.0.0");
     EXPECT_EQ(snapshot.ecu_list[0].part_number.value_or(""), "PN-BMS");
+    // CCU-DIAG-DSN-CR-012: the software part number is carried end-to-end and
+    // stays a distinct fact from the assembly part number.
+    EXPECT_EQ(snapshot.ecu_list[0].software_part_number.value_or(""), "SPN-BMS");
+    EXPECT_EQ(snapshot.ecu_list[1].software_part_number.value_or(""), "SPN-VCU");
+    EXPECT_NE(snapshot.ecu_list[0].software_part_number.value_or(""),
+              snapshot.ecu_list[0].part_number.value_or(""));
     EXPECT_EQ(snapshot.ecu_list[0].status, EcuStatus::OK);
 
     // seed mode must never touch the downlink diagnostic channel.
@@ -234,6 +240,7 @@ TEST_F(InventoryIntegrationTest, SeedModeEndToEndWithoutDownlinkDiagnostics) {
     // Repeated collection is stable.
     const auto again = proxy_->collectVehicleInventory();
     EXPECT_EQ(again.ecu_list[0].sw_version.value_or(""), "1.0.0");
+    EXPECT_EQ(again.ecu_list[0].software_part_number.value_or(""), "SPN-BMS");
 }
 
 TEST_F(InventoryIntegrationTest, SeedRegistrationThenCollectShowsNewVersion) {
@@ -252,6 +259,8 @@ TEST_F(InventoryIntegrationTest, SeedRegistrationThenCollectShowsNewVersion) {
     ASSERT_EQ(snapshot.ecu_list.size(), 2u);
     EXPECT_EQ(snapshot.ecu_list[0].ecu_id, "BMS");
     EXPECT_EQ(snapshot.ecu_list[0].sw_version.value_or(""), "2.0.0");
+    // Registration never rewrites the software part number fact.
+    EXPECT_EQ(snapshot.ecu_list[0].software_part_number.value_or(""), "SPN-BMS");
     EXPECT_EQ(snapshot.inventory_source, InventorySource::SEED);
 
     // Idempotent replay returns the same registrationId without changes.
@@ -278,6 +287,7 @@ TEST_F(InventoryIntegrationTest, RestartPreservesRecordAndIdempotency) {
     const auto snapshot = proxy_->collectVehicleInventory();
     ASSERT_FALSE(snapshot.ecu_list.empty());
     EXPECT_EQ(snapshot.ecu_list[0].sw_version.value_or(""), "2.0.0");
+    EXPECT_EQ(snapshot.ecu_list[0].software_part_number.value_or(""), "SPN-BMS");
 
     // Applied ring survived, so replay is still detected as DUPLICATE.
     const auto duplicate = proxy_->recordInstalledVersions(

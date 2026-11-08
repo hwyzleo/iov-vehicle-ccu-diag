@@ -154,11 +154,15 @@ VehicleSoftwareSnapshot FotaSomeIpProxy::collectVehicleInventory() {
                 EcuVersionEntry entry;
                 entry.ecu_id = getString(item, {"ecuId", "ecu_id"}, "");
                 const std::string part = getString(item, {"partNumber", "part_number"}, "");
+                // CCU-DIAG-DSN-CR-012: independent software part number fact.
+                const std::string software_part = getString(
+                    item, {"softwarePartNumber", "software_part_number"}, "");
                 const std::string sw = getString(item, {"swVersion", "sw_version"}, "");
                 const std::string hw = getString(item, {"hwVersion", "hw_version"}, "");
                 const std::string error_code =
                     getString(item, {"errorCode", "error_code"}, "");
                 if (!part.empty()) entry.part_number = part;
+                if (!software_part.empty()) entry.software_part_number = software_part;
                 if (!sw.empty()) entry.sw_version = sw;
                 if (!hw.empty()) entry.hw_version = hw;
                 if (!error_code.empty()) entry.error_code = error_code;

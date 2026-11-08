@@ -251,10 +251,10 @@ ecus:
             std::ofstream seed(seed_path_);
             seed << R"({
   "schemaVersion": 1,
-  "registryVersion": "2026.07.1",
+  "registryVersion": "2026.11.2",
   "ecus": [
-    {"ecuId":"BMS","swVersion":"1.0.0"},
-    {"ecuId":"VCU","swVersion":"1.0.0"}
+    {"ecuId":"BMS","softwarePartNumber":"SPN-BMS","swVersion":"1.0.0"},
+    {"ecuId":"VCU","softwarePartNumber":"SPN-VCU","swVersion":"1.0.0"}
   ]
 })";
         }
@@ -330,6 +330,8 @@ TEST_F(InventoryHandlerTest, CollectReturnsFrozenPayloadV1) {
     EXPECT_EQ(j["ecuList"][0]["ecuId"].get<std::string>(), "BMS");
     EXPECT_EQ(j["ecuList"][0]["source"].get<std::string>(), "UDS_0x22");
     EXPECT_EQ(j["ecuList"][0]["status"].get<std::string>(), "ok");
+    EXPECT_EQ(j["ecuList"][0]["softwarePartNumber"].get<std::string>(), "SPN-BMS");
+    EXPECT_EQ(j["ecuList"][1]["softwarePartNumber"].get<std::string>(), "SPN-VCU");
 }
 
 TEST_F(InventoryHandlerTest, CollectFailsClosedWhenSeedInvalid) {

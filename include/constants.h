@@ -52,12 +52,19 @@ constexpr uint32_t MIN_INVENTORY_IDEMPOTENCY_WINDOW = 1;
 constexpr uint32_t MAX_INVENTORY_IDEMPOTENCY_WINDOW = 256;
 
 // 0x0002 payload v1 and inventory record schema version (frozen).
+// CCU-DIAG-DSN-CR-012: softwarePartNumber (DID 0xF188) is an additive field of
+// the same v1 contract (record / seed / 0x0002 payload). The project is still
+// in the development phase and no released consumer depends on v1 semantics,
+// so the version deliberately stays 1 - no v2 contract and no v1->v2 record
+// migration exist. 0x0005 keeps using this same frozen value.
 constexpr uint32_t DIAG_PAYLOAD_SCHEMA_VERSION = 1;
 constexpr uint32_t ECU_INVENTORY_RECORD_SCHEMA_VERSION = 1;
 
 // Bounded string limits for inventory facts / registration payloads.
 constexpr size_t MAX_ECU_ID_LENGTH = 32;
 constexpr size_t MAX_VERSION_STRING_LENGTH = 64;
+// Assembly part number (DID 0xF187) and software part number (DID 0xF188)
+// share the same fail-closed bound (CCU-DIAG-DSN-CR-012 D4).
 constexpr size_t MAX_PART_NUMBER_LENGTH = 64;
 // CCU-DIAG-DSN-CR-011: ECU serial number (DID 0xF18C). 20-char ASCII values
 // are the current project format; 32 is the fail-closed upper bound.

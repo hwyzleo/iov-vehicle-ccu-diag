@@ -29,11 +29,13 @@ std::string seedJson(const std::string& bms_version = "1.0.0",
                      const std::string& vcu_version = "1.0.0") {
     return R"({
       "schemaVersion": 1,
-      "registryVersion": "2026.07.1",
+      "registryVersion": "2026.11.2",
       "baselineCode": "BASE-001",
       "ecus": [
-        {"ecuId":"BMS","partNumber":"PN-BMS","swVersion":")" + bms_version + R"(","hwVersion":"HW-BMS"},
-        {"ecuId":"VCU","partNumber":"PN-VCU","swVersion":")" + vcu_version + R"(","hwVersion":"HW-VCU"}
+        {"ecuId":"BMS","partNumber":"PN-BMS","softwarePartNumber":"SPN-BMS",
+         "swVersion":")" + bms_version + R"(","hwVersion":"HW-BMS"},
+        {"ecuId":"VCU","partNumber":"PN-VCU","softwarePartNumber":"SPN-VCU",
+         "swVersion":")" + vcu_version + R"(","hwVersion":"HW-VCU"}
       ]
     })";
 }
@@ -161,7 +163,8 @@ TEST_F(EcuInventoryStoreTest, SerialNumberFromSeedIsPersistedAndReloaded) {
       "registryVersion": "2026.11.1",
       "baselineCode": "BASE-001",
       "ecus": [
-        {"ecuId":"BMS","partNumber":"PN-BMS","swVersion":"V0.0.1","hwVersion":"00",
+        {"ecuId":"BMS","partNumber":"PN-BMS","softwarePartNumber":"SPN-BMS",
+         "swVersion":"V0.0.1","hwVersion":"00",
          "serialNumber":"00000002AA00000001"}
       ]
     })");
@@ -193,7 +196,8 @@ TEST_F(EcuInventoryStoreTest, SeedSerialNumberTooLongFailsClosed) {
       "schemaVersion": 1,
       "registryVersion": "v",
       "ecus": [
-        {"ecuId":"BMS","serialNumber":"0123456789012345678901234567890123"}
+        {"ecuId":"BMS","softwarePartNumber":"SPN-BMS","swVersion":"V0.0.1",
+         "serialNumber":"0123456789012345678901234567890123"}
       ]
     })");
     auto store = makeStore(seedConfig());
@@ -215,13 +219,17 @@ TEST_F(EcuInventoryStoreTest, SeedMissingFailsClosed) {
 TEST_F(EcuInventoryStoreTest, SeedValidationMatrix) {
     const std::vector<std::string> invalid_seeds = {
         "not json",
-        R"({"schemaVersion":2,"registryVersion":"v","ecus":[{"ecuId":"BMS"}]})",
+        R"({"schemaVersion":2,"registryVersion":"v",
+            "ecus":[{"ecuId":"BMS","softwarePartNumber":"S","swVersion":"1"}]})",
         R"({"schemaVersion":1,"registryVersion":"v","ecus":[]})",
-        R"({"schemaVersion":1,"registryVersion":"v","ecus":[{"ecuId":"UNKNOWN"}]})",
         R"({"schemaVersion":1,"registryVersion":"v",
-            "ecus":[{"ecuId":"BMS"},{"ecuId":"BMS"}]})",
-        R"({"schemaVersion":1,"registryVersion":"v","ecus":[{"ecuId":""}]})",
-        R"({"schemaVersion":1,"ecus":[{"ecuId":"BMS"}]})",
+            "ecus":[{"ecuId":"UNKNOWN","softwarePartNumber":"S","swVersion":"1"}]})",
+        R"({"schemaVersion":1,"registryVersion":"v",
+            "ecus":[{"ecuId":"BMS","softwarePartNumber":"S","swVersion":"1"},
+                    {"ecuId":"BMS","softwarePartNumber":"S","swVersion":"1"}]})",
+        R"({"schemaVersion":1,"registryVersion":"v",
+            "ecus":[{"ecuId":"","softwarePartNumber":"S","swVersion":"1"}]})",
+        R"({"schemaVersion":1,"ecus":[{"ecuId":"BMS","softwarePartNumber":"S","swVersion":"1"}]})",
     };
 
     for (const auto& seed : invalid_seeds) {
@@ -233,6 +241,121 @@ TEST_F(EcuInventoryStoreTest, SeedValidationMatrix) {
         EXPECT_FALSE(store->available()) << seed;
         EXPECT_FALSE(fs::exists(state_path_)) << seed;
     }
+}
+
+// CCU-DIAG-DSN-CR-012 D4: a new seed must carry the approved software part
+// number and software version for every ECU, otherwise CCU-DIAG-1013.
+TEST_F(EcuInventoryStoreTest, SeedMissingRequiredFactsFailsClosed) {
+    const std::vector<std::string> invalid_seeds = {
+        // softwarePartNumber missing
+        R"({"schemaVersion":1,"registryVersion":"v",
+            "ecus":[{"ecuId":"BMS","swVersion":"1.0.0"}]})",
+        // softwarePartNumber empty
+        R"({"schemaVersion":1,"registryVersion":"v",
+            "ecus":[{"ecuId":"BMS","softwarePartNumber":"","swVersion":"1.0.0"}]})",
+        // swVersion missing
+        R"({"schemaVersion":1,"registryVersion":"v",
+            "ecus":[{"ecuId":"BMS","softwarePartNumber":"SPN-BMS"}]})",
+        // softwarePartNumber too long (MAX_PART_NUMBER_LENGTH = 64)
+        R"({"schemaVersion":1,"registryVersion":"v",
+            "ecus":[{"ecuId":"BMS","softwarePartNumber":"0123456789012345678901234567890123456789012345678901234567890123456789","swVersion":"1"}]})",
+    };
+
+    for (const auto& seed : invalid_seeds) {
+        writeText(seed_path_, seed);
+        fs::remove_all(fs::path(state_path_).parent_path());
+        auto store = makeStore(seedConfig());
+        const auto result = store->initialize("2026.07.1");
+        EXPECT_EQ(result.status, InventoryStoreStatus::SEED_INVALID) << seed;
+        EXPECT_EQ(result.diagCode(), "CCU-DIAG-1013") << seed;
+        EXPECT_FALSE(store->available()) << seed;
+        EXPECT_FALSE(fs::exists(state_path_)) << seed;
+    }
+}
+
+// CCU-DIAG-DSN-CR-012: softwarePartNumber is an independent persisted fact and
+// survives a restart unchanged.
+TEST_F(EcuInventoryStoreTest, SeedSoftwarePartNumberIsPersistedAndReloaded) {
+    writeText(seed_path_, seedJson());
+    auto store = makeStore(seedConfig());
+    ASSERT_TRUE(store->initialize("2026.11.2").ok());
+    ASSERT_EQ(store->record().ecus.size(), 2u);
+    EXPECT_EQ(store->record().ecus[0].software_part_number, "SPN-BMS");
+    EXPECT_EQ(store->record().ecus[0].part_number, "PN-BMS");
+    EXPECT_NE(store->record().ecus[0].part_number,
+              store->record().ecus[0].software_part_number);
+    EXPECT_NE(readText(state_path_).find("softwarePartNumber"), std::string::npos);
+
+    auto restarted = makeStore(seedConfig());
+    ASSERT_TRUE(restarted->initialize("2026.11.2").ok());
+    EXPECT_EQ(restarted->record().ecus[0].software_part_number, "SPN-BMS");
+    EXPECT_EQ(restarted->record().ecus[1].software_part_number, "SPN-VCU");
+}
+
+// CCU-DIAG-DSN-CR-012 D4: the record checksum must cover softwarePartNumber.
+TEST_F(EcuInventoryStoreTest, RecordChecksumCoversSoftwarePartNumber) {
+    writeText(seed_path_, seedJson());
+    auto store = makeStore(seedConfig());
+    ASSERT_TRUE(store->initialize("2026.11.2").ok());
+
+    auto file = nlohmann::json::parse(readText(state_path_));
+    ASSERT_EQ(file["payload"]["ecus"][0]["softwarePartNumber"].get<std::string>(),
+              "SPN-BMS");
+    file["payload"]["ecus"][0]["softwarePartNumber"] = "SPN-TAMPERED";
+    writeText(state_path_, file.dump(2));
+
+    auto restarted = makeStore(seedConfig());
+    const auto result = restarted->initialize("2026.11.2");
+    EXPECT_EQ(result.status, InventoryStoreStatus::CORRUPT);
+    EXPECT_EQ(result.diagCode(), "CCU-DIAG-1012");
+    EXPECT_FALSE(restarted->available());
+}
+
+// CCU-DIAG-DSN-CR-012 D4: the seed digest covers softwarePartNumber, so a seed
+// with a different approved software part number is a different release input.
+TEST_F(EcuInventoryStoreTest, SeedDigestCoversSoftwarePartNumber) {
+    writeText(seed_path_, seedJson());
+    auto first = makeStore(seedConfig());
+    ASSERT_TRUE(first->initialize("2026.11.2").ok());
+    const std::string digest_before = first->record().seed_digest;
+    EXPECT_EQ(digest_before.rfind("sha256:", 0), 0u);
+
+    fs::remove_all(fs::path(state_path_).parent_path());
+    const std::string changed = seedJson();
+    std::string patched = changed;
+    patched.replace(patched.find("SPN-BMS"), std::string("SPN-BMS").size(),
+                    "SPN-BMS2");
+    writeText(seed_path_, patched);
+    auto second = makeStore(seedConfig());
+    ASSERT_TRUE(second->initialize("2026.11.2").ok());
+    EXPECT_NE(second->record().seed_digest, digest_before);
+    EXPECT_EQ(second->record().ecus[0].software_part_number, "SPN-BMS2");
+}
+
+// CCU-DIAG-DSN-CR-012: a record written before this CR simply reads back as
+// "software part number unknown"; nothing is backfilled from partNumber.
+TEST_F(EcuInventoryStoreTest, LegacyRecordWithoutSoftwarePartNumberReadsAsUnknown) {
+    writeText(seed_path_, seedJson());
+    auto store = makeStore(seedConfig());
+    ASSERT_TRUE(store->initialize("2026.11.2").ok());
+    ASSERT_TRUE(store->record().ecus[0].software_part_number == "SPN-BMS");
+
+    auto file = nlohmann::json::parse(readText(state_path_));
+    file["payload"]["ecus"][0].erase("softwarePartNumber");
+    file["payload"]["ecus"][1].erase("softwarePartNumber");
+    file["checksum"] = EcuInventoryStore::sha256Prefixed(
+        file["payload"].dump());
+    writeText(state_path_, file.dump(2));
+
+    auto restarted = makeStore(seedConfig());
+    const auto result = restarted->initialize("2026.11.2");
+    ASSERT_TRUE(result.ok()) << result.detail;
+    EXPECT_TRUE(restarted->available());
+    ASSERT_EQ(restarted->record().ecus.size(), 2u);
+    EXPECT_TRUE(restarted->record().ecus[0].software_part_number.empty());
+    EXPECT_EQ(restarted->record().ecus[0].part_number, "PN-BMS");
+    EXPECT_NE(restarted->record().ecus[0].software_part_number,
+              restarted->record().ecus[0].part_number);
 }
 
 TEST_F(EcuInventoryStoreTest, HardwareModeWithoutRecordBuildsSkeleton) {

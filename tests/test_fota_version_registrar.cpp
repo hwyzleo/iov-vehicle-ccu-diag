@@ -27,11 +27,11 @@ namespace {
 std::string seedJson(const std::string& bms_version = "1.0.0") {
     return R"({
       "schemaVersion": 1,
-      "registryVersion": "2026.07.1",
+      "registryVersion": "2026.11.2",
       "baselineCode": "BASE-001",
       "ecus": [
-        {"ecuId":"BMS","partNumber":"PN-BMS","swVersion":")" + bms_version + R"(","hwVersion":"HW-BMS"},
-        {"ecuId":"VCU","partNumber":"PN-VCU","swVersion":"1.0.0","hwVersion":"HW-VCU"}
+        {"ecuId":"BMS","partNumber":"PN-BMS","softwarePartNumber":"SPN-BMS","swVersion":")" + bms_version + R"(","hwVersion":"HW-BMS"},
+        {"ecuId":"VCU","partNumber":"PN-VCU","softwarePartNumber":"SPN-VCU","swVersion":"1.0.0","hwVersion":"HW-VCU"}
       ]
     })";
 }
@@ -133,8 +133,7 @@ protected:
     std::shared_ptr<FotaVersionRegistrar> registrar_;
 };
 
-TEST_F(FotaVersionRegistrarTest, AppliedUpdatesOnlyVersionFacts) {
-    const auto before_file = readText(state_path_);
+TEST_F(FotaVersionRegistrarTest, AppliedUpdatesOnlyVersionFacts) {    const auto before_file = readText(state_path_);
 
     const auto response = registrar_->recordInstalledVersions(
         makeRequest("EXE-1", 1, {item("BMS", "2.0.0"), item("VCU", "3.0.0")}));
@@ -148,8 +147,15 @@ TEST_F(FotaVersionRegistrarTest, AppliedUpdatesOnlyVersionFacts) {
     ASSERT_NE(record.findEcu("BMS"), nullptr);
     EXPECT_EQ(record.findEcu("BMS")->sw_version, "2.0.0");
     EXPECT_EQ(record.findEcu("VCU")->sw_version, "3.0.0");
+    // CCU-DIAG-DSN-CR-012 D1: the registration only updates the software
+    // version fact; the software part number (and every other fact) is kept
+    // unchanged, never cleared or overwritten by the package identity.
+    EXPECT_EQ(record.findEcu("BMS")->software_part_number, "SPN-BMS");
+    EXPECT_EQ(record.findEcu("VCU")->software_part_number, "SPN-VCU");
+    EXPECT_EQ(record.findEcu("BMS")->part_number, "PN-BMS");
+    EXPECT_EQ(record.findEcu("BMS")->hw_version, "HW-BMS");
     // Identity / audit fields untouched (D7).
-    EXPECT_EQ(record.registry_version, "2026.07.1");
+    EXPECT_EQ(record.registry_version, "2026.11.2");
     EXPECT_EQ(record.baseline_code, "BASE-001");
     EXPECT_EQ(record.seed_digest.rfind("sha256:", 0), 0u);
     EXPECT_EQ(record.inventory_source, "seed");

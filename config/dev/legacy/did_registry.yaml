@@ -1,7 +1,7 @@
 # CCU-DIAG 开发/测试夹具（legacy DID registry 单文件格式）
 # 仅用于 --did-registry 开发/测试覆盖入口，不进入 ccu-diag-runtime。
 # 正式配置已迁移到 config/diag.default.yaml 的 diag.registry 子树。
-registryVersion: "2026.07.1"
+registryVersion: "2026.11.2"
 baselineDids: [0xF195, 0xF188, 0xF187, 0xF193]
 ecus:
   - ecuId: "BMS"
@@ -39,7 +39,7 @@ ecus:
         encoding: "ASCII"
         length: 16
       - did: 0xF188
-        field: "ecuSoftwareNumber"
+        field: "softwarePartNumber"
         encoding: "ASCII"
         length: 11
       - did: 0xF193

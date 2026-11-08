@@ -95,6 +95,11 @@ definitions:
       field:
         type: string
         minLength: 1
+        # Canonical field names mapped into the inventory facts
+        # (CCU-DIAG-DSN-CR-012 D1/D2): swVersion | partNumber |
+        # softwarePartNumber | hwVersion | serialNumber. Independent calls may
+        # declare extra field names; they are not mapped to any fact.
+        description: "canonical inventory field name (softwarePartNumber for DID 0xF188)"
       encoding:
         type: string
         enum: [ASCII, HEX, BCD]

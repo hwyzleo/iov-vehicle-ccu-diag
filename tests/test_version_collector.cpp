@@ -148,6 +148,135 @@ TEST_F(VersionCollectorTest, CollectVehicleInventoryAllOk) {
     EXPECT_EQ(idcm_it->sw_version.value(), "2.0.0");
 }
 
+// CCU-DIAG-DSN-CR-012 D1/D2: DID 0xF187 / 0xF188 / 0xF195 / 0xF193 / 0xF18C
+// map into five independent facts; distinct values never pollute each other.
+TEST_F(VersionCollectorTest, CollectEcuVersionKeepsAllFiveFactsIndependent) {
+    std::ofstream file(config_path_);
+    file << R"(
+registryVersion: "2026.11.2"
+baselineDids: [0xF187, 0xF188, 0xF195, 0xF193, 0xF18C]
+ecus:
+  - ecuId: "TBOX"
+    logicalAddress: 0x10
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+    securityRequired: false
+    dids:
+      - did: 0xF187
+        field: "partNumber"
+        encoding: "ASCII"
+        length: 11
+      - did: 0xF188
+        field: "softwarePartNumber"
+        encoding: "ASCII"
+        length: 11
+      - did: 0xF195
+        field: "swVersion"
+        encoding: "ASCII"
+        length: 16
+      - did: 0xF193
+        field: "hwVersion"
+        encoding: "ASCII"
+        length: 8
+      - did: 0xF18C
+        field: "serialNumber"
+        encoding: "ASCII"
+        length: 20
+)";
+    file.close();
+
+    auto registry = std::make_shared<DidRegistry>(config_path_);
+    DiagConfig diag_config;
+    diag_config.max_retry_count = 2;
+    auto uds_client = std::make_shared<UdsClient>(mock_transport, diag_config);
+    auto router = std::make_shared<DiagnosticRouter>(registry, uds_client,
+                                                     mock_transport, mock_doip_transport);
+    VersionCollector collector(registry, router, mock_transport,
+                               mock_doip_transport, vin_store);
+
+    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+        TransportResponse resp;
+        resp.success = true;
+        const uint16_t did = (request[1] << 8) | request[2];
+        resp.data = {0x62, request[1], request[2]};
+        std::string value;
+        switch (did) {
+            case 0xF187: value = "ASM-PN-001"; break;
+            case 0xF188: value = "SW-PN-777"; break;
+            case 0xF195: value = "V1.2.3"; break;
+            case 0xF193: value = "HW-1"; break;
+            case 0xF18C: value = "00000003AA00000001"; break;
+            default: break;
+        }
+        resp.data.insert(resp.data.end(), value.begin(), value.end());
+        resp.data.push_back('\0');
+        (void)addr;
+        return resp;
+    });
+
+    const auto entry = collector.collectEcuVersion("TBOX");
+    EXPECT_EQ(entry.status, EcuStatus::OK);
+    ASSERT_TRUE(entry.part_number.has_value());
+    ASSERT_TRUE(entry.software_part_number.has_value());
+    ASSERT_TRUE(entry.sw_version.has_value());
+    ASSERT_TRUE(entry.hw_version.has_value());
+    ASSERT_TRUE(entry.serial_number.has_value());
+    EXPECT_EQ(entry.part_number.value(), "ASM-PN-001");
+    EXPECT_EQ(entry.software_part_number.value(), "SW-PN-777");
+    EXPECT_EQ(entry.sw_version.value(), "V1.2.3");
+    EXPECT_EQ(entry.hw_version.value(), "HW-1");
+    EXPECT_EQ(entry.serial_number.value(), "00000003AA00000001");
+}
+
+// CCU-DIAG-DSN-CR-012 D2: the legacy ecuSoftwareNumber field name is no longer
+// mapped and must not leak into software_part_number (no second output name).
+TEST_F(VersionCollectorTest, LegacyEcuSoftwareNumberFieldIsNotMapped) {
+    std::ofstream file(config_path_);
+    file << R"(
+registryVersion: "2026.11.2"
+baselineDids: [0xF188, 0xF195]
+ecus:
+  - ecuId: "TBOX"
+    logicalAddress: 0x10
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+    securityRequired: false
+    dids:
+      - did: 0xF195
+        field: "swVersion"
+        encoding: "ASCII"
+        length: 16
+      - did: 0xF188
+        field: "ecuSoftwareNumber"
+        encoding: "ASCII"
+        length: 11
+)";
+    file.close();
+
+    auto registry = std::make_shared<DidRegistry>(config_path_);
+    DiagConfig diag_config;
+    diag_config.max_retry_count = 2;
+    auto uds_client = std::make_shared<UdsClient>(mock_transport, diag_config);
+    auto router = std::make_shared<DiagnosticRouter>(registry, uds_client,
+                                                     mock_transport, mock_doip_transport);
+    VersionCollector collector(registry, router, mock_transport,
+                               mock_doip_transport, vin_store);
+
+    mock_transport->setRequestHandler([](uint16_t, const std::vector<uint8_t>& request) {
+        TransportResponse resp;
+        resp.success = true;
+        resp.data = {0x62, request[1], request[2], 'S', 'W', '-', 'P', 'N', '\0'};
+        return resp;
+    });
+
+    const auto entry = collector.collectEcuVersion("TBOX");
+    EXPECT_EQ(entry.status, EcuStatus::OK);
+    EXPECT_TRUE(entry.sw_version.has_value());
+    // Not mapped: neither the legacy field nor any derived value may be stored.
+    EXPECT_FALSE(entry.software_part_number.has_value());
+    EXPECT_FALSE(entry.part_number.has_value());
+}
+
 // CCU-DIAG-DSN-CR-011: hardware mode maps DID 0xF18C into serial_number.
 TEST_F(VersionCollectorTest, CollectEcuVersionMapsSerialNumberDid) {
     std::ofstream file(config_path_);
@@ -375,11 +504,12 @@ TEST_F(VersionCollectorTest, SeedModeUsesRecordAndSkipsDownlink) {
         std::ofstream seed(seed_path);
         seed << R"({
   "schemaVersion": 1,
-  "registryVersion": "2026.07.0",
+  "registryVersion": "2026.11.2",
   "baselineCode": "BASE-9",
   "ecus": [
-    {"ecuId":"BMS","partNumber":"PN-BMS","swVersion":"1.2.3","hwVersion":"HW-BMS"},
-    {"ecuId":"IDCM","swVersion":"4.5.6"}
+    {"ecuId":"BMS","partNumber":"PN-BMS","softwarePartNumber":"SPN-BMS",
+     "swVersion":"1.2.3","hwVersion":"HW-BMS"},
+    {"ecuId":"IDCM","softwarePartNumber":"SPN-IDCM","swVersion":"4.5.6"}
   ]
 })";
     }
@@ -408,6 +538,8 @@ TEST_F(VersionCollectorTest, SeedModeUsesRecordAndSkipsDownlink) {
     EXPECT_EQ(snapshot.ecu_list[0].ecu_id, "BMS");
     EXPECT_EQ(snapshot.ecu_list[0].sw_version.value_or(""), "1.2.3");
     EXPECT_EQ(snapshot.ecu_list[0].part_number.value_or(""), "PN-BMS");
+    EXPECT_EQ(snapshot.ecu_list[0].software_part_number.value_or(""), "SPN-BMS");
+    EXPECT_EQ(snapshot.ecu_list[1].software_part_number.value_or(""), "SPN-IDCM");
     EXPECT_EQ(snapshot.ecu_list[0].status, EcuStatus::OK);
     EXPECT_EQ(snapshot.ecu_list[1].source, ReadMethod::UDS_0x22);
 
@@ -431,12 +563,32 @@ TEST_F(VersionCollectorTest, SeedModeMissingVersionIsMarkedNotOk) {
         std::ofstream seed(seed_path);
         seed << R"({
   "schemaVersion": 1,
-  "registryVersion": "2026.07.0",
+  "registryVersion": "2026.11.2",
   "ecus": [
-    {"ecuId":"BMS","partNumber":"PN-BMS"},
-    {"ecuId":"IDCM","swVersion":"4.5.6"}
+    {"ecuId":"BMS","softwarePartNumber":"SPN-BMS","swVersion":"1.2.3"},
+    {"ecuId":"IDCM","softwarePartNumber":"SPN-IDCM","swVersion":"4.5.6"}
   ]
 })";
+    }
+
+    // A record written before CCU-DIAG-DSN-CR-012 may still carry an empty
+    // swVersion fact; it is served as MISSING (CCU-DIAG-1004), never repaired.
+    EcuInventoryRecord legacy;
+    legacy.registry_version = "2026.11.2";
+    legacy.inventory_source = "seed";
+    legacy.updated_at = EcuInventoryStore::nowIso8601();
+    InventoryEcuFact bms;
+    bms.ecu_id = "BMS";
+    bms.part_number = "PN-BMS";
+    bms.software_part_number = "SPN-BMS";
+    InventoryEcuFact idcm;
+    idcm.ecu_id = "IDCM";
+    idcm.software_part_number = "SPN-IDCM";
+    idcm.sw_version = "4.5.6";
+    legacy.ecus = {bms, idcm};
+    {
+        std::ofstream state(state_path, std::ios::binary | std::ios::trunc);
+        state << EcuInventoryStore::encodeRecordFile(legacy);
     }
 
     InventoryConfig config;
@@ -445,7 +597,7 @@ TEST_F(VersionCollectorTest, SeedModeMissingVersionIsMarkedNotOk) {
     config.state_path = state_path;
     auto store = std::make_shared<EcuInventoryStore>(
         config, std::vector<std::string>{"BMS", "IDCM"}, nullptr, false);
-    ASSERT_TRUE(store->initialize("2026.07.0").ok());
+    ASSERT_TRUE(store->initialize("2026.11.2").ok());
 
     VersionCollector seed_collector(registry, router, mock_transport,
                                     mock_doip_transport, vin_store, store);
@@ -455,6 +607,7 @@ TEST_F(VersionCollectorTest, SeedModeMissingVersionIsMarkedNotOk) {
     ASSERT_EQ(snapshot.ecu_list.size(), 2u);
     EXPECT_EQ(snapshot.ecu_list[0].status, EcuStatus::MISSING);
     EXPECT_EQ(snapshot.ecu_list[0].error_code.value_or(""), "CCU-DIAG-1004");
+    EXPECT_EQ(snapshot.ecu_list[0].software_part_number.value_or(""), "SPN-BMS");
 
     std::filesystem::remove(seed_path);
     std::filesystem::remove(state_path);

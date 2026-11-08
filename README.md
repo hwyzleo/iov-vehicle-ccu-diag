@@ -231,11 +231,37 @@ diag:
 
 1. seed 中每个 `ecuId` 必须已登记在 `diag.registry.ecus`，否则启动
    fail-closed（`CCU-DIAG-1013`），0x0002 返回错误而非空清单。
+1. seed 中每个 ECU 必须声明非空 `softwarePartNumber`（DID 0xF188）与
+   `swVersion`（DID 0xF195），否则按 `CCU-DIAG-1013` 拒绝导入
+   （CCU-DIAG-DSN-CR-012 D4）。
 2. VIN 必须已预置（FOTA 侧把非空 `vin` 作为清单有效条件）。
 3. 记录已存在时不会重新导入 seed；平台更换 seed 内容后如需重导，属运维操作
    （清理实例状态记录），不在运行时自动覆盖。
 4. `state_path` 必须位于 `/var/lib/ccu/diag/` 下；记录损坏/校验不符/未知
    `schemaVersion` 返回 `CCU-DIAG-1012`，不自动重建、不返回空清单成功。
+
+### ECU 件号与版本事实（CCU-DIAG-DSN-CR-012）
+
+五项事实独立建模、互不推导（任何字段不得由其他字段补齐或冒充）：
+
+| 字段 | 来源 DID | 含义 |
+|------|----------|------|
+| `partNumber` | 0xF187 | 总成/备件零件号 |
+| `softwarePartNumber` | 0xF188 | ECU 软件零件号 |
+| `swVersion` | 0xF195 | 软件版本 |
+| `hwVersion` | 0xF193 | 硬件版本 |
+| `serialNumber` | 0xF18C | ECU 实例序列号 |
+
+- DidRegistry 的 canonical 字段名为 `softwarePartNumber`；旧名
+  `ecuSoftwareNumber` 不再映射，也不保留第二套输出名称。
+- 清单记录、seed 与 0x0002 payload 均携带 `softwarePartNumber`，并纳入记录
+  checksum / seedDigest 完整性校验。
+- 未知软件件号显式输出空串（`ecuList[].softwarePartNumber = ""`），
+  绝不复用 `partNumber`；由 FOTA 侧据此拒绝上报。
+- 开发阶段口径：`schemaVersion` 保持 `1`，`softwarePartNumber` 作为 v1 增量
+  字段，不升 v2、不做 v1→v2 记录迁移。旧清单记录缺少该字段时读取为
+  “未知”，不自动回填；如需取得经批准的软件件号，需清理实例状态记录后重导
+  seed（仅开发/测试阶段操作）。
 
 ## 测试
 

@@ -488,6 +488,9 @@ std::string EcuInventoryStore::encodeRecordFile(const EcuInventoryRecord& record
         json entry;
         entry["ecuId"] = fact.ecu_id;
         entry["partNumber"] = fact.part_number;
+        // CCU-DIAG-DSN-CR-012: software part number is part of the record
+        // payload, so the record checksum covers it.
+        entry["softwarePartNumber"] = fact.software_part_number;
         entry["swVersion"] = fact.sw_version;
         entry["hwVersion"] = fact.hw_version;
         entry["serialNumber"] = fact.serial_number;
@@ -581,8 +584,13 @@ bool EcuInventoryStore::decodeRecordFile(const std::string& text,
             return false;
         }
         InventoryEcuFact fact;
+        // softwarePartNumber is optional at decode time: a record written before
+        // CCU-DIAG-DSN-CR-012 simply reads back as "unknown", never backfilled
+        // from partNumber or serialNumber.
         if (!getString(node, "ecuId", fact.ecu_id, true, detail) ||
             !getString(node, "partNumber", fact.part_number, false, detail) ||
+            !getString(node, "softwarePartNumber", fact.software_part_number,
+                       false, detail) ||
             !getString(node, "swVersion", fact.sw_version, false, detail) ||
             !getString(node, "hwVersion", fact.hw_version, false, detail) ||
             !getString(node, "serialNumber", fact.serial_number, false, detail)) {
@@ -594,6 +602,7 @@ bool EcuInventoryStore::decodeRecordFile(const std::string& text,
             return false;
         }
         if (!bounded(fact.part_number, constants::MAX_PART_NUMBER_LENGTH) ||
+            !bounded(fact.software_part_number, constants::MAX_PART_NUMBER_LENGTH) ||
             !bounded(fact.sw_version, constants::MAX_VERSION_STRING_LENGTH) ||
             !bounded(fact.hw_version, constants::MAX_VERSION_STRING_LENGTH) ||
             !bounded(fact.serial_number, constants::MAX_SERIAL_NUMBER_LENGTH)) {
@@ -694,6 +703,8 @@ bool EcuInventoryStore::parseSeedFile(
         InventoryEcuFact fact;
         if (!getString(node, "ecuId", fact.ecu_id, true, detail) ||
             !getString(node, "partNumber", fact.part_number, false, detail) ||
+            !getString(node, "softwarePartNumber", fact.software_part_number,
+                       false, detail) ||
             !getString(node, "swVersion", fact.sw_version, false, detail) ||
             !getString(node, "hwVersion", fact.hw_version, false, detail) ||
             !getString(node, "serialNumber", fact.serial_number, false, detail)) {
@@ -705,10 +716,22 @@ bool EcuInventoryStore::parseSeedFile(
             return false;
         }
         if (!bounded(fact.part_number, constants::MAX_PART_NUMBER_LENGTH) ||
+            !bounded(fact.software_part_number, constants::MAX_PART_NUMBER_LENGTH) ||
             !bounded(fact.sw_version, constants::MAX_VERSION_STRING_LENGTH) ||
             !bounded(fact.hw_version, constants::MAX_VERSION_STRING_LENGTH) ||
             !bounded(fact.serial_number, constants::MAX_SERIAL_NUMBER_LENGTH)) {
             detail = "seed ecu field too long";
+            return false;
+        }
+        // CCU-DIAG-DSN-CR-012 D4: a new seed must declare the approved software
+        // part number and the software version for every ECU; otherwise the
+        // record could never be reported as a complete SINGLE_IMAGE inventory.
+        if (fact.software_part_number.empty()) {
+            detail = "missing field: seed ecu softwarePartNumber";
+            return false;
+        }
+        if (fact.sw_version.empty()) {
+            detail = "missing field: seed ecu swVersion";
             return false;
         }
         if (registered.find(fact.ecu_id) == registered.end()) {

@@ -146,6 +146,9 @@ std::string DiagPayloadCodec::encodeInventoryV1(
         json item;
         item["ecuId"] = entry.ecu_id;
         item["partNumber"] = entry.part_number.value_or("");
+        // CCU-DIAG-DSN-CR-012 D6: softwarePartNumber is always present; an
+        // unknown value is the empty string, never the assembly part number.
+        item["softwarePartNumber"] = entry.software_part_number.value_or("");
         item["swVersion"] = entry.sw_version.value_or("");
         item["hwVersion"] = entry.hw_version.value_or("");
         item["serialNumber"] = entry.serial_number.value_or("");

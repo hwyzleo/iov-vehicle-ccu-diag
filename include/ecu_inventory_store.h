@@ -8,7 +8,9 @@
 //   * instance state: /var/lib/ccu/diag/ecu_inventory.json (preserve on
 //     deploy/rollback, never release-managed),
 //   * deployment seed: read-only JSON imported once when mode=seed and no
-//     record exists.
+//     record exists. Every seed ECU must declare a non-empty softwarePartNumber
+//     (DID 0xF188) and swVersion (DID 0xF195), else CCU-DIAG-1013
+//     (CCU-DIAG-DSN-CR-012 D4).
 // The record and the bounded idempotency ring (recent executionId/attemptNo)
 // live in ONE file and are committed by a single atomic replacement, so there
 // is no "content updated but idempotency key missing" window.
@@ -29,11 +31,17 @@ namespace ccu_diag {
 
 struct InventoryEcuFact {
     std::string ecu_id;
+    // Five independent facts (CCU-DIAG-DSN-CR-012 D1). Values are never derived
+    // from one another; an unknown software part number stays empty.
+    //   part_number          DID 0xF187 assembly/spare part number
+    //   software_part_number DID 0xF188 ECU software part number
+    //   sw_version           DID 0xF195
+    //   hw_version           DID 0xF193
+    //   serial_number        DID 0xF18C (CCU-DIAG-DSN-CR-011)
     std::string part_number;
+    std::string software_part_number;
     std::string sw_version;
     std::string hw_version;
-    // CCU-DIAG-DSN-CR-011: ECU serial number (DID 0xF18C), optional. Additive
-    // field: schemaVersion stays 1 while the contract is still in development.
     std::string serial_number;
 };
 

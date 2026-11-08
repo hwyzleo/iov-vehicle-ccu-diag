@@ -69,7 +69,7 @@ diag:
         encoding: ASCII
         length: 16
       - did: 61832
-        field: ecuSoftwareNumber
+        field: softwarePartNumber
         encoding: ASCII
         length: 11
       - did: 61843

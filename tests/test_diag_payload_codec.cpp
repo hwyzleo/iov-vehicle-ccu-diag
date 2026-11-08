@@ -31,6 +31,7 @@ VehicleSoftwareSnapshot makeSnapshot() {
     EcuVersionEntry bms;
     bms.ecu_id = "BMS";
     bms.part_number = "PN-BMS-001";
+    bms.software_part_number = "SPN-BMS-777";
     bms.sw_version = "1.0.0";
     bms.hw_version = "HW-BMS-1.0";
     bms.source = ReadMethod::UDS_0x22;
@@ -68,6 +69,7 @@ TEST(DiagPayloadCodecTest, EncodeInventoryV1ContainsCompleteEcuList) {
     const auto& bms = j["ecuList"][0];
     EXPECT_EQ(bms["ecuId"].get<std::string>(), "BMS");
     EXPECT_EQ(bms["partNumber"].get<std::string>(), "PN-BMS-001");
+    EXPECT_EQ(bms["softwarePartNumber"].get<std::string>(), "SPN-BMS-777");
     EXPECT_EQ(bms["swVersion"].get<std::string>(), "1.0.0");
     EXPECT_EQ(bms["hwVersion"].get<std::string>(), "HW-BMS-1.0");
     EXPECT_EQ(bms["source"].get<std::string>(), "UDS_0x22");
@@ -77,10 +79,30 @@ TEST(DiagPayloadCodecTest, EncodeInventoryV1ContainsCompleteEcuList) {
     // Optional fields stay present (empty) so FOTA sees a frozen field set.
     const auto& vcu = j["ecuList"][1];
     EXPECT_EQ(vcu["partNumber"].get<std::string>(), "");
+    // CCU-DIAG-DSN-CR-012: unknown software part number is an empty string, it
+    // is never copied from partNumber or any other fact.
+    EXPECT_EQ(vcu["softwarePartNumber"].get<std::string>(), "");
     EXPECT_EQ(vcu["hwVersion"].get<std::string>(), "");
     EXPECT_EQ(vcu["source"].get<std::string>(), "SOMEIP_getVersion");
     EXPECT_EQ(vcu["status"].get<std::string>(), "timeout");
     EXPECT_EQ(vcu["errorCode"].get<std::string>(), "CCU-DIAG-1002");
+}
+
+// CCU-DIAG-DSN-CR-012 D6: 0x0002 always carries both partNumber and
+// softwarePartNumber as separate facts, even when their values differ.
+TEST(DiagPayloadCodecTest, EncodeInventoryV1KeepsPartNumbersSeparate) {
+    auto snapshot = makeSnapshot();
+    snapshot.ecu_list[0].part_number = "ASM-PN-001";
+    snapshot.ecu_list[0].software_part_number = "SW-PN-777";
+
+    const auto j = nlohmann::json::parse(
+        DiagPayloadCodec::encodeInventoryV1(snapshot));
+    ASSERT_EQ(j["ecuList"].size(), 2u);
+    EXPECT_EQ(j["ecuList"][0]["partNumber"].get<std::string>(), "ASM-PN-001");
+    EXPECT_EQ(j["ecuList"][0]["softwarePartNumber"].get<std::string>(),
+              "SW-PN-777");
+    EXPECT_EQ(j["ecuList"][1]["partNumber"].get<std::string>(), "");
+    EXPECT_EQ(j["ecuList"][1]["softwarePartNumber"].get<std::string>(), "");
 }
 
 // CCU-DIAG-DSN-CR-011: 0x0002 ecuList items expose the ECU serial number. The

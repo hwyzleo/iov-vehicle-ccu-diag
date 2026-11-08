@@ -187,6 +187,11 @@ EcuVersionEntry VersionCollector::seedEcuVersion(const InventoryEcuFact& fact) {
     if (!fact.part_number.empty()) {
         entry.part_number = fact.part_number;
     }
+    // CCU-DIAG-DSN-CR-012: independent software part number fact; an empty seed
+    // value stays explicitly unknown (never filled from part_number).
+    if (!fact.software_part_number.empty()) {
+        entry.software_part_number = fact.software_part_number;
+    }
     if (!fact.sw_version.empty()) {
         entry.sw_version = fact.sw_version;
     }
@@ -283,6 +288,11 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
                         entry.sw_version = version_str;
                     } else if (did_entry.field == "partNumber") {
                         entry.part_number = version_str;
+                    } else if (did_entry.field == "softwarePartNumber") {
+                        // CCU-DIAG-DSN-CR-012 D2: canonical field name for DID
+                        // 0xF188. The legacy ecuSoftwareNumber name is no longer
+                        // mapped (no second output name, no cross-fill).
+                        entry.software_part_number = version_str;
                     } else if (did_entry.field == "hwVersion") {
                         entry.hw_version = version_str;
                     } else if (did_entry.field == "serialNumber") {
