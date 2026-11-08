@@ -2,7 +2,10 @@
 #include "constants.h"
 #include "diag_log_adapter.h"
 #include "diag_log_context.h"
+#include "diag_payload_codec.h"
+#include "error_codes.h"
 #include <nlohmann/json.hpp>
+#include <chrono>
 #include <iostream>
 
 namespace ccu_diag {
@@ -68,6 +71,12 @@ void FotaSomeIpService::registerMethodHandlers() {
         [this](const SomeIpMessage& request) {
             return handleReadVin(request);
         });
+
+    service_->registerMethodHandler(
+        constants::METHOD_RECORD_INSTALLED_VERSIONS,
+        [this](const SomeIpMessage& request) {
+            return handleRecordInstalledVersions(request);
+        });
 }
 
 SomeIpMessage FotaSomeIpService::handleCollectVehicleInventory(const SomeIpMessage& request) {
@@ -95,42 +104,143 @@ SomeIpMessage FotaSomeIpService::handleCollectVehicleInventory(const SomeIpMessa
 
     try {
         auto snapshot = facade_->collectVehicleInventory();
-
-        nlohmann::json j;
-        j["vin"] = snapshot.vin;
-        j["registry_version"] = snapshot.registry_version;
-        j["collected_at"] = snapshot.collected_at;
-
-        std::string vin_source_str;
-        switch (snapshot.vin_source) {
-            case VinSource::PROVISIONED: vin_source_str = "PROVISIONED"; break;
-            case VinSource::UNKNOWN: vin_source_str = "UNKNOWN"; break;
+        if (snapshot.ecu_list.empty()) {
+            // Never answer "success + empty list" (CCU-DIAG-DSN-CR-010 D9).
+            throw DiagException(ErrorCode::INVENTORY_STATE_UNAVAILABLE,
+                                "inventory snapshot is empty");
         }
-        j["vin_source"] = vin_source_str;
 
-        std::string baseline_source_str;
-        switch (snapshot.baseline_source) {
-            case BaselineSource::FACTORY: baseline_source_str = "FACTORY"; break;
-            case BaselineSource::LAST_OTA: baseline_source_str = "LAST_OTA"; break;
-            case BaselineSource::UNKNOWN: baseline_source_str = "UNKNOWN"; break;
-        }
-        j["baseline_source"] = baseline_source_str;
-
-        std::string overall_str;
-        switch (snapshot.overall_result) {
-            case CollectionStatus::ALL_OK: overall_str = "ALL_OK"; break;
-            case CollectionStatus::PARTIAL: overall_str = "PARTIAL"; break;
-            case CollectionStatus::FAILED: overall_str = "FAILED"; break;
-        }
-        j["overall_result"] = overall_str;
-
-        std::string json_str = j.dump();
+        const std::string json_str = DiagPayloadCodec::encodeInventoryV1(snapshot);
         response.payload.assign(json_str.begin(), json_str.end());
         response.header.return_code = ReturnCode::E_OK;
+    } catch (const DiagException& e) {
+        const std::string diag_code = ErrorCodeMapper::toDiagCode(e.code());
+        DiagLogAdapter::facade().error(diag_events::INVENTORY_LOAD_FAILED,
+            "FOTA inventory request failed",
+            {dlog::f_str("request_id", request_id),
+             dlog::f_str("someip_method_id", hex_id(request.header.method_id)),
+             dlog::f_str("error_code", diag_code),
+             dlog::f_str("reason", e.what())}
+        );
+        const std::string json_str = DiagPayloadCodec::encodeInventoryError(diag_code);
+        response.payload.assign(json_str.begin(), json_str.end());
+        response.header.return_code = ReturnCode::E_NOT_OK;
     } catch (const std::exception& e) {
+        DiagLogAdapter::facade().error(diag_events::INVENTORY_LOAD_FAILED,
+            "FOTA inventory request failed",
+            {dlog::f_str("request_id", request_id),
+             dlog::f_str("someip_method_id", hex_id(request.header.method_id)),
+             dlog::f_str("error_code",
+                 ErrorCodeMapper::toDiagCode(ErrorCode::INVENTORY_STATE_UNAVAILABLE)),
+             dlog::f_str("reason", e.what())}
+        );
+        const std::string json_str = DiagPayloadCodec::encodeInventoryError(
+            ErrorCodeMapper::toDiagCode(ErrorCode::INVENTORY_STATE_UNAVAILABLE));
+        response.payload.assign(json_str.begin(), json_str.end());
         response.header.return_code = ReturnCode::E_NOT_OK;
     }
 
+    return response;
+}
+
+SomeIpMessage FotaSomeIpService::handleRecordInstalledVersions(
+    const SomeIpMessage& request) {
+    auto trace_id = generate_trace_id();
+    auto request_id = generate_request_id();
+    auto scope = make_someip_context_scope(
+        trace_id, request_id,
+        hex_id(request.header.service_id),
+        hex_id(request.header.method_id),
+        hex_id(request.header.client_id)
+    );
+
+    const auto start = std::chrono::steady_clock::now();
+
+    SomeIpMessage response;
+    response.header.service_id = request.header.service_id;
+    response.header.method_id = request.header.method_id;
+    response.header.message_type = MessageType::RESPONSE;
+
+    InstalledVersionsRequest parsed;
+    std::string decode_error;
+    const std::string payload_text(request.payload.begin(), request.payload.end());
+
+    InstalledVersionsResponse result;
+    if (!DiagPayloadCodec::decodeRegistrationRequest(payload_text, parsed,
+                                                     decode_error)) {
+        result.schema_version = constants::DIAG_PAYLOAD_SCHEMA_VERSION;
+        result.disposition = RegistrationDisposition::REJECTED_INVALID;
+        result.error_code = ErrorCodeMapper::toDiagCode(ErrorCode::REGISTRATION_INVALID);
+        result.rejected_items.push_back(RejectedVersionItem{"", "INVALID_REQUEST"});
+    } else {
+        DiagLogAdapter::fota_registrar().info(diag_events::REGISTRATION_REQUESTED,
+            "Installed version registration requested",
+            {dlog::f_str("request_id", request_id),
+             dlog::f_str("execution_id", parsed.execution_id),
+             dlog::f_int("attempt_no", static_cast<int64_t>(parsed.attempt_no)),
+             dlog::f_int("item_count", static_cast<int64_t>(parsed.items.size()))}
+        );
+        result = facade_->recordInstalledVersions(parsed);
+    }
+
+    const auto end = std::chrono::steady_clock::now();
+    const auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        end - start).count();
+    const auto rejected_count = static_cast<int64_t>(result.rejected_items.size());
+
+    switch (result.disposition) {
+        case RegistrationDisposition::APPLIED:
+            DiagLogAdapter::fota_registrar().info(diag_events::REGISTRATION_APPLIED,
+                "Installed versions registered",
+                {dlog::f_str("execution_id", parsed.execution_id),
+                 dlog::f_int("attempt_no", static_cast<int64_t>(parsed.attempt_no)),
+                 dlog::f_int("applied_count", static_cast<int64_t>(result.applied_count)),
+                 dlog::f_str("registration_id", result.registration_id),
+                 dlog::f_int("duration_ms", duration_ms)}
+            );
+            DiagLogAdapter::inventory_store().info(diag_events::INVENTORY_UPDATED,
+                "ECU inventory updated by registration",
+                {dlog::f_str("execution_id", parsed.execution_id),
+                 dlog::f_int("attempt_no", static_cast<int64_t>(parsed.attempt_no)),
+                 dlog::f_int("applied_count", static_cast<int64_t>(result.applied_count)),
+                 dlog::f_str("effective_updated_at", result.effective_updated_at)}
+            );
+            break;
+        case RegistrationDisposition::DUPLICATE:
+            DiagLogAdapter::fota_registrar().info(diag_events::REGISTRATION_DUPLICATE,
+                "Installed versions already registered (idempotent replay)",
+                {dlog::f_str("execution_id", parsed.execution_id),
+                 dlog::f_int("attempt_no", static_cast<int64_t>(parsed.attempt_no)),
+                 dlog::f_str("registration_id", result.registration_id),
+                 dlog::f_int("duration_ms", duration_ms)}
+            );
+            break;
+        case RegistrationDisposition::REJECTED_INVALID:
+            DiagLogAdapter::fota_registrar().error(diag_events::REGISTRATION_REJECTED,
+                "Installed version registration rejected",
+                {dlog::f_str("execution_id", parsed.execution_id),
+                 dlog::f_int("attempt_no", static_cast<int64_t>(parsed.attempt_no)),
+                 dlog::f_int("rejected_count", rejected_count),
+                 dlog::f_str("error_code", result.error_code),
+                 dlog::f_str("reason", decode_error),
+                 dlog::f_int("duration_ms", duration_ms)}
+            );
+            break;
+        case RegistrationDisposition::RETRYABLE_FAILED:
+            DiagLogAdapter::fota_registrar().warn(
+                diag_events::REGISTRATION_RETRYABLE_FAILED,
+                "Installed version registration failed, retryable",
+                {dlog::f_str("execution_id", parsed.execution_id),
+                 dlog::f_int("attempt_no", static_cast<int64_t>(parsed.attempt_no)),
+                 dlog::f_str("error_code", result.error_code),
+                 dlog::f_int("duration_ms", duration_ms)}
+            );
+            break;
+    }
+
+    const std::string json_str = DiagPayloadCodec::encodeRegistrationResponse(result);
+    response.payload.assign(json_str.begin(), json_str.end());
+    response.header.return_code = ReturnCode::E_OK;
     return response;
 }
 

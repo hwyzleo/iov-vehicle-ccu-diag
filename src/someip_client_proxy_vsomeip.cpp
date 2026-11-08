@@ -46,31 +46,20 @@ bool SomeIpClientProxyVsomeip::connect() {
     }
     
     try {
-        // 启动应用
-        if (!application_->start()) {
-            logError("Failed to start application");
-            return false;
-        }
-        
+        // vsomeip3 的 application::start() 阻塞直至 stop()，必须放在独立线程，
+        // 否则 connect() 永远不会返回（mock 后端 start() 为非阻塞布尔）。
         running_ = true;
-        
-        // 启动 IO 线程
-        io_thread_ = std::thread([this]() {
-            while (running_) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-        });
-        
-        // 注册服务发现
+
+        // 注册服务发现 + 请求服务（vsomeip 允许在 start() 前注册与 request_service）
         registerServiceDiscovery();
-        
-        // 请求服务
         application_->request_service(remote_config_.service_id, remote_config_.instance_id);
-        
+
+        std::thread([this]() { application_->start(); }).detach();
+
         logInfo("Connected to service");
         connected_ = true;
         return true;
-        
+
     } catch (const std::exception& e) {
         logError("Connection failed: " + std::string(e.what()));
         return false;
@@ -154,7 +143,7 @@ bool SomeIpClientProxyVsomeip::sendNotification(const SomeIpMessage& notificatio
         someip_message->set_service(notification.header.service_id);
         someip_message->set_instance(remote_config_.instance_id);
         someip_message->set_method(notification.header.method_id);
-        someip_message->set_message_type(someip::message_type_e::NOTIFICATION);
+        someip_message->set_message_type(someip::message_type_e::MT_NOTIFICATION);
         
         // 设置负载
         auto payload = runtime_->create_payload();
@@ -260,7 +249,7 @@ std::shared_ptr<someip::Request> SomeIpClientProxyVsomeip::createSomeIpRequest(
     someip_request->set_instance(remote_config_.instance_id);
     someip_request->set_method(request.header.method_id);
     someip_request->set_session(session_id_++);
-    someip_request->set_message_type(someip::message_type_e::REQUEST);
+    someip_request->set_message_type(someip::message_type_e::MT_REQUEST);
     
     // 设置负载
     auto payload = runtime_->create_payload();
@@ -283,10 +272,10 @@ SomeIpMessage SomeIpClientProxyVsomeip::convertResponse(
     
     // 转换消息类型
     switch (response->get_message_type()) {
-        case someip::message_type_e::RESPONSE:
+        case someip::message_type_e::MT_RESPONSE:
             result.header.message_type = MessageType::RESPONSE;
             break;
-        case someip::message_type_e::ERROR:
+        case someip::message_type_e::MT_ERROR:
             result.header.message_type = MessageType::ERROR;
             break;
         default:

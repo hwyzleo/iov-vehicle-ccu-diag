@@ -50,26 +50,33 @@ common:
 
     void writeUnified(const std::string& extra_top_level = "",
                       const std::string& extra_diag = "",
-                      bool with_platform_values = true) {
-        std::string network = with_platform_values ? R"(
-    network:
+                      bool with_platform_values = true,
+                      const std::string& inventory_override = "") {
+        std::string network = with_platform_values ? R"(    network:
       ip_address: "127.0.0.1"
       port: 51110)" : "";
-        std::string sec_network = with_platform_values ? R"(
-      network:
+        std::string sec_network = with_platform_values ? R"(      network:
         ip_address: "127.0.0.1"
         port: 51140)" : "";
-        std::string transport = with_platform_values ? R"(
-  transport:
+        std::string transport = with_platform_values ? R"(  transport:
     can:
       interface: can1
       baudrate: 250000
     doip:
       ip: 10.0.0.1
-      port: 13400)" : R"(
-  transport: {})";
+      port: 13400)" : "  transport: {}";
+        std::string inventory = inventory_override;
+        if (inventory.empty()) {
+            inventory = R"(  inventory:
+    mode: hardware
+    seed_path: /usr/share/ccu-diag/ecu-inventory.seed.json
+    state_path: /var/lib/ccu/diag/ecu_inventory.json
+    idempotency_window: 64)";
+        } else if (inventory == "@omit") {
+            inventory.clear();
+        }
 
-        writeFile(diagPath(), R"(
+        std::string text = R"(
 diag:
   log:
     level: INFO
@@ -84,6 +91,7 @@ diag:
     retry_interval_ms: 100
   retry:
     max_count: 3
+@INVENTORY@
   registry:
     registryVersion: "2026.07.1"
     baselineDids: [0xF195, 0xF188]
@@ -104,7 +112,7 @@ diag:
         readMethod: "SOMEIP_getVersion"
         someipService: "0x1110"
         fields: ["swVersion", "hwVersion"]
-)" + transport + R"(
+@TRANSPORT@
   someip:
     application_name: ccu-diag
     service:
@@ -123,7 +131,7 @@ diag:
     sd:
       enabled: true
       mode: "static"
-)" + network + R"(
+@NETWORK@
   sec_client:
     someip:
       application_name: ccu-diag
@@ -132,14 +140,30 @@ diag:
         instance_id: 0x0001
         major_version: 1
         minor_version: 0
-)" + sec_network + R"(
+@SEC_NETWORK@
       timing:
         request_timeout_ms: 2000
       sd:
         enabled: true
         mode: "static"
-)" + extra_diag + R"(
-)" + extra_top_level);
+@EXTRA_DIAG@
+@EXTRA_TOP@)";
+
+        const auto replaceToken = [&text](const std::string& token,
+                                          const std::string& value) {
+            const auto pos = text.find(token);
+            if (pos != std::string::npos) {
+                text.replace(pos, token.size(), value);
+            }
+        };
+        replaceToken("@INVENTORY@", inventory);
+        replaceToken("@TRANSPORT@", transport);
+        replaceToken("@NETWORK@", network);
+        replaceToken("@SEC_NETWORK@", sec_network);
+        replaceToken("@EXTRA_DIAG@", extra_diag);
+        replaceToken("@EXTRA_TOP@", extra_top_level);
+
+        writeFile(diagPath(), text);
     }
 };
 
@@ -170,6 +194,14 @@ TEST_F(UnifiedConfigTest, MapsAllLegacyFieldsIntoDiagSubtrees) {
     EXPECT_EQ(config.transport.can_baudrate, 250000u);
     EXPECT_EQ(config.transport.doip_ip, "10.0.0.1");
     EXPECT_EQ(config.transport.doip_port, 13400u);
+
+    // diag.inventory (CCU-DIAG-DSN-CR-010)
+    EXPECT_EQ(config.inventory.mode, InventoryMode::HARDWARE);
+    EXPECT_EQ(config.inventory.seed_path,
+              constants::DEFAULT_INVENTORY_SEED_PATH);
+    EXPECT_EQ(config.inventory.state_path,
+              constants::DEFAULT_INVENTORY_STATE_PATH);
+    EXPECT_EQ(config.inventory.idempotency_window, 64u);
 
     // someip_config.yaml -> diag.someip
     EXPECT_EQ(config.someip.service_id, constants::CCU_DIAG_SERVICE_ID);
@@ -307,6 +339,103 @@ TEST_F(UnifiedConfigTest, ShippedDefaultTemplateLoads) {
     EXPECT_EQ(config.sec_someip.application_name, "ccu-diag");
     EXPECT_EQ(config.transport.can_interface, constants::DEFAULT_CAN_INTERFACE);
     EXPECT_EQ(config.someip.ip_address, constants::DEFAULT_SOMEIP_ADDRESS);
+    EXPECT_EQ(config.inventory.mode, InventoryMode::HARDWARE);
+    EXPECT_EQ(config.inventory.state_path,
+              constants::DEFAULT_INVENTORY_STATE_PATH);
+    EXPECT_EQ(config.inventory.seed_path,
+              constants::DEFAULT_INVENTORY_SEED_PATH);
+}
+
+TEST_F(UnifiedConfigTest, InventorySeedModeParsed) {
+    writeCommon();
+    writeUnified("", "", true, R"(
+  inventory:
+    mode: seed
+    seed_path: /usr/share/ccu-diag/ecu-inventory.seed.json
+    state_path: /var/lib/ccu/diag/ecu_inventory.json
+    idempotency_window: 16)");
+
+    UnifiedDiagConfig config = ConfigLoader::loadUnifiedConfig(diagPath(),
+                                                               commonPath());
+    EXPECT_EQ(config.inventory.mode, InventoryMode::SEED);
+    EXPECT_EQ(config.inventory.idempotency_window, 16u);
+}
+
+TEST_F(UnifiedConfigTest, MissingInventorySubtreeFailsClosed) {
+    writeCommon();
+    writeUnified("", "", true, "@omit");
+
+    EXPECT_THROW(ConfigLoader::loadUnifiedConfig(diagPath(), commonPath()),
+                 std::runtime_error);
+}
+
+TEST_F(UnifiedConfigTest, UnknownInventoryKeyRejected) {
+    writeCommon();
+    writeUnified("", "", true, R"(
+  inventory:
+    mode: hardware
+    state_path: /var/lib/ccu/diag/ecu_inventory.json
+    unknown_knob: 1)");
+
+    EXPECT_THROW(ConfigLoader::loadUnifiedConfig(diagPath(), commonPath()),
+                 std::runtime_error);
+}
+
+TEST_F(UnifiedConfigTest, AutoInventoryModeRejected) {
+    writeCommon();
+    writeUnified("", "", true, R"(
+  inventory:
+    mode: auto
+    state_path: /var/lib/ccu/diag/ecu_inventory.json)");
+
+    EXPECT_THROW(ConfigLoader::loadUnifiedConfig(diagPath(), commonPath()),
+                 std::runtime_error);
+}
+
+TEST_F(UnifiedConfigTest, StatePathOutsideAllowedDirectoryRejected) {
+    writeCommon();
+    writeUnified("", "", true, R"(
+  inventory:
+    mode: hardware
+    state_path: /etc/ccu/ecu_inventory.json)");
+
+    EXPECT_THROW(ConfigLoader::loadUnifiedConfig(diagPath(), commonPath()),
+                 std::runtime_error);
+}
+
+TEST_F(UnifiedConfigTest, StatePathTraversalRejected) {
+    writeCommon();
+    writeUnified("", "", true, R"(
+  inventory:
+    mode: hardware
+    state_path: /var/lib/ccu/diag/../../etc/ecu_inventory.json)");
+
+    EXPECT_THROW(ConfigLoader::loadUnifiedConfig(diagPath(), commonPath()),
+                 std::runtime_error);
+}
+
+TEST_F(UnifiedConfigTest, SeedModeWithoutSeedPathRejected) {
+    writeCommon();
+    writeUnified("", "", true, R"(
+  inventory:
+    mode: seed
+    seed_path: ""
+    state_path: /var/lib/ccu/diag/ecu_inventory.json)");
+
+    EXPECT_THROW(ConfigLoader::loadUnifiedConfig(diagPath(), commonPath()),
+                 std::runtime_error);
+}
+
+TEST_F(UnifiedConfigTest, IdempotencyWindowOutOfRangeRejected) {
+    writeCommon();
+    writeUnified("", "", true, R"(
+  inventory:
+    mode: hardware
+    state_path: /var/lib/ccu/diag/ecu_inventory.json
+    idempotency_window: 257)");
+
+    EXPECT_THROW(ConfigLoader::loadUnifiedConfig(diagPath(), commonPath()),
+                 std::runtime_error);
 }
 
 } // namespace tests

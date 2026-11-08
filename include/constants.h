@@ -40,6 +40,28 @@ inline const std::string DEFAULT_COMMON_CONFIG_PATH = "/etc/ccu/common.yaml";
 // deploy/rollback). CCU-DIAG-DSN-CR-009 §6.2 / CCU-DIAG-SPEC设计 §8.3.
 inline const std::string DEFAULT_VIN_STORAGE_PATH = "/var/lib/ccu/diag/vin.dat";
 
+// ECU inventory state (instance state, preserve) and deployment seed
+// (release-managed, read-only). CCU-DIAG-DSN-CR-010 §数据模型 / §配置增量.
+inline const std::string DEFAULT_INVENTORY_STATE_PATH =
+    "/var/lib/ccu/diag/ecu_inventory.json";
+inline const std::string DEFAULT_INVENTORY_SEED_PATH =
+    "/usr/share/ccu-diag/ecu-inventory.seed.json";
+inline const std::string INVENTORY_STATE_DIRECTORY = "/var/lib/ccu/diag/";
+constexpr uint32_t DEFAULT_INVENTORY_IDEMPOTENCY_WINDOW = 64;
+constexpr uint32_t MIN_INVENTORY_IDEMPOTENCY_WINDOW = 1;
+constexpr uint32_t MAX_INVENTORY_IDEMPOTENCY_WINDOW = 256;
+
+// 0x0002 payload v1 and inventory record schema version (frozen).
+constexpr uint32_t DIAG_PAYLOAD_SCHEMA_VERSION = 1;
+constexpr uint32_t ECU_INVENTORY_RECORD_SCHEMA_VERSION = 1;
+
+// Bounded string limits for inventory facts / registration payloads.
+constexpr size_t MAX_ECU_ID_LENGTH = 32;
+constexpr size_t MAX_VERSION_STRING_LENGTH = 64;
+constexpr size_t MAX_PART_NUMBER_LENGTH = 64;
+constexpr size_t MAX_EXECUTION_ID_LENGTH = 128;
+constexpr size_t MAX_REGISTRATION_ITEMS = 256;
+
 // Transport defaults
 inline const std::string DEFAULT_CAN_INTERFACE = "can0";
 constexpr uint32_t DEFAULT_CAN_BAUDRATE = 500000;
@@ -61,6 +83,9 @@ constexpr MethodId METHOD_READ_VIN = 0x0001;
 constexpr MethodId METHOD_COLLECT_VEHICLE_INVENTORY = 0x0002;
 constexpr MethodId METHOD_GET_ECU_VERSION = 0x0003;
 constexpr MethodId METHOD_GET_REGISTRY_VERSION = 0x0004;
+// CCU-DIAG-DSN-CR-010 §5.1: installed version registration (suggested ID,
+// pending VEH-SOMEIP Registry review). Once assigned it must not be renumbered.
+constexpr MethodId METHOD_RECORD_INSTALLED_VERSIONS = 0x0005;
 
 // SOME/IP Event IDs
 constexpr EventId EVENT_INVENTORY_RESULT = 0x8001;

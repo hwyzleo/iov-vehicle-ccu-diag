@@ -31,6 +31,7 @@ private:
     SomeIpMessage handleCollectVehicleInventory(const SomeIpMessage& request);
     SomeIpMessage handleGetEcuVersion(const SomeIpMessage& request);
     SomeIpMessage handleGetRegistryVersion(const SomeIpMessage& request);
+    SomeIpMessage handleRecordInstalledVersions(const SomeIpMessage& request);
 
     void registerMethodHandlers();
 };

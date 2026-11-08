@@ -43,6 +43,14 @@ ccu::fw::log::Logger DiagLogAdapter::vin_store() {
     return ccu::fw::log::Logger::get("vin_store");
 }
 
+ccu::fw::log::Logger DiagLogAdapter::inventory_store() {
+    return ccu::fw::log::Logger::get("inventory_store");
+}
+
+ccu::fw::log::Logger DiagLogAdapter::fota_registrar() {
+    return ccu::fw::log::Logger::get("fota_registrar");
+}
+
 ccu::fw::log::Logger DiagLogAdapter::sec_client() {
     return ccu::fw::log::Logger::get("sec_client");
 }

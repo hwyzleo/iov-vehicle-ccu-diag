@@ -1,0 +1,26 @@
+{
+  "_comment": "CCU-DIAG deployment seed template (CCU-DIAG-DSN-CR-010 §4.1). Structure only: CCU-BUILD/platform release artifacts MUST replace this file with the real per-vehicle-project ECU declaration table. Only used when diag.inventory.mode=seed and no instance-state record exists yet; imported once, never overwrites an existing record. ecuId values must all be registered in diag.registry.ecus.",
+  "schemaVersion": 1,
+  "registryVersion": "2026.07.1",
+  "baselineCode": "BASE-001",
+  "ecus": [
+    {
+      "ecuId": "BMS",
+      "partNumber": "PN-TEMPLATE-BMS",
+      "swVersion": "0.0.0",
+      "hwVersion": "HW-TEMPLATE-BMS"
+    },
+    {
+      "ecuId": "VCU",
+      "partNumber": "PN-TEMPLATE-VCU",
+      "swVersion": "0.0.0",
+      "hwVersion": "HW-TEMPLATE-VCU"
+    },
+    {
+      "ecuId": "IDCM",
+      "partNumber": "PN-TEMPLATE-IDCM",
+      "swVersion": "0.0.0",
+      "hwVersion": "HW-TEMPLATE-IDCM"
+    }
+  ]
+}

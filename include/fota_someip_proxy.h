@@ -21,6 +21,10 @@ public:
     EcuVersionEntry getEcuVersion(const std::string& ecu_id);
     std::string getRegistryVersion();
 
+    // 0x0005 (CCU-DIAG-DSN-CR-010): FOTA -> DIAG installed version registration.
+    InstalledVersionsResponse recordInstalledVersions(
+        const InstalledVersionsRequest& request);
+
     void setRequestTimeout(uint32_t timeout_ms);
 
 private:

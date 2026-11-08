@@ -5,8 +5,12 @@ namespace ccu_diag {
 
 FotaFacade::FotaFacade(std::shared_ptr<VersionCollector> collector,
                        std::shared_ptr<DidRegistry> registry,
-                       std::shared_ptr<VinStore> vin_store)
-    : collector_(collector), registry_(registry), vin_store_(vin_store) {
+                       std::shared_ptr<VinStore> vin_store,
+                       std::shared_ptr<FotaVersionRegistrar> registrar)
+    : collector_(std::move(collector)),
+      registry_(std::move(registry)),
+      vin_store_(std::move(vin_store)),
+      registrar_(std::move(registrar)) {
 }
 
 VehicleSoftwareSnapshot FotaFacade::collectVehicleInventory() {
@@ -35,6 +39,19 @@ void FotaFacade::setBaselineInfo(const std::string& baseline_id, BaselineSource 
 
 std::optional<std::string> FotaFacade::readVin() {
     return vin_store_->readVin();
+}
+
+InstalledVersionsResponse FotaFacade::recordInstalledVersions(
+    const InstalledVersionsRequest& request) {
+    if (!registrar_) {
+        // Not wired (development/test only): never claim success.
+        InstalledVersionsResponse response;
+        response.disposition = RegistrationDisposition::RETRYABLE_FAILED;
+        response.error_code = ErrorCodeMapper::toDiagCode(
+            ErrorCode::REGISTRATION_PERSIST_FAILED);
+        return response;
+    }
+    return registrar_->recordInstalledVersions(request);
 }
 
 } // namespace ccu_diag

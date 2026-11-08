@@ -15,7 +15,12 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::error_strings_
     {ErrorCode::RESPONSE_PENDING, "ECU response pending, continue polling"},
     {ErrorCode::VIN_NOT_PROVISIONED, "VIN not provisioned or missing"},
     {ErrorCode::VIN_WRITE_REJECTED, "VIN write rejected (unlock failed, validation failed, or unauthorized rewrite)"},
-    {ErrorCode::INVALID_KEY, "Invalid key provided for security access"}
+    {ErrorCode::INVALID_KEY, "Invalid key provided for security access"},
+    {ErrorCode::INVENTORY_STATE_UNAVAILABLE, "Inventory state unavailable or corrupt"},
+    {ErrorCode::INVENTORY_SEED_INVALID, "Inventory seed missing, invalid or inconsistent"},
+    {ErrorCode::REGISTRATION_INVALID, "Installed version registration request invalid"},
+    {ErrorCode::REGISTRATION_PERSIST_FAILED, "Installed version registration persistence failed"},
+    {ErrorCode::REGISTRATION_IDEMPOTENCY_CONFLICT, "Installed version registration idempotency conflict"}
 };
 
 const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = {
@@ -30,7 +35,12 @@ const std::unordered_map<ErrorCode, std::string> ErrorCodeMapper::diag_codes_ = 
     {ErrorCode::RESPONSE_PENDING, "CCU-DIAG-1008"},
     {ErrorCode::VIN_NOT_PROVISIONED, "CCU-DIAG-1009"},
     {ErrorCode::VIN_WRITE_REJECTED, "CCU-DIAG-1010"},
-    {ErrorCode::INVALID_KEY, "CCU-DIAG-1011"}
+    {ErrorCode::INVALID_KEY, "CCU-DIAG-1011"},
+    {ErrorCode::INVENTORY_STATE_UNAVAILABLE, "CCU-DIAG-1012"},
+    {ErrorCode::INVENTORY_SEED_INVALID, "CCU-DIAG-1013"},
+    {ErrorCode::REGISTRATION_INVALID, "CCU-DIAG-1014"},
+    {ErrorCode::REGISTRATION_PERSIST_FAILED, "CCU-DIAG-1015"},
+    {ErrorCode::REGISTRATION_IDEMPOTENCY_CONFLICT, "CCU-DIAG-1016"}
 };
 
 std::string ErrorCodeMapper::toString(ErrorCode code) {

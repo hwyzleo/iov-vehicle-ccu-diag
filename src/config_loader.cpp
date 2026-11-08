@@ -1,5 +1,6 @@
 #include "config_loader.h"
 #include "constants.h"
+#include "ecu_inventory_store.h"
 #include <stdexcept>
 #include <string>
 
@@ -66,7 +67,7 @@ UnifiedDiagConfig ConfigLoader::loadUnifiedConfig(
     }
     rejectUnknownKeys(diag,
                       {"log", "timing", "retry", "transport",
-                       "registry", "someip", "sec_client"},
+                       "registry", "inventory", "someip", "sec_client"},
                       "diag");
 
     const YAML::Node sec_client = diag["sec_client"];
@@ -91,6 +92,14 @@ UnifiedDiagConfig ConfigLoader::loadUnifiedConfig(
     config.registry = parseDidRegistryNode(diag["registry"], true);
     config.diag = parseDiagConfigNode(diag);
     config.transport = parseTransportNode(diag["transport"]);
+
+    // CCU-DIAG-DSN-CR-010: diag.inventory is required and fail-closed; the
+    // source mode must be explicitly configured (hardware | seed).
+    const YAML::Node inventory = diag["inventory"];
+    if (!inventory) {
+        throw std::runtime_error("unified DIAG config is missing 'diag.inventory'");
+    }
+    config.inventory = parseInventoryNode(inventory);
 
     SomeIpServiceConfig provider_defaults;
     provider_defaults.service_id = constants::CCU_DIAG_SERVICE_ID;
@@ -192,6 +201,63 @@ DiagConfig ConfigLoader::parseDiagConfigNode(const YAML::Node& node) {
         rejectUnknownKeys(retry, {"max_count"}, "diag.retry");
         config.max_retry_count =
             retry["max_count"].as<uint8_t>(constants::MAX_RETRY_COUNT);
+    }
+
+    return config;
+}
+
+InventoryConfig ConfigLoader::parseInventoryNode(const YAML::Node& node) {
+    requireMap(node, "diag.inventory");
+    rejectUnknownKeys(node,
+                      {"mode", "seed_path", "state_path", "idempotency_window"},
+                      "diag.inventory");
+
+    InventoryConfig config;
+    config.state_path = constants::DEFAULT_INVENTORY_STATE_PATH;
+    config.seed_path = constants::DEFAULT_INVENTORY_SEED_PATH;
+    config.idempotency_window = constants::DEFAULT_INVENTORY_IDEMPOTENCY_WINDOW;
+
+    if (!node["mode"]) {
+        throw std::runtime_error("diag.inventory.mode is required");
+    }
+    const std::string mode = node["mode"].as<std::string>();
+    if (mode == "hardware") {
+        config.mode = InventoryMode::HARDWARE;
+    } else if (mode == "seed") {
+        config.mode = InventoryMode::SEED;
+    } else {
+        // No 'auto', no per-ECU mixing (CCU-DIAG-DSN-CR-010 D4).
+        throw std::runtime_error(
+            "diag.inventory.mode must be 'hardware' or 'seed'");
+    }
+
+    if (node["state_path"]) {
+        config.state_path = node["state_path"].as<std::string>();
+    }
+    if (!EcuInventoryStore::isValidStatePath(config.state_path)) {
+        throw std::runtime_error(
+            "diag.inventory.state_path must be under /var/lib/ccu/diag/");
+    }
+
+    if (node["seed_path"]) {
+        config.seed_path = node["seed_path"].as<std::string>();
+    }
+    if (!config.seed_path.empty() && config.seed_path.front() != '/') {
+        throw std::runtime_error("diag.inventory.seed_path must be absolute");
+    }
+    if (config.mode == InventoryMode::SEED && config.seed_path.empty()) {
+        throw std::runtime_error(
+            "diag.inventory.seed_path is required when mode is 'seed'");
+    }
+
+    if (node["idempotency_window"]) {
+        const uint32_t window = node["idempotency_window"].as<uint32_t>();
+        if (window < constants::MIN_INVENTORY_IDEMPOTENCY_WINDOW ||
+            window > constants::MAX_INVENTORY_IDEMPOTENCY_WINDOW) {
+            throw std::runtime_error(
+                "diag.inventory.idempotency_window must be within [1, 256]");
+        }
+        config.idempotency_window = window;
     }
 
     return config;

@@ -17,6 +17,11 @@ TEST(ErrorCodeMapperTest, ToStringReturnsCorrectString) {
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::VIN_NOT_PROVISIONED), "VIN not provisioned or missing");
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::VIN_WRITE_REJECTED), "VIN write rejected (unlock failed, validation failed, or unauthorized rewrite)");
     EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::INVALID_KEY), "Invalid key provided for security access");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::INVENTORY_STATE_UNAVAILABLE), "Inventory state unavailable or corrupt");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::INVENTORY_SEED_INVALID), "Inventory seed missing, invalid or inconsistent");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::REGISTRATION_INVALID), "Installed version registration request invalid");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::REGISTRATION_PERSIST_FAILED), "Installed version registration persistence failed");
+    EXPECT_EQ(ErrorCodeMapper::toString(ErrorCode::REGISTRATION_IDEMPOTENCY_CONFLICT), "Installed version registration idempotency conflict");
 }
 
 TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
@@ -32,6 +37,11 @@ TEST(ErrorCodeMapperTest, ToDiagCodeReturnsCorrectCode) {
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED), "CCU-DIAG-1009");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED), "CCU-DIAG-1010");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVALID_KEY), "CCU-DIAG-1011");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVENTORY_STATE_UNAVAILABLE), "CCU-DIAG-1012");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVENTORY_SEED_INVALID), "CCU-DIAG-1013");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REGISTRATION_INVALID), "CCU-DIAG-1014");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REGISTRATION_PERSIST_FAILED), "CCU-DIAG-1015");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REGISTRATION_IDEMPOTENCY_CONFLICT), "CCU-DIAG-1016");
 }
 
 TEST(ErrorCodeMapperTest, ToStringUnknownCodeReturnsFallback) {

@@ -2,6 +2,7 @@
 #include "version_collector.h"
 #include "did_registry.h"
 #include "diagnostic_router.h"
+#include "ecu_inventory_store.h"
 #include "uds_client.h"
 #include "error_codes.h"
 #include "mock_transport.h"
@@ -308,6 +309,117 @@ ecus: []
 
     EXPECT_EQ(snapshot.ecu_list.size(), 0);
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::FAILED);
+}
+
+TEST_F(VersionCollectorTest, SeedModeUsesRecordAndSkipsDownlink) {
+    const std::string seed_path = (temp_dir_ / "test_seed.json").string();
+    const std::string state_path = (temp_dir_ / "test_inventory.json").string();
+    {
+        std::ofstream seed(seed_path);
+        seed << R"({
+  "schemaVersion": 1,
+  "registryVersion": "2026.07.0",
+  "baselineCode": "BASE-9",
+  "ecus": [
+    {"ecuId":"BMS","partNumber":"PN-BMS","swVersion":"1.2.3","hwVersion":"HW-BMS"},
+    {"ecuId":"IDCM","swVersion":"4.5.6"}
+  ]
+})";
+    }
+
+    InventoryConfig config;
+    config.mode = InventoryMode::SEED;
+    config.seed_path = seed_path;
+    config.state_path = state_path;
+    config.idempotency_window = 8;
+    auto store = std::make_shared<EcuInventoryStore>(
+        config, std::vector<std::string>{"BMS", "IDCM"}, nullptr, false);
+    ASSERT_TRUE(store->initialize("2026.07.0").ok());
+
+    vin_store->writeVin("1234567890ABCDEFG");
+    VersionCollector seed_collector(registry, router, mock_transport,
+                                    mock_doip_transport, vin_store, store);
+    const auto snapshot = seed_collector.collectVehicleInventory();
+
+    EXPECT_EQ(snapshot.schema_version, 1u);
+    EXPECT_EQ(snapshot.inventory_source, InventorySource::SEED);
+    EXPECT_EQ(snapshot.registry_version, "2026.07.0");
+    EXPECT_EQ(snapshot.overall_result, CollectionStatus::ALL_OK);
+    EXPECT_EQ(snapshot.baseline_id.value_or(""), "BASE-9");
+    EXPECT_EQ(snapshot.baseline_source, BaselineSource::UNKNOWN);
+    ASSERT_EQ(snapshot.ecu_list.size(), 2u);
+    EXPECT_EQ(snapshot.ecu_list[0].ecu_id, "BMS");
+    EXPECT_EQ(snapshot.ecu_list[0].sw_version.value_or(""), "1.2.3");
+    EXPECT_EQ(snapshot.ecu_list[0].part_number.value_or(""), "PN-BMS");
+    EXPECT_EQ(snapshot.ecu_list[0].status, EcuStatus::OK);
+    EXPECT_EQ(snapshot.ecu_list[1].source, ReadMethod::UDS_0x22);
+
+    // No downlink diagnostic request was issued by the seed path.
+    EXPECT_TRUE(mock_transport->captured_requests.empty());
+    EXPECT_TRUE(mock_doip_transport->captured_requests.empty());
+
+    // Single-ECU read also answers from the record in seed mode.
+    const auto entry = seed_collector.collectEcuVersion("BMS");
+    EXPECT_EQ(entry.sw_version.value_or(""), "1.2.3");
+    EXPECT_TRUE(mock_transport->captured_requests.empty());
+
+    std::filesystem::remove(seed_path);
+    std::filesystem::remove(state_path);
+}
+
+TEST_F(VersionCollectorTest, SeedModeMissingVersionIsMarkedNotOk) {
+    const std::string seed_path = (temp_dir_ / "test_seed_missing.json").string();
+    const std::string state_path = (temp_dir_ / "test_inventory_missing.json").string();
+    {
+        std::ofstream seed(seed_path);
+        seed << R"({
+  "schemaVersion": 1,
+  "registryVersion": "2026.07.0",
+  "ecus": [
+    {"ecuId":"BMS","partNumber":"PN-BMS"},
+    {"ecuId":"IDCM","swVersion":"4.5.6"}
+  ]
+})";
+    }
+
+    InventoryConfig config;
+    config.mode = InventoryMode::SEED;
+    config.seed_path = seed_path;
+    config.state_path = state_path;
+    auto store = std::make_shared<EcuInventoryStore>(
+        config, std::vector<std::string>{"BMS", "IDCM"}, nullptr, false);
+    ASSERT_TRUE(store->initialize("2026.07.0").ok());
+
+    VersionCollector seed_collector(registry, router, mock_transport,
+                                    mock_doip_transport, vin_store, store);
+    const auto snapshot = seed_collector.collectVehicleInventory();
+
+    EXPECT_EQ(snapshot.overall_result, CollectionStatus::PARTIAL);
+    ASSERT_EQ(snapshot.ecu_list.size(), 2u);
+    EXPECT_EQ(snapshot.ecu_list[0].status, EcuStatus::MISSING);
+    EXPECT_EQ(snapshot.ecu_list[0].error_code.value_or(""), "CCU-DIAG-1004");
+
+    std::filesystem::remove(seed_path);
+    std::filesystem::remove(state_path);
+}
+
+TEST_F(VersionCollectorTest, SeedModeUnavailableThrowsExplicitError) {
+    InventoryConfig config;
+    config.mode = InventoryMode::SEED;
+    config.seed_path = (temp_dir_ / "missing_seed.json").string();
+    config.state_path = (temp_dir_ / "missing_state.json").string();
+    auto store = std::make_shared<EcuInventoryStore>(
+        config, std::vector<std::string>{"BMS"}, nullptr, false);
+    ASSERT_FALSE(store->initialize("2026.07.0").ok());
+
+    VersionCollector seed_collector(registry, router, mock_transport,
+                                    mock_doip_transport, vin_store, store);
+    try {
+        seed_collector.collectVehicleInventory();
+        FAIL() << "expected DiagException";
+    } catch (const DiagException& e) {
+        EXPECT_EQ(e.code(), ErrorCode::INVENTORY_SEED_INVALID);
+    }
 }
 
 } // namespace tests

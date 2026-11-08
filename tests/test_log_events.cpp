@@ -33,6 +33,19 @@ TEST_F(LogEventsTest, EventNameFormat) {
     // Inventory events
     EXPECT_TRUE(std::regex_match(diag_events::INVENTORY_REQUEST_ACCEPTED, event_pattern));
     EXPECT_TRUE(std::regex_match(diag_events::INVENTORY_COMPLETED, event_pattern));
+    // Inventory store / seed events (CCU-DIAG-DSN-CR-010)
+    EXPECT_TRUE(std::regex_match(diag_events::INVENTORY_LOADED, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::INVENTORY_LOAD_FAILED, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::INVENTORY_SEED_IMPORTED, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::INVENTORY_SEED_IMPORT_FAILED, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::INVENTORY_SEED_MODE_ENABLED, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::INVENTORY_UPDATED, event_pattern));
+    // Registration events (CCU-DIAG-DSN-CR-010)
+    EXPECT_TRUE(std::regex_match(diag_events::REGISTRATION_REQUESTED, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::REGISTRATION_APPLIED, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::REGISTRATION_DUPLICATE, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::REGISTRATION_REJECTED, event_pattern));
+    EXPECT_TRUE(std::regex_match(diag_events::REGISTRATION_RETRYABLE_FAILED, event_pattern));
     // Tester events
     EXPECT_TRUE(std::regex_match(diag_events::TESTER_REQUEST_SUCCEEDED, event_pattern));
     EXPECT_TRUE(std::regex_match(diag_events::TESTER_REQUEST_FAILED, event_pattern));
@@ -66,6 +79,10 @@ TEST_F(LogEventsTest, AllModuleLoggersCallable) {
         "Test did_registry event");
     DiagLogAdapter::vin_store().warn(diag_events::VIN_READ_FAILED,
         "Test vin_store event");
+    DiagLogAdapter::inventory_store().info(diag_events::INVENTORY_LOADED,
+        "Test inventory_store event");
+    DiagLogAdapter::fota_registrar().info(diag_events::REGISTRATION_APPLIED,
+        "Test fota_registrar event");
     DiagLogAdapter::sec_client().warn(diag_events::SECURITY_ACCESS_FAILED,
         "Test sec_client event");
 }
@@ -84,6 +101,16 @@ TEST_F(LogEventsTest, DiagErrorCodes) {
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED), "CCU-DIAG-1009");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::VIN_WRITE_REJECTED), "CCU-DIAG-1010");
     EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVALID_KEY), "CCU-DIAG-1011");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVENTORY_STATE_UNAVAILABLE),
+              "CCU-DIAG-1012");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::INVENTORY_SEED_INVALID),
+              "CCU-DIAG-1013");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REGISTRATION_INVALID),
+              "CCU-DIAG-1014");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REGISTRATION_PERSIST_FAILED),
+              "CCU-DIAG-1015");
+    EXPECT_EQ(ErrorCodeMapper::toDiagCode(ErrorCode::REGISTRATION_IDEMPOTENCY_CONFLICT),
+              "CCU-DIAG-1016");
 
     // 错误码字符串非空
     EXPECT_FALSE(ErrorCodeMapper::toString(ErrorCode::ECU_UNREACHABLE).empty());

@@ -2,7 +2,45 @@
 #include "constants.h"
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
+#include <cctype>
+
 namespace ccu_diag {
+
+namespace {
+
+using json = nlohmann::json;
+
+const json* findField(const json& j, std::initializer_list<const char*> keys) {
+    for (const char* key : keys) {
+        auto it = j.find(key);
+        if (it != j.end() && !it->is_null()) return &(*it);
+    }
+    return nullptr;
+}
+
+std::string normalizeEnum(const std::string& raw) {
+    std::string out;
+    for (char c : raw) {
+        const auto uc = static_cast<unsigned char>(c);
+        if (std::isalnum(uc)) {
+            out.push_back(static_cast<char>(std::toupper(uc)));
+        } else if (!out.empty() && out.back() != '_') {
+            out.push_back('_');
+        }
+    }
+    while (!out.empty() && out.back() == '_') out.pop_back();
+    return out;
+}
+
+std::string getString(const json& j, std::initializer_list<const char*> keys,
+                      const std::string& fallback) {
+    const json* field = findField(j, keys);
+    if (field == nullptr || !field->is_string()) return fallback;
+    return field->get<std::string>();
+}
+
+} // namespace
 
 FotaSomeIpProxy::FotaSomeIpProxy(std::unique_ptr<SomeIpClientProxy> proxy)
     : proxy_(std::move(proxy)) {
@@ -44,36 +82,112 @@ VehicleSoftwareSnapshot FotaSomeIpProxy::collectVehicleInventory() {
             std::string json_str(response.payload.begin(), response.payload.end());
             nlohmann::json j = nlohmann::json::parse(json_str);
 
-            snapshot.vin = j.value("vin", "");
-            snapshot.registry_version = j.value("registry_version", "");
-            snapshot.collected_at = j.value("collected_at", "");
+            const json* schema = findField(j, {"schemaVersion", "schema_version"});
+            if (schema != nullptr) {
+                if (schema->is_number_integer() || schema->is_number_unsigned()) {
+                    snapshot.schema_version = static_cast<uint32_t>(
+                        schema->get<int64_t>());
+                } else if (schema->is_string()) {
+                    snapshot.schema_version = static_cast<uint32_t>(
+                        std::stoul(schema->get<std::string>()));
+                }
+            }
+            snapshot.inventory_source = stringToInventorySource(
+                getString(j, {"inventorySource", "inventory_source"}, "hardware"));
 
-            std::string vin_source_str = j.value("vin_source", "UNKNOWN");
-            if (vin_source_str == "PROVISIONED") {
-                snapshot.vin_source = VinSource::PROVISIONED;
+            snapshot.vin = getString(j, {"vin"}, "");
+            snapshot.registry_version =
+                getString(j, {"registryVersion", "registry_version"}, "");
+            snapshot.collected_at = getString(j, {"collectedAt", "collected_at"}, "");
+
+            const std::string vin_source_str =
+                getString(j, {"vinSource", "vin_source"}, "unknown");
+            snapshot.vin_source =
+                (normalizeEnum(vin_source_str) == "PROVISIONED")
+                    ? VinSource::PROVISIONED
+                    : VinSource::UNKNOWN;
+
+            const json* baseline = findField(j, {"baselineId", "baseline_id",
+                                                 "baselineCode", "baseline_code"});
+            if (baseline != nullptr && baseline->is_string()) {
+                snapshot.baseline_id = baseline->get<std::string>();
             } else {
-                snapshot.vin_source = VinSource::UNKNOWN;
+                snapshot.baseline_id.reset();
             }
 
-            std::string baseline_source_str = j.value("baseline_source", "UNKNOWN");
-            if (baseline_source_str == "FACTORY") {
+            const std::string baseline_source_str =
+                getString(j, {"baselineSource", "baseline_source"}, "unknown");
+            const std::string baseline_norm = normalizeEnum(baseline_source_str);
+            if (baseline_norm == "FACTORY") {
                 snapshot.baseline_source = BaselineSource::FACTORY;
-            } else if (baseline_source_str == "LAST_OTA") {
+            } else if (baseline_norm == "LAST_OTA") {
                 snapshot.baseline_source = BaselineSource::LAST_OTA;
             } else {
                 snapshot.baseline_source = BaselineSource::UNKNOWN;
             }
 
-            std::string overall_str = j.value("overall_result", "FAILED");
-            if (overall_str == "ALL_OK") {
+            const std::string overall_str =
+                getString(j, {"overallResult", "overall_result"}, "failed");
+            const std::string overall_norm = normalizeEnum(overall_str);
+            if (overall_norm == "ALL_OK" || overall_norm == "OK") {
                 snapshot.overall_result = CollectionStatus::ALL_OK;
-            } else if (overall_str == "PARTIAL") {
+            } else if (overall_norm == "PARTIAL") {
                 snapshot.overall_result = CollectionStatus::PARTIAL;
             } else {
                 snapshot.overall_result = CollectionStatus::FAILED;
             }
-        } catch (const std::exception& e) {
+
+            const json* ecu_list = findField(j, {"ecuList", "ecu_list"});
+            if (ecu_list == nullptr || !ecu_list->is_array() || ecu_list->empty()) {
+                // Empty/absent list is not a successful inventory (D9).
+                snapshot.overall_result = CollectionStatus::FAILED;
+                snapshot.ecu_list.clear();
+                return snapshot;
+            }
+
+            for (const auto& item : *ecu_list) {
+                if (!item.is_object()) {
+                    snapshot.overall_result = CollectionStatus::FAILED;
+                    snapshot.ecu_list.clear();
+                    return snapshot;
+                }
+                EcuVersionEntry entry;
+                entry.ecu_id = getString(item, {"ecuId", "ecu_id"}, "");
+                const std::string part = getString(item, {"partNumber", "part_number"}, "");
+                const std::string sw = getString(item, {"swVersion", "sw_version"}, "");
+                const std::string hw = getString(item, {"hwVersion", "hw_version"}, "");
+                const std::string error_code =
+                    getString(item, {"errorCode", "error_code"}, "");
+                if (!part.empty()) entry.part_number = part;
+                if (!sw.empty()) entry.sw_version = sw;
+                if (!hw.empty()) entry.hw_version = hw;
+                if (!error_code.empty()) entry.error_code = error_code;
+
+                if (normalizeEnum(getString(item, {"source"}, "UDS_0x22")) ==
+                    "SOMEIP_GET_VERSION") {
+                    entry.source = ReadMethod::SOMEIP_GET_VERSION;
+                }
+
+                const std::string status = normalizeEnum(
+                    getString(item, {"status"}, "parse_error"));
+                if (status == "OK") {
+                    entry.status = EcuStatus::OK;
+                } else if (status == "MISSING") {
+                    entry.status = EcuStatus::MISSING;
+                } else if (status == "NRC") {
+                    entry.status = EcuStatus::NRC;
+                } else if (status == "TIMEOUT") {
+                    entry.status = EcuStatus::TIMEOUT;
+                } else if (status == "UNREACHABLE") {
+                    entry.status = EcuStatus::UNREACHABLE;
+                } else {
+                    entry.status = EcuStatus::PARSE_ERROR;
+                }
+                snapshot.ecu_list.push_back(std::move(entry));
+            }
+        } catch (const std::exception&) {
             snapshot.overall_result = CollectionStatus::FAILED;
+            snapshot.ecu_list.clear();
         }
     }
 
@@ -138,7 +252,7 @@ EcuVersionEntry FotaSomeIpProxy::getEcuVersion(const std::string& ecu_id) {
             if (j.contains("error_code")) {
                 entry.error_code = j["error_code"].get<std::string>();
             }
-        } catch (const std::exception& e) {
+        } catch (const std::exception&) {
             entry.status = EcuStatus::PARSE_ERROR;
         }
     }
@@ -163,6 +277,89 @@ std::string FotaSomeIpProxy::getRegistryVersion() {
     }
 
     return "";
+}
+
+InstalledVersionsResponse FotaSomeIpProxy::recordInstalledVersions(
+    const InstalledVersionsRequest& request_data) {
+    InstalledVersionsResponse result;
+    result.disposition = RegistrationDisposition::RETRYABLE_FAILED;
+
+    if (!proxy_->isConnected()) {
+        return result;
+    }
+
+    json items = json::array();
+    for (const auto& item : request_data.items) {
+        items.push_back(json{{"ecuId", item.ecu_id},
+                             {"packageId", item.package_id},
+                             {"packageRevision", item.package_revision},
+                             {"installedVersion", item.installed_version}});
+    }
+    json payload{{"schemaVersion", constants::DIAG_PAYLOAD_SCHEMA_VERSION},
+                 {"vehicleTaskId", request_data.vehicle_task_id},
+                 {"taskRevision", request_data.task_revision},
+                 {"executionId", request_data.execution_id},
+                 {"attemptNo", request_data.attempt_no},
+                 {"idempotencyKey", request_data.idempotency_key},
+                 {"appliedAtMs", request_data.applied_at_ms},
+                 {"items", std::move(items)}};
+
+    SomeIpMessage message;
+    message.header.service_id = constants::CCU_DIAG_SERVICE_ID;
+    message.header.method_id = constants::METHOD_RECORD_INSTALLED_VERSIONS;
+    message.header.message_type = MessageType::REQUEST;
+    const std::string text = payload.dump();
+    message.payload.assign(text.begin(), text.end());
+
+    auto response = proxy_->sendRequest(message);
+    if (response.header.return_code != ReturnCode::E_OK) {
+        return result;
+    }
+
+    try {
+        const std::string response_text(response.payload.begin(), response.payload.end());
+        const json j = json::parse(response_text);
+        const std::string disposition =
+            normalizeEnum(getString(j, {"disposition"}, ""));
+        if (disposition == "APPLIED") {
+            result.disposition = RegistrationDisposition::APPLIED;
+        } else if (disposition == "DUPLICATE") {
+            result.disposition = RegistrationDisposition::DUPLICATE;
+        } else if (disposition == "REJECTED_INVALID") {
+            result.disposition = RegistrationDisposition::REJECTED_INVALID;
+        } else {
+            result.disposition = RegistrationDisposition::RETRYABLE_FAILED;
+        }
+        result.registration_id = getString(j, {"registrationId", "registration_id"}, "");
+        result.effective_updated_at =
+            getString(j, {"effectiveUpdatedAt", "effective_updated_at"}, "");
+        if (const json* count = findField(j, {"appliedCount", "applied_count"})) {
+            if (count->is_number_integer() || count->is_number_unsigned()) {
+                result.applied_count = static_cast<uint32_t>(count->get<int64_t>());
+            }
+        }
+        if (const json* rejected = findField(j, {"rejectedItems", "rejected_items"})) {
+            if (rejected->is_array()) {
+                for (const auto& item : *rejected) {
+                    RejectedVersionItem out;
+                    if (item.is_object()) {
+                        out.ecu_id = getString(item, {"ecuId", "ecu_id"}, "");
+                        out.reason_code =
+                            getString(item, {"reasonCode", "reason_code", "reason"},
+                                      "UNSPECIFIED_REJECTION");
+                    } else if (item.is_string()) {
+                        out.reason_code = item.get<std::string>();
+                    }
+                    result.rejected_items.push_back(std::move(out));
+                }
+            }
+        }
+    } catch (const std::exception&) {
+        result.disposition = RegistrationDisposition::RETRYABLE_FAILED;
+        result.registration_id.clear();
+    }
+
+    return result;
 }
 
 void FotaSomeIpProxy::setRequestTimeout(uint32_t timeout_ms) {

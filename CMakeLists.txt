@@ -69,6 +69,9 @@ set(LIB_SOURCES
     src/doip_transport.cpp
     src/version_collector.cpp
     src/fota_facade.cpp
+    src/ecu_inventory_store.cpp
+    src/fota_version_registrar.cpp
+    src/diag_payload_codec.cpp
     src/someip_service.cpp
     src/someip_client_proxy.cpp
     src/ccu_sec_client_proxy.cpp
@@ -96,6 +99,7 @@ target_compile_features(ccu_diag_lib PUBLIC cxx_std_17)
 target_link_libraries(ccu_diag_lib
     PUBLIC
         CCUFramework::ccu-framework-log
+        CCUFramework::ccu-framework-hash
         yaml-cpp::yaml-cpp
         nlohmann_json::nlohmann_json
         Threads::Threads)
@@ -142,6 +146,10 @@ if(BUILD_TESTING)
         tests/test_transport_adapter.cpp
         tests/test_version_collector.cpp
         tests/test_fota_facade.cpp
+        tests/test_ecu_inventory_store.cpp
+        tests/test_fota_version_registrar.cpp
+        tests/test_diag_payload_codec.cpp
+        tests/test_inventory_integration.cpp
         tests/test_someip_service.cpp
         tests/test_someip_proxy.cpp
         tests/test_someip_factory.cpp
@@ -201,4 +209,11 @@ install(FILES config/diag.default.yaml
 
 install(FILES config/schema/diag.schema.yaml
     DESTINATION ${CMAKE_INSTALL_DATADIR}/ccu-diag/schema
+    COMPONENT ccu-diag-runtime)
+
+# Deployment seed template (CCU-DIAG-DSN-CR-010 §12.1). Platform release
+# artifacts replace the content; mode=seed imports it once when no inventory
+# record exists. Development fixtures are never installed.
+install(FILES config/ecu-inventory.seed.json
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/ccu-diag
     COMPONENT ccu-diag-runtime)

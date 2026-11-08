@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <stdexcept>
 
 namespace ccu_diag {
 
@@ -28,7 +29,32 @@ enum class ErrorCode {
     // CCU-DIAG-1010: VIN write rejected
     VIN_WRITE_REJECTED = 1010,
     // CCU-DIAG-1011: Invalid key (NRC 0x35)
-    INVALID_KEY = 1011
+    INVALID_KEY = 1011,
+    // CCU-DIAG-1012: Inventory state unavailable / corrupt (never answer with
+    // an empty list success - CCU-DIAG-DSN-CR-010 D9)
+    INVENTORY_STATE_UNAVAILABLE = 1012,
+    // CCU-DIAG-1013: seed missing / invalid / unknown version / digest mismatch
+    INVENTORY_SEED_INVALID = 1013,
+    // CCU-DIAG-1014: registration request invalid (missing field, unknown ECU,
+    // invalid version)
+    REGISTRATION_INVALID = 1014,
+    // CCU-DIAG-1015: registration persistence failed (retryable)
+    REGISTRATION_PERSIST_FAILED = 1015,
+    // CCU-DIAG-1016: registration idempotency conflict (same key, new content)
+    REGISTRATION_IDEMPOTENCY_CONFLICT = 1016
+};
+
+// Carries a stable CCU-DIAG error code across layering boundaries without
+// exposing internal detail (CCU-DIAG-DSN-CR-010 D9).
+class DiagException : public std::runtime_error {
+public:
+    DiagException(ErrorCode code, const std::string& message)
+        : std::runtime_error(message), code_(code) {}
+
+    ErrorCode code() const { return code_; }
+
+private:
+    ErrorCode code_;
 };
 
 class ErrorCodeMapper {

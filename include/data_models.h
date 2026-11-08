@@ -46,6 +46,35 @@ enum class VinSource {
 std::string vinSourceToString(VinSource source);
 VinSource stringToVinSource(const std::string& str);
 
+// Snapshot-level inventory fact source (CCU-DIAG-DSN-CR-010 D4/D5).
+// HARDWARE: values were read from the target ECUs.
+// SEED: values come from the deployment seed declaration table (transitional).
+enum class InventorySource {
+    HARDWARE,
+    SEED
+};
+
+std::string inventorySourceToString(InventorySource source);
+InventorySource stringToInventorySource(const std::string& str);
+
+// Inventory fact source mode; hardware | seed are mutually exclusive
+// (no auto fallback, no per-ECU mixing - CCU-DIAG-DSN-CR-010 D4).
+enum class InventoryMode {
+    HARDWARE,
+    SEED
+};
+
+std::string inventoryModeToString(InventoryMode mode);
+InventoryMode stringToInventoryMode(const std::string& str);
+
+// diag.inventory.* configuration subtree (CCU-DIAG-DSN-CR-010 §配置增量).
+struct InventoryConfig {
+    InventoryMode mode = InventoryMode::HARDWARE;
+    std::string seed_path;
+    std::string state_path;
+    uint32_t idempotency_window = 64;
+};
+
 struct DidEntry {
     uint16_t did = 0;
     std::string field;
@@ -88,7 +117,57 @@ struct VehicleSoftwareSnapshot {
     std::string registry_version;
     std::string collected_at;
     CollectionStatus overall_result = CollectionStatus::ALL_OK;
+    // 0x0002 payload version; freeze at 1 for the v1 field set.
+    uint32_t schema_version = 1;
+    InventorySource inventory_source = InventorySource::HARDWARE;
     std::vector<EcuVersionEntry> ecu_list;
+};
+
+// ---------------------------------------------------------------------------
+// 0x0005 METHOD_RECORD_INSTALLED_VERSIONS DTOs (CCU-DIAG-DSN-CR-010 §5.2)
+// ---------------------------------------------------------------------------
+
+enum class RegistrationDisposition {
+    APPLIED,
+    DUPLICATE,
+    REJECTED_INVALID,
+    RETRYABLE_FAILED
+};
+
+std::string registrationDispositionToString(RegistrationDisposition disposition);
+
+struct InstalledVersionItem {
+    std::string ecu_id;
+    std::string package_id;
+    std::string package_revision;
+    std::string installed_version;
+};
+
+struct InstalledVersionsRequest {
+    uint32_t schema_version = 0;
+    std::string vehicle_task_id;
+    uint32_t task_revision = 0;
+    std::string execution_id;
+    uint32_t attempt_no = 0;
+    std::string idempotency_key;
+    int64_t applied_at_ms = 0;
+    std::vector<InstalledVersionItem> items;
+};
+
+struct RejectedVersionItem {
+    std::string ecu_id;
+    std::string reason_code;
+};
+
+struct InstalledVersionsResponse {
+    uint32_t schema_version = 1;
+    RegistrationDisposition disposition = RegistrationDisposition::REJECTED_INVALID;
+    std::string registration_id;
+    uint32_t applied_count = 0;
+    std::vector<RejectedVersionItem> rejected_items;
+    std::string effective_updated_at;
+    // Internal only (logs); never serialized as a top-level v1 field.
+    std::string error_code;
 };
 
 struct DiagConfig {

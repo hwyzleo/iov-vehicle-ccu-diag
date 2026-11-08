@@ -19,8 +19,9 @@ iov-vehicle-ccu-diag/
 ├── CMakeLists.txt          # CMake 构建配置
 ├── README.md               # 项目说明文档
 ├── LICENSE                 # MIT 许可证
-├── config/                 # 配置目录（只安装 diag.default.yaml + schema）
+├── config/                 # 配置目录（只安装 diag.default.yaml + schema + seed 模板）
 │   ├── diag.default.yaml   # 统一正式配置模板（安装为 /etc/ccu/conf.d/diag.yaml）
+│   ├── ecu-inventory.seed.json # ECU 清单 seed 结构模板（安装到 /usr/share/ccu-diag/）
 │   ├── schema/             # diag.yaml 的 JSON Schema
 │   └── dev/                # 本地开发夹具，永不安装
 ├── include/                # 头文件目录
@@ -32,6 +33,9 @@ iov-vehicle-ccu-diag/
 │   ├── do_can_transport.h  # DoCAN 传输层
 │   ├── doip_transport.h    # DoIP 传输层
 │   ├── error_codes.h       # 错误码定义
+│   ├── ecu_inventory_store.h    # 本地 ECU 清单事实存储（原子写/seed 导入）
+│   ├── diag_payload_codec.h     # 0x0002 payload v1 / 0x0005 编解码
+│   ├── fota_version_registrar.h # 0x0005 安装结果登记（幂等/处置）
 │   ├── fota_facade.h       # FOTA 接口
 │   ├── transport_adapter.h # 传输适配器接口
 │   ├── uds_client.h        # UDS 客户端
@@ -192,6 +196,7 @@ diag:
   retry:      # 重试次数
   transport:  # CAN / DoIP 非秘密参数（平台值由 BUILD overlay 提供）
   registry:   # 原 did_registry.yaml：registryVersion / baselineDids / ecus
+  inventory:  # ECU 清单来源：mode(hardware|seed) / seed_path / state_path / 幂等环容量
   someip:     # 原 someip_config.yaml：provider 寻址与方法/事件
   sec_client:
     someip:   # 原 sec_config.yaml：CCU-SEC 对端配置
@@ -205,6 +210,32 @@ diag:
   `ccu-diag-runtime` 安装集。
 - VIN 是设备实例状态，默认 `/var/lib/ccu/diag/vin.dat`，不进入发布包；
   部署与回退必须 preserve。
+
+### ECU 清单来源（hardware / seed）
+
+`diag.inventory.mode` 二选一、互斥，切换需重启：
+
+- `hardware`（默认，生产目标态）：经 DoCAN/DoIP 用 UDS 0x22 逐 ECU 真实
+  读取版本；单点失败只标记该 ECU 的 `status`/`errorCode`，`inventorySource=hardware`。
+- `seed`（过渡兜底）：不发起对下诊断，清单事实来自部署 seed 声明表，
+  `inventorySource=seed`，用于暂无真实 ECU 的联调/演示环境。
+
+两类文件不要混淆：
+
+| 文件 | 默认路径 | 性质 |
+|------|----------|------|
+| 清单记录 | `/var/lib/ccu/diag/ecu_inventory.json` | 设备实例状态（preserve），DIAG 原子写入，0x0005 登记后更新 |
+| seed | `/usr/share/ccu-diag/ecu-inventory.seed.json` | 只读发布物，平台/BUILD 提供内容；仅在 `mode=seed` 且**无记录**时导入一次 |
+
+启用 seed 的前置条件：
+
+1. seed 中每个 `ecuId` 必须已登记在 `diag.registry.ecus`，否则启动
+   fail-closed（`CCU-DIAG-1013`），0x0002 返回错误而非空清单。
+2. VIN 必须已预置（FOTA 侧把非空 `vin` 作为清单有效条件）。
+3. 记录已存在时不会重新导入 seed；平台更换 seed 内容后如需重导，属运维操作
+   （清理实例状态记录），不在运行时自动覆盖。
+4. `state_path` 必须位于 `/var/lib/ccu/diag/` 下；记录损坏/校验不符/未知
+   `schemaVersion` 返回 `CCU-DIAG-1012`，不自动重建、不返回空清单成功。
 
 ## 测试
 
@@ -288,13 +319,14 @@ Options:
 | collectVehicleInventory | 0x0002 | 触发一轮采集，返回 VehicleSoftwareSnapshot |
 | getEcuVersion | 0x0003 | 按单 ECU 读取版本 |
 | getRegistryVersion | 0x0004 | 返回当前 DidRegistry 版本 |
+| recordInstalledVersions | 0x0005 | 登记 FOTA 安装结果，幂等更新本地清单版本事实（建议 ID，待 VEH-SOMEIP Registry 复核） |
 
 ## BUILD 接入（服务侧契约）
 
 CCU-DIAG-DSN-CR-009 定义的服务侧交付契约：
 
 - 安装 component：`ccu-diag-runtime`（仅 `ccu_diag`、`ccu-diag.service`、
-  `diag.yaml`、`diag.schema.yaml`）。
+  `diag.yaml`、`diag.schema.yaml`、`ecu-inventory.seed.json`）。
 - 生产 configure 输入：`BUILD_TESTING=OFF`、`USE_MOCK_SOMEIP=OFF`。
 - 正式配置：`/etc/ccu/common.yaml`（BUILD 提供）+ `/etc/ccu/conf.d/diag.yaml`
   （服务默认模板 + 平台整文件覆盖）。

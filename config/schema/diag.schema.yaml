@@ -149,11 +149,40 @@ definitions:
       then:
         required: [someipService, fields]
 
+  inventory:
+    type: object
+    additionalProperties: false
+    required: [mode]
+    properties:
+      mode:
+        type: string
+        enum: [hardware, seed]
+      seed_path:
+        type: string
+        minLength: 1
+        pattern: "^/"
+      state_path:
+        type: string
+        minLength: 1
+        pattern: "^/var/lib/ccu/diag/"
+        not:
+          pattern: "\\.\\."
+      idempotency_window:
+        type: integer
+        minimum: 1
+        maximum: 256
+    if:
+      properties:
+        mode:
+          const: seed
+    then:
+      required: [seed_path]
+
 properties:
   diag:
     type: object
     additionalProperties: false
-    required: [log, timing, retry, transport, registry, someip, sec_client]
+    required: [log, timing, retry, transport, registry, inventory, someip, sec_client]
     properties:
       log:
         type: object
@@ -257,6 +286,9 @@ properties:
             type: array
             items:
               $ref: "#/definitions/ecu"
+
+      inventory:
+        $ref: "#/definitions/inventory"
 
       someip:
         type: object

@@ -87,6 +87,12 @@ diag:
             encoding: "ASCII"
             length: 8
 
+  inventory:
+    mode: hardware
+    seed_path: /usr/share/ccu-diag/ecu-inventory.seed.json
+    state_path: /var/lib/ccu/diag/ecu_inventory.json
+    idempotency_window: 64
+
   someip:
     application_name: ccu-diag
     service:
@@ -106,6 +112,8 @@ diag:
         method_id: 0x0003
       get_registry_version:
         method_id: 0x0004
+      record_installed_versions:
+        method_id: 0x0005
     events:
       inventory_result:
         event_id: 0x8001

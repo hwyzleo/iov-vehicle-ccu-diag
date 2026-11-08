@@ -38,6 +38,7 @@ TEST(DataModelsTest, VehicleSoftwareSnapshotCreation) {
     snapshot.registry_version = "2026.07.0";
     snapshot.collected_at = "2026-07-20T12:00:00Z";
     snapshot.overall_result = CollectionStatus::ALL_OK;
+    snapshot.inventory_source = InventorySource::SEED;
 
     EcuVersionEntry entry;
     entry.ecu_id = "BMS";
@@ -57,6 +58,23 @@ TEST(DataModelsTest, VehicleSoftwareSnapshotCreation) {
     EXPECT_EQ(snapshot.overall_result, CollectionStatus::ALL_OK);
     EXPECT_EQ(snapshot.ecu_list.size(), 1);
     EXPECT_EQ(snapshot.ecu_list[0].ecu_id, "BMS");
+    EXPECT_EQ(snapshot.schema_version, 1u);
+    EXPECT_EQ(snapshot.inventory_source, InventorySource::SEED);
+}
+
+TEST(DataModelsTest, InventoryEnumConversions) {
+    EXPECT_EQ(inventorySourceToString(InventorySource::HARDWARE), "hardware");
+    EXPECT_EQ(inventorySourceToString(InventorySource::SEED), "seed");
+    EXPECT_EQ(stringToInventorySource("seed"), InventorySource::SEED);
+    EXPECT_EQ(stringToInventorySource("hardware"), InventorySource::HARDWARE);
+    EXPECT_EQ(inventoryModeToString(InventoryMode::HARDWARE), "hardware");
+    EXPECT_EQ(inventoryModeToString(InventoryMode::SEED), "seed");
+    EXPECT_EQ(stringToInventoryMode("seed"), InventoryMode::SEED);
+    EXPECT_EQ(registrationDispositionToString(
+                  RegistrationDisposition::APPLIED), "APPLIED");
+    EXPECT_EQ(registrationDispositionToString(
+                  RegistrationDisposition::RETRYABLE_FAILED),
+              "RETRYABLE_FAILED");
 }
 
 TEST(DataModelsTest, VehicleSoftwareSnapshotVinSourceDefault) {

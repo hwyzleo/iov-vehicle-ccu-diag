@@ -18,6 +18,7 @@ EXPECTED = {
     "usr/lib/systemd/system/ccu-diag.service",
     "etc/ccu/conf.d/diag.yaml",
     "usr/share/ccu-diag/schema/diag.schema.yaml",
+    "usr/share/ccu-diag/ecu-inventory.seed.json",
 }
 
 FORBIDDEN_PATTERNS = (

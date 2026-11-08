@@ -25,6 +25,8 @@ diag:
       transport: WARN
       did_registry: INFO
       vin_store: INFO
+      inventory_store: INFO
+      fota_registrar: INFO
       sec_client: INFO
 
   # UDS / 诊断时序与重试配置（原 diag_config.yaml）
@@ -93,6 +95,18 @@ diag:
             encoding: "ASCII"
             length: 8
 
+  # 本地 ECU 清单事实（CCU-DIAG-DSN-CR-010）。
+  # mode：hardware（真实逐 ECU 读回，生产目标态）| seed（部署声明表，过渡兜底）。
+  #   * 二者互斥，不支持 auto/混源；切换需重启生效。
+  #   * seed 内容由平台发布物提供（本仓库只提供结构模板，不含真实设备值）。
+  #   * state_path 必须位于 /var/lib/ccu/diag/ 下（实例状态，部署/回退 preserve）。
+  #   * 无真实 ECU 的联调/演示环境由平台文件设置 mode: seed。
+  inventory:
+    mode: hardware
+    seed_path: /usr/share/ccu-diag/ecu-inventory.seed.json
+    state_path: /var/lib/ccu/diag/ecu_inventory.json
+    idempotency_window: 64
+
   # 本进程唯一的 vsomeip application（CCU-DIAG-DSN-CR-007）。
   # 平台网络 IP/端口由 BUILD 平台完整文件提供；缺省时运行期回落
   # 127.0.0.1:51110（constants::DEFAULT_SOMEIP_*）。
@@ -112,6 +126,8 @@ diag:
         method_id: 0x0003
       get_registry_version:
         method_id: 0x0004
+      record_installed_versions:
+        method_id: 0x0005
     events:
       inventory_result:
         event_id: 0x8001

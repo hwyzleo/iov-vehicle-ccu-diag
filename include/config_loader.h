@@ -15,6 +15,7 @@ struct UnifiedDiagConfig {
     DidRegistryConfig registry;
     DiagConfig diag;
     TransportConfig transport;
+    InventoryConfig inventory;
     SomeIpServiceConfig someip;
     SomeIpServiceConfig sec_someip;
     ccu::fw::log::LogConfig log;
@@ -47,6 +48,7 @@ private:
     static DidRegistryConfig parseDidRegistryNode(const YAML::Node& node, bool strict);
     static DiagConfig parseDiagConfigNode(const YAML::Node& node);
     static TransportConfig parseTransportNode(const YAML::Node& node);
+    static InventoryConfig parseInventoryNode(const YAML::Node& node);
     static SomeIpServiceConfig parseSomeIpConfigNode(
         const YAML::Node& node,
         const SomeIpServiceConfig& defaults,

@@ -31,6 +31,7 @@ public:
 
     ServiceId getServiceId() const override;
     uint16_t getInstanceId() const override;
+    uint16_t getBoundPort() const override;
 
 private:
     // vsomeip 组件

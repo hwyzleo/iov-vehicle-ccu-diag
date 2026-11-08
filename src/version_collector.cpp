@@ -1,4 +1,14 @@
+// =============================================================================
+// src/version_collector.cpp
+// Inventory collection orchestration (CCU-DIAG-DSN-CR-010 §3)
+// =============================================================================
+// hardware mode: existing per-ECU UDS 0x22 / SOME-IP read path.
+// seed mode: no downlink diagnostics at all; facts come from the DIAG-owned
+// EcuInventoryStore and the snapshot is marked inventorySource=seed.
+// =============================================================================
+
 #include "version_collector.h"
+#include "constants.h"
 #include "error_codes.h"
 #include "diag_log_adapter.h"
 #include "diag_log_context.h"
@@ -28,23 +38,31 @@ const char* collectionStatusToString(CollectionStatus status) {
 }
 } // namespace
 
-VersionCollector::VersionCollector(std::shared_ptr<DidRegistry> registry,
-                                   std::shared_ptr<DiagnosticRouter> router,
-                                   std::shared_ptr<TransportAdapter> docan_transport,
-                                   std::shared_ptr<TransportAdapter> doip_transport,
-                                   std::shared_ptr<VinStore> vin_store)
+VersionCollector::VersionCollector(
+    std::shared_ptr<DidRegistry> registry,
+    std::shared_ptr<DiagnosticRouter> router,
+    std::shared_ptr<TransportAdapter> docan_transport,
+    std::shared_ptr<TransportAdapter> doip_transport,
+    std::shared_ptr<VinStore> vin_store,
+    std::shared_ptr<EcuInventoryStore> inventory_store)
     : registry_(registry), router_(router),
       docan_transport_(docan_transport),
       doip_transport_(doip_transport),
       vin_store_(vin_store),
+      inventory_store_(std::move(inventory_store)),
       baseline_source_(BaselineSource::UNKNOWN) {
 }
 
+bool VersionCollector::isSeedMode() const {
+    return inventory_store_ != nullptr &&
+           inventory_store_->mode() == InventoryMode::SEED;
+}
+
 VehicleSoftwareSnapshot VersionCollector::collectVehicleInventory() {
-    auto start = std::chrono::steady_clock::now();
+    return isSeedMode() ? collectFromSeed() : collectFromHardware();
+}
 
-    VehicleSoftwareSnapshot snapshot;
-
+void VersionCollector::fillVin(VehicleSoftwareSnapshot& snapshot) {
     auto vin = vin_store_->readVin();
     if (vin.has_value()) {
         snapshot.vin = vin.value();
@@ -60,6 +78,36 @@ VehicleSoftwareSnapshot VersionCollector::collectVehicleInventory() {
              dlog::f_str("error_code", ErrorCodeMapper::toDiagCode(ErrorCode::VIN_NOT_PROVISIONED))}
         );
     }
+}
+
+void VersionCollector::logCollectionCompleted(const VehicleSoftwareSnapshot& snapshot,
+                                              int64_t duration_ms) {
+    int64_t failed_count = 0;
+    for (const auto& entry : snapshot.ecu_list) {
+        if (entry.status != EcuStatus::OK) {
+            ++failed_count;
+        }
+    }
+
+    DiagLogAdapter::orchestrator().info(diag_events::INVENTORY_COMPLETED,
+        "Vehicle inventory collection completed",
+        {dlog::f_str("registry_version", snapshot.registry_version),
+         dlog::f_str("overall_result", collectionStatusToString(snapshot.overall_result)),
+         dlog::f_str("inventory_source", inventorySourceToString(snapshot.inventory_source)),
+         dlog::f_int("ecu_count", static_cast<int64_t>(snapshot.ecu_list.size())),
+         dlog::f_int("failed_count", failed_count),
+         dlog::f_int("duration_ms", duration_ms)}
+    );
+}
+
+VehicleSoftwareSnapshot VersionCollector::collectFromHardware() {
+    auto start = std::chrono::steady_clock::now();
+
+    VehicleSoftwareSnapshot snapshot;
+    snapshot.schema_version = constants::DIAG_PAYLOAD_SCHEMA_VERSION;
+    snapshot.inventory_source = InventorySource::HARDWARE;
+
+    fillVin(snapshot);
 
     snapshot.baseline_id = baseline_id_;
     snapshot.baseline_source = baseline_source_;
@@ -74,31 +122,107 @@ VehicleSoftwareSnapshot VersionCollector::collectVehicleInventory() {
 
     snapshot.overall_result = determineOverallResult(snapshot.ecu_list);
 
-    // CCU-DIAG-DSN-CR-008: 整车采集完成
     auto end = std::chrono::steady_clock::now();
     auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         end - start).count();
-
-    int64_t failed_count = 0;
-    for (const auto& entry : snapshot.ecu_list) {
-        if (entry.status != EcuStatus::OK) {
-            ++failed_count;
-        }
-    }
-
-    DiagLogAdapter::orchestrator().info(diag_events::INVENTORY_COMPLETED,
-        "Vehicle inventory collection completed",
-        {dlog::f_str("registry_version", snapshot.registry_version),
-         dlog::f_str("overall_result", collectionStatusToString(snapshot.overall_result)),
-         dlog::f_int("ecu_count", static_cast<int64_t>(snapshot.ecu_list.size())),
-         dlog::f_int("failed_count", failed_count),
-         dlog::f_int("duration_ms", duration_ms)}
-    );
+    logCollectionCompleted(snapshot, duration_ms);
 
     return snapshot;
 }
 
+VehicleSoftwareSnapshot VersionCollector::collectFromSeed() {
+    auto start = std::chrono::steady_clock::now();
+
+    if (!inventory_store_ || !inventory_store_->available()) {
+        ErrorCode code = ErrorCode::INVENTORY_STATE_UNAVAILABLE;
+        if (inventory_store_ &&
+            inventory_store_->startupResult().status ==
+                InventoryStoreStatus::SEED_INVALID) {
+            code = ErrorCode::INVENTORY_SEED_INVALID;
+        }
+        throw DiagException(code, "inventory state unavailable");
+    }
+    const EcuInventoryRecord& record = inventory_store_->record();
+    if (record.ecus.empty()) {
+        // A successful response with an empty list is forbidden (D9).
+        throw DiagException(ErrorCode::INVENTORY_STATE_UNAVAILABLE,
+                            "inventory record has no ECUs");
+    }
+
+    VehicleSoftwareSnapshot snapshot;
+    snapshot.schema_version = constants::DIAG_PAYLOAD_SCHEMA_VERSION;
+    snapshot.inventory_source = InventorySource::SEED;
+
+    fillVin(snapshot);
+
+    if (!record.baseline_code.empty()) {
+        snapshot.baseline_id = record.baseline_code;
+        // The seed declares a baseline code, not its origin; never claim
+        // factory/OTA provenance for a declaration table (CR-010 Q3).
+        snapshot.baseline_source = BaselineSource::UNKNOWN;
+    } else {
+        snapshot.baseline_id = baseline_id_;
+        snapshot.baseline_source = baseline_source_;
+    }
+    // The DID registry version always describes the active read rules (§4).
+    snapshot.registry_version = registry_->getRegistryVersion();
+    snapshot.collected_at = getCurrentTimestamp();
+
+    for (const auto& fact : record.ecus) {
+        snapshot.ecu_list.push_back(seedEcuVersion(fact));
+    }
+    snapshot.overall_result = determineOverallResult(snapshot.ecu_list);
+
+    auto end = std::chrono::steady_clock::now();
+    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        end - start).count();
+    logCollectionCompleted(snapshot, duration_ms);
+
+    return snapshot;
+}
+
+EcuVersionEntry VersionCollector::seedEcuVersion(const InventoryEcuFact& fact) {
+    EcuVersionEntry entry;
+    entry.ecu_id = fact.ecu_id;
+    if (!fact.part_number.empty()) {
+        entry.part_number = fact.part_number;
+    }
+    if (!fact.sw_version.empty()) {
+        entry.sw_version = fact.sw_version;
+    }
+    if (!fact.hw_version.empty()) {
+        entry.hw_version = fact.hw_version;
+    }
+    // source stays the configured read method; the snapshot-level
+    // inventorySource carries the authority of the value.
+    auto ecu_config = registry_->findEcuById(fact.ecu_id);
+    entry.source = ecu_config ? ecu_config->read_method : ReadMethod::UDS_0x22;
+
+    if (fact.sw_version.empty()) {
+        entry.status = EcuStatus::MISSING;
+        entry.error_code = ErrorCodeMapper::toDiagCode(ErrorCode::DID_NOT_SUPPORTED);
+    } else {
+        entry.status = EcuStatus::OK;
+    }
+    return entry;
+}
+
 EcuVersionEntry VersionCollector::collectEcuVersion(const std::string& ecu_id) {
+    if (isSeedMode()) {
+        if (!inventory_store_ || !inventory_store_->available()) {
+            ErrorCode code = ErrorCode::INVENTORY_STATE_UNAVAILABLE;
+            if (inventory_store_ &&
+                inventory_store_->startupResult().status ==
+                    InventoryStoreStatus::SEED_INVALID) {
+                code = ErrorCode::INVENTORY_SEED_INVALID;
+            }
+            throw DiagException(code, "inventory state unavailable");
+        }
+        const auto* fact = inventory_store_->record().findEcu(ecu_id);
+        if (fact != nullptr) {
+            return seedEcuVersion(*fact);
+        }
+    }
     return processEcuVersion(ecu_id);
 }
 
@@ -223,15 +347,7 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
 }
 
 std::string VersionCollector::getCurrentTimestamp() {
-    auto now = std::chrono::system_clock::now();
-    auto time = std::chrono::system_clock::to_time_t(now);
-
-    struct tm tm_buf;
-    gmtime_r(&time, &tm_buf);
-
-    std::stringstream ss;
-    ss << std::put_time(&tm_buf, "%Y-%m-%dT%H:%M:%SZ");
-    return ss.str();
+    return EcuInventoryStore::nowIso8601();
 }
 
 CollectionStatus VersionCollector::determineOverallResult(const std::vector<EcuVersionEntry>& entries) {

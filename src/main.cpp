@@ -7,8 +7,10 @@
 #include "version_collector.h"
 #include "fota_facade.h"
 #include "fota_someip_service.h"
+#include "fota_version_registrar.h"
 #include "someip_service.h"
 #include "vin_store.h"
+#include "ecu_inventory_store.h"
 #include "diagnostic_server.h"
 #include "ccu_sec_client_proxy.h"
 #include "constants.h"
@@ -215,12 +217,77 @@ int main(int argc, char* argv[]) {
         auto vin_store = std::shared_ptr<VinStore>(
             createVinStore(constants::DEFAULT_VIN_STORAGE_PATH).release());
 
+        // Create ECU inventory store (instance state + optional seed import).
+        // CCU-DIAG-DSN-CR-010 §3/§12.3: opened after VIN, before Tester/
+        // Router/Transport/SEC/Provider. Fail-closed: on corruption or an
+        // invalid seed the process keeps running but never serves an empty
+        // "successful" inventory (0x0002 -> 1012/1013, 0x0005 -> 1015).
+        std::vector<std::string> known_ecu_ids;
+        for (const auto& ecu : registry->getAllEcus()) {
+            known_ecu_ids.push_back(ecu.ecu_id);
+        }
+        auto inventory_store = std::make_shared<EcuInventoryStore>(
+            unified.inventory, known_ecu_ids);
+        const bool had_inventory_record = inventory_store->persistentRecordExists();
+        const auto inventory_result =
+            inventory_store->initialize(registry->getRegistryVersion());
+        if (!inventory_result.ok()) {
+            const std::string error_code = inventory_result.diagCode();
+            const bool seed_mode =
+                inventory_store->mode() == InventoryMode::SEED;
+            DiagLogAdapter::inventory_store().error(
+                seed_mode ? diag_events::INVENTORY_SEED_IMPORT_FAILED
+                          : diag_events::INVENTORY_LOAD_FAILED,
+                "ECU inventory unavailable, serving fail-closed",
+                {dlog::f_str("state_path", unified.inventory.state_path),
+                 dlog::f_str("seed_path", unified.inventory.seed_path),
+                 dlog::f_str("mode", inventoryModeToString(inventory_store->mode())),
+                 dlog::f_str("error_code", error_code),
+                 dlog::f_str("reason", inventory_result.detail)}
+            );
+        } else {
+            DiagLogAdapter::inventory_store().info(diag_events::INVENTORY_LOADED,
+                "ECU inventory loaded",
+                {dlog::f_str("state_path", unified.inventory.state_path),
+                 dlog::f_str("mode", inventoryModeToString(inventory_store->mode())),
+                 dlog::f_str("inventory_source",
+                     inventory_store->record().inventory_source),
+                 dlog::f_int("ecu_count", static_cast<int64_t>(
+                     inventory_store->record().ecus.size()))}
+            );
+            if (inventory_store->mode() == InventoryMode::SEED) {
+                DiagLogAdapter::inventory_store().warn(
+                    diag_events::INVENTORY_SEED_MODE_ENABLED,
+                    "Inventory seed mode enabled: values are declarations, not hardware reads",
+                    {dlog::f_str("seed_path", unified.inventory.seed_path),
+                     dlog::f_int("ecu_count", static_cast<int64_t>(
+                         inventory_store->record().ecus.size()))}
+                );
+                if (!had_inventory_record) {
+                    DiagLogAdapter::inventory_store().info(
+                        diag_events::INVENTORY_SEED_IMPORTED,
+                        "Inventory seed imported",
+                        {dlog::f_str("seed_path", unified.inventory.seed_path),
+                         dlog::f_str("seed_digest",
+                             inventory_store->record().seed_digest),
+                         dlog::f_int("ecu_count", static_cast<int64_t>(
+                             inventory_store->record().ecus.size()))}
+                    );
+                }
+            }
+        }
+
         // Create CCU-SEC client proxy
         auto sec_client_proxy = createCcuSecClientProxy();
 
         // Create version collector and FOTA facade
-        auto collector = std::make_shared<VersionCollector>(registry, router, docan_transport, doip_transport, vin_store);
-        auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store);
+        auto collector = std::make_shared<VersionCollector>(
+            registry, router, docan_transport, doip_transport, vin_store,
+            inventory_store);
+        auto registrar = std::make_shared<FotaVersionRegistrar>(
+            inventory_store, known_ecu_ids, unified.inventory.idempotency_window);
+        auto facade = std::make_shared<FotaFacade>(collector, registry, vin_store,
+                                                  registrar);
 
         // SOME/IP provider config: unified subtree by default, explicit
         // dev/test override supported.

@@ -46,24 +46,15 @@ bool SomeIpServiceVsomeip::start() {
     }
     
     try {
-        // 启动应用
-        if (!application_->start()) {
-            logError("Failed to start application");
-            return false;
-        }
-        
+        // vsomeip3 的 application::start() 阻塞直至 stop()，必须放在独立线程，
+        // 否则 start() 永远不会返回（mock 后端 start() 为非阻塞布尔）。
         running_ = true;
-        
-        // 启动 IO 线程
-        io_thread_ = std::thread([this]() {
-            while (running_) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-        });
-        
+
+        std::thread([this]() { application_->start(); }).detach();
+
         logInfo("Service started");
         return true;
-        
+
     } catch (const std::exception& e) {
         logError("Start failed: " + std::string(e.what()));
         return false;
@@ -155,6 +146,12 @@ uint16_t SomeIpServiceVsomeip::getInstanceId() const {
     return config_.instance_id;
 }
 
+uint16_t SomeIpServiceVsomeip::getBoundPort() const {
+    // vsomeip 的绑定端口由 Service Discovery/配置决定，这里返回运行配置声明的
+    // 端口（mock 后端语义对齐）。
+    return config_.port;
+}
+
 void SomeIpServiceVsomeip::initializeApplication() {
     // 使用进程级共享 application（名字必须在平台 vsomeip.json 的 applications
     // 列表中登记：ccu-diag/0x1110），否则无法加入 tbox-someip routing 域。
@@ -175,20 +172,19 @@ void SomeIpServiceVsomeip::initializeApplication() {
 }
 
 void SomeIpServiceVsomeip::registerMethods() {
-    // 注册所有方法处理器
+    // 注册所有方法处理器（vsomeip3 按服务整体 offer，无 offer_method；
+    // 方法可达性由 register_message_handler + offer_service 表达）。
     std::lock_guard<std::mutex> lock(handlers_mutex_);
     for (const auto& pair : method_handlers_) {
         MethodId method_id = pair.first;
-        application_->offer_method(config_.service_id, config_.instance_id, method_id);
-        
         // 注册消息处理器
         application_->register_message_handler(
             config_.service_id, config_.instance_id, method_id,
             [this](const std::shared_ptr<someip::Message>& message) {
                 onMessage(message);
             });
-        
-        logInfo("Method offered: 0x" + std::to_string(method_id));
+
+        logInfo("Method handler registered: 0x" + std::to_string(method_id));
     }
 }
 
@@ -233,10 +229,10 @@ SomeIpMessage SomeIpServiceVsomeip::convertRequest(const std::shared_ptr<someip:
     
     // 转换消息类型
     switch (request->get_message_type()) {
-        case someip::message_type_e::REQUEST:
+        case someip::message_type_e::MT_REQUEST:
             result.header.message_type = MessageType::REQUEST;
             break;
-        case someip::message_type_e::REQUEST_NO_RETURN:
+        case someip::message_type_e::MT_REQUEST_NO_RETURN:
             result.header.message_type = MessageType::REQUEST_NO_RETURN;
             break;
         default:
@@ -264,13 +260,13 @@ std::shared_ptr<someip::Message> SomeIpServiceVsomeip::createSomeIpResponse(
     // 转换消息类型
     switch (response.header.message_type) {
         case MessageType::RESPONSE:
-            someip_response->set_message_type(someip::message_type_e::RESPONSE);
+            someip_response->set_message_type(someip::message_type_e::MT_RESPONSE);
             break;
         case MessageType::ERROR:
-            someip_response->set_message_type(someip::message_type_e::ERROR);
+            someip_response->set_message_type(someip::message_type_e::MT_ERROR);
             break;
         default:
-            someip_response->set_message_type(someip::message_type_e::RESPONSE);
+            someip_response->set_message_type(someip::message_type_e::MT_RESPONSE);
             break;
     }
     
