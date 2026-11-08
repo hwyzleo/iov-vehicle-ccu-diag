@@ -49,7 +49,7 @@ diag:
 
   # 原 did_registry.yaml 的 registryVersion / baselineDids / ecus。
   registry:
-    registryVersion: "2026.07.1"
+    registryVersion: "2026.11.1"
     baselineDids: [0xF195, 0xF188, 0xF187, 0xF193]
     ecus:
       - ecuId: "BMS"
@@ -70,12 +70,16 @@ diag:
             field: "calibrationId"
             encoding: "HEX"
             length: 4
+          - did: 0xF18C
+            field: "serialNumber"
+            encoding: "ASCII"
+            length: 20
       - ecuId: "IDCM"
         logicalAddress: 0x20
         transport: "DoIP"
         readMethod: "SOMEIP_getVersion"
         someipService: "0x1234"
-        fields: ["swVersion", "hwVersion"]
+        fields: ["swVersion", "hwVersion", "serialNumber"]
       - ecuId: "VCU"
         logicalAddress: 0x21
         transport: "DoCAN"
@@ -94,6 +98,73 @@ diag:
             field: "hwVersion"
             encoding: "ASCII"
             length: 8
+          - did: 0xF18C
+            field: "serialNumber"
+            encoding: "ASCII"
+            length: 20
+      # ---------------------------------------------------------------------
+      # 本项目（ORIN 小车）需要上报的 ECU。清单事实由 platform seed 提供
+      # （inventory.mode=seed），下列读取规则不参与真实报文读取，只用于
+      # seed 校验（ecuId 必须在此登记）与上报 source 字段。
+      # TODO(待整车诊断规范确认)：logicalAddress / transport / readMethod /
+      # dids 目前是占位值，切回 mode=hardware 前必须替换为真实值。
+      # ---------------------------------------------------------------------
+      - ecuId: "TBOX"
+        logicalAddress: 0x10
+        transport: "DoCAN"
+        readMethod: "UDS_0x22"
+        securityRequired: false
+        dids:
+          - did: 0xF195
+            field: "swVersion"
+            encoding: "ASCII"
+            length: 16
+          - did: 0xF18C
+            field: "serialNumber"
+            encoding: "ASCII"
+            length: 20
+      - ecuId: "CCU"
+        logicalAddress: 0x40
+        transport: "DoCAN"
+        readMethod: "UDS_0x22"
+        securityRequired: false
+        dids:
+          - did: 0xF195
+            field: "swVersion"
+            encoding: "ASCII"
+            length: 16
+          - did: 0xF18C
+            field: "serialNumber"
+            encoding: "ASCII"
+            length: 20
+      - ecuId: "DCU_COCKPIT"
+        logicalAddress: 0x50
+        transport: "DoCAN"
+        readMethod: "UDS_0x22"
+        securityRequired: false
+        dids:
+          - did: 0xF195
+            field: "swVersion"
+            encoding: "ASCII"
+            length: 16
+          - did: 0xF18C
+            field: "serialNumber"
+            encoding: "ASCII"
+            length: 20
+      - ecuId: "DCU_ADAS"
+        logicalAddress: 0x60
+        transport: "DoCAN"
+        readMethod: "UDS_0x22"
+        securityRequired: false
+        dids:
+          - did: 0xF195
+            field: "swVersion"
+            encoding: "ASCII"
+            length: 16
+          - did: 0xF18C
+            field: "serialNumber"
+            encoding: "ASCII"
+            length: 20
 
   # 本地 ECU 清单事实（CCU-DIAG-DSN-CR-010）。
   # mode：hardware（真实逐 ECU 读回，生产目标态）| seed（部署声明表，过渡兜底）。
@@ -102,7 +173,9 @@ diag:
   #   * state_path 必须位于 /var/lib/ccu/diag/ 下（实例状态，部署/回退 preserve）。
   #   * 无真实 ECU 的联调/演示环境由平台文件设置 mode: seed。
   inventory:
-    mode: hardware
+    # 本项目（ORIN 小车）当前使用部署声明表，不用真实逐 ECU 读回。
+    # 取值 hardware（生产目标态）| seed（部署声明表）。切换需重启生效。
+    mode: seed
     seed_path: /usr/share/ccu-diag/ecu-inventory.seed.json
     state_path: /var/lib/ccu/diag/ecu_inventory.json
     idempotency_window: 64

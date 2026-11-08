@@ -490,6 +490,7 @@ std::string EcuInventoryStore::encodeRecordFile(const EcuInventoryRecord& record
         entry["partNumber"] = fact.part_number;
         entry["swVersion"] = fact.sw_version;
         entry["hwVersion"] = fact.hw_version;
+        entry["serialNumber"] = fact.serial_number;
         ecus.push_back(std::move(entry));
     }
     payload["ecus"] = std::move(ecus);
@@ -583,7 +584,8 @@ bool EcuInventoryStore::decodeRecordFile(const std::string& text,
         if (!getString(node, "ecuId", fact.ecu_id, true, detail) ||
             !getString(node, "partNumber", fact.part_number, false, detail) ||
             !getString(node, "swVersion", fact.sw_version, false, detail) ||
-            !getString(node, "hwVersion", fact.hw_version, false, detail)) {
+            !getString(node, "hwVersion", fact.hw_version, false, detail) ||
+            !getString(node, "serialNumber", fact.serial_number, false, detail)) {
             return false;
         }
         if (fact.ecu_id.empty() ||
@@ -593,7 +595,8 @@ bool EcuInventoryStore::decodeRecordFile(const std::string& text,
         }
         if (!bounded(fact.part_number, constants::MAX_PART_NUMBER_LENGTH) ||
             !bounded(fact.sw_version, constants::MAX_VERSION_STRING_LENGTH) ||
-            !bounded(fact.hw_version, constants::MAX_VERSION_STRING_LENGTH)) {
+            !bounded(fact.hw_version, constants::MAX_VERSION_STRING_LENGTH) ||
+            !bounded(fact.serial_number, constants::MAX_SERIAL_NUMBER_LENGTH)) {
             detail = "ecu fact field too long";
             return false;
         }
@@ -692,7 +695,8 @@ bool EcuInventoryStore::parseSeedFile(
         if (!getString(node, "ecuId", fact.ecu_id, true, detail) ||
             !getString(node, "partNumber", fact.part_number, false, detail) ||
             !getString(node, "swVersion", fact.sw_version, false, detail) ||
-            !getString(node, "hwVersion", fact.hw_version, false, detail)) {
+            !getString(node, "hwVersion", fact.hw_version, false, detail) ||
+            !getString(node, "serialNumber", fact.serial_number, false, detail)) {
             return false;
         }
         if (fact.ecu_id.empty() ||
@@ -702,7 +706,8 @@ bool EcuInventoryStore::parseSeedFile(
         }
         if (!bounded(fact.part_number, constants::MAX_PART_NUMBER_LENGTH) ||
             !bounded(fact.sw_version, constants::MAX_VERSION_STRING_LENGTH) ||
-            !bounded(fact.hw_version, constants::MAX_VERSION_STRING_LENGTH)) {
+            !bounded(fact.hw_version, constants::MAX_VERSION_STRING_LENGTH) ||
+            !bounded(fact.serial_number, constants::MAX_SERIAL_NUMBER_LENGTH)) {
             detail = "seed ecu field too long";
             return false;
         }

@@ -104,6 +104,8 @@ struct EcuVersionEntry {
     std::optional<std::string> part_number;
     std::optional<std::string> sw_version;
     std::optional<std::string> hw_version;
+    // CCU-DIAG-DSN-CR-011: ECU serial number (DID 0xF18C), optional.
+    std::optional<std::string> serial_number;
     ReadMethod source = ReadMethod::UDS_0x22;
     EcuStatus status = EcuStatus::OK;
     std::optional<std::string> error_code;

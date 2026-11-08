@@ -193,6 +193,9 @@ EcuVersionEntry VersionCollector::seedEcuVersion(const InventoryEcuFact& fact) {
     if (!fact.hw_version.empty()) {
         entry.hw_version = fact.hw_version;
     }
+    if (!fact.serial_number.empty()) {
+        entry.serial_number = fact.serial_number;
+    }
     // source stays the configured read method; the snapshot-level
     // inventorySource carries the authority of the value.
     auto ecu_config = registry_->findEcuById(fact.ecu_id);
@@ -282,6 +285,8 @@ EcuVersionEntry VersionCollector::processEcuVersion(const std::string& ecu_id) {
                         entry.part_number = version_str;
                     } else if (did_entry.field == "hwVersion") {
                         entry.hw_version = version_str;
+                    } else if (did_entry.field == "serialNumber") {
+                        entry.serial_number = version_str;
                     }
                 }
 

@@ -32,6 +32,9 @@ struct InventoryEcuFact {
     std::string part_number;
     std::string sw_version;
     std::string hw_version;
+    // CCU-DIAG-DSN-CR-011: ECU serial number (DID 0xF18C), optional. Additive
+    // field: schemaVersion stays 1 while the contract is still in development.
+    std::string serial_number;
 };
 
 struct AppliedRegistration {

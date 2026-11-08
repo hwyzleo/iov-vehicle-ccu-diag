@@ -148,6 +148,63 @@ TEST_F(VersionCollectorTest, CollectVehicleInventoryAllOk) {
     EXPECT_EQ(idcm_it->sw_version.value(), "2.0.0");
 }
 
+// CCU-DIAG-DSN-CR-011: hardware mode maps DID 0xF18C into serial_number.
+TEST_F(VersionCollectorTest, CollectEcuVersionMapsSerialNumberDid) {
+    std::ofstream file(config_path_);
+    file << R"(
+registryVersion: "2026.11.1"
+baselineDids: [0xF195, 0xF18C]
+ecus:
+  - ecuId: "TBOX"
+    logicalAddress: 0x10
+    transport: "DoCAN"
+    readMethod: "UDS_0x22"
+    securityRequired: false
+    dids:
+      - did: 0xF195
+        field: "swVersion"
+        encoding: "ASCII"
+        length: 16
+      - did: 0xF18C
+        field: "serialNumber"
+        encoding: "ASCII"
+        length: 20
+)";
+    file.close();
+
+    auto registry = std::make_shared<DidRegistry>(config_path_);
+    DiagConfig diag_config;
+    diag_config.max_retry_count = 2;
+    auto uds_client = std::make_shared<UdsClient>(mock_transport, diag_config);
+    auto router = std::make_shared<DiagnosticRouter>(registry, uds_client,
+                                                     mock_transport, mock_doip_transport);
+    VersionCollector collector(registry, router, mock_transport,
+                               mock_doip_transport, vin_store);
+
+    mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
+        TransportResponse resp;
+        resp.success = true;
+        uint16_t did = (request[1] << 8) | request[2];
+        resp.data = {0x62, request[1], request[2]};
+        if (did == 0xF195) {
+            resp.data.insert(resp.data.end(), {'V', '0', '.', '0', '.', '1', '\0'});
+        } else if (did == 0xF18C) {
+            const std::string sn = "00000002AA00000001";
+            resp.data.insert(resp.data.end(), sn.begin(), sn.end());
+            resp.data.push_back('\0');
+        }
+        (void)addr;
+        return resp;
+    });
+
+    auto entry = collector.collectEcuVersion("TBOX");
+    EXPECT_EQ(entry.status, EcuStatus::OK);
+    ASSERT_TRUE(entry.sw_version.has_value());
+    EXPECT_EQ(entry.sw_version.value(), "V0.0.1");
+    ASSERT_TRUE(entry.serial_number.has_value());
+    EXPECT_EQ(entry.serial_number.value(), "00000002AA00000001");
+}
+
 TEST_F(VersionCollectorTest, CollectVehicleInventoryPartial) {
     mock_transport->setRequestHandler([](uint16_t addr, const std::vector<uint8_t>& request) {
         TransportResponse resp;

@@ -153,6 +153,56 @@ TEST_F(EcuInventoryStoreTest, SeedImportedOnceAndNotReimportedOnRestart) {
     EXPECT_EQ(restarted->record().ecus[0].sw_version, "1.0.0");
 }
 
+// CCU-DIAG-DSN-CR-011: serialNumber (DID 0xF18C) is an additive optional field;
+// schemaVersion stays 1 while the contract is in development.
+TEST_F(EcuInventoryStoreTest, SerialNumberFromSeedIsPersistedAndReloaded) {
+    writeText(seed_path_, R"({
+      "schemaVersion": 1,
+      "registryVersion": "2026.11.1",
+      "baselineCode": "BASE-001",
+      "ecus": [
+        {"ecuId":"BMS","partNumber":"PN-BMS","swVersion":"V0.0.1","hwVersion":"00",
+         "serialNumber":"00000002AA00000001"}
+      ]
+    })");
+    auto store = makeStore(seedConfig(), {"BMS", "VCU"});
+    ASSERT_TRUE(store->initialize("2026.11.1").ok());
+    ASSERT_EQ(store->record().ecus.size(), 1u);
+    EXPECT_EQ(store->record().ecus[0].serial_number, "00000002AA00000001");
+
+    // Persisted record carries the field and survives a restart.
+    const std::string text = readText(state_path_);
+    EXPECT_NE(text.find("serialNumber"), std::string::npos);
+    auto restarted = makeStore(seedConfig(), {"BMS", "VCU"});
+    ASSERT_TRUE(restarted->initialize("2026.11.1").ok());
+    ASSERT_EQ(restarted->record().ecus.size(), 1u);
+    EXPECT_EQ(restarted->record().ecus[0].serial_number, "00000002AA00000001");
+}
+
+TEST_F(EcuInventoryStoreTest, SeedWithoutSerialNumberStaysCompatible) {
+    writeText(seed_path_, seedJson("1.0.0"));
+    auto store = makeStore(seedConfig());
+    const auto result = store->initialize("2026.07.1");
+    ASSERT_TRUE(result.ok()) << result.detail;
+    ASSERT_EQ(store->record().ecus.size(), 2u);
+    EXPECT_TRUE(store->record().ecus[0].serial_number.empty());
+}
+
+TEST_F(EcuInventoryStoreTest, SeedSerialNumberTooLongFailsClosed) {
+    writeText(seed_path_, R"({
+      "schemaVersion": 1,
+      "registryVersion": "v",
+      "ecus": [
+        {"ecuId":"BMS","serialNumber":"0123456789012345678901234567890123"}
+      ]
+    })");
+    auto store = makeStore(seedConfig());
+    const auto result = store->initialize("2026.07.1");
+    EXPECT_EQ(result.status, InventoryStoreStatus::SEED_INVALID);
+    EXPECT_FALSE(store->available());
+    EXPECT_FALSE(fs::exists(state_path_));
+}
+
 TEST_F(EcuInventoryStoreTest, SeedMissingFailsClosed) {
     auto store = makeStore(seedConfig());
     const auto result = store->initialize("2026.07.1");

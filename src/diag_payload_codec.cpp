@@ -148,6 +148,7 @@ std::string DiagPayloadCodec::encodeInventoryV1(
         item["partNumber"] = entry.part_number.value_or("");
         item["swVersion"] = entry.sw_version.value_or("");
         item["hwVersion"] = entry.hw_version.value_or("");
+        item["serialNumber"] = entry.serial_number.value_or("");
         item["source"] = readMethodToWire(entry.source);
         item["status"] = ecuStatusToWire(entry.status);
         item["errorCode"] = entry.error_code.value_or("");

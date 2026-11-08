@@ -59,6 +59,9 @@ constexpr uint32_t ECU_INVENTORY_RECORD_SCHEMA_VERSION = 1;
 constexpr size_t MAX_ECU_ID_LENGTH = 32;
 constexpr size_t MAX_VERSION_STRING_LENGTH = 64;
 constexpr size_t MAX_PART_NUMBER_LENGTH = 64;
+// CCU-DIAG-DSN-CR-011: ECU serial number (DID 0xF18C). 20-char ASCII values
+// are the current project format; 32 is the fail-closed upper bound.
+constexpr size_t MAX_SERIAL_NUMBER_LENGTH = 32;
 constexpr size_t MAX_EXECUTION_ID_LENGTH = 128;
 constexpr size_t MAX_REGISTRATION_ITEMS = 256;
 

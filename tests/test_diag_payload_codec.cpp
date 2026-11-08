@@ -83,6 +83,23 @@ TEST(DiagPayloadCodecTest, EncodeInventoryV1ContainsCompleteEcuList) {
     EXPECT_EQ(vcu["errorCode"].get<std::string>(), "CCU-DIAG-1002");
 }
 
+// CCU-DIAG-DSN-CR-011: 0x0002 ecuList items expose the ECU serial number. The
+// field is additive, so schemaVersion stays 1 and FOTA (which ignores unknown
+// fields) keeps working.
+TEST(DiagPayloadCodecTest, EncodeInventoryV1CarriesEcuSerialNumber) {
+    auto snapshot = makeSnapshot();
+    snapshot.ecu_list[0].serial_number = "00000002AA00000001";
+
+    const auto j = nlohmann::json::parse(
+        DiagPayloadCodec::encodeInventoryV1(snapshot));
+    EXPECT_EQ(j["schemaVersion"].get<int>(), 1);
+    ASSERT_EQ(j["ecuList"].size(), 2u);
+    EXPECT_EQ(j["ecuList"][0]["serialNumber"].get<std::string>(),
+              "00000002AA00000001");
+    // Absent serial numbers stay present-but-empty (frozen field set).
+    EXPECT_EQ(j["ecuList"][1]["serialNumber"].get<std::string>(), "");
+}
+
 TEST(DiagPayloadCodecTest, EncodeSeedSnapshotMarksSourceAndNullBaseline) {
     auto snapshot = makeSnapshot();
     snapshot.inventory_source = InventorySource::SEED;

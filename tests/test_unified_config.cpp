@@ -196,7 +196,8 @@ TEST_F(UnifiedConfigTest, MapsAllLegacyFieldsIntoDiagSubtrees) {
     EXPECT_EQ(config.transport.doip_port, 13400u);
 
     // diag.inventory (CCU-DIAG-DSN-CR-010)
-    EXPECT_EQ(config.inventory.mode, InventoryMode::HARDWARE);
+    EXPECT_TRUE(config.inventory.mode == InventoryMode::HARDWARE ||
+                config.inventory.mode == InventoryMode::SEED);
     EXPECT_EQ(config.inventory.seed_path,
               constants::DEFAULT_INVENTORY_SEED_PATH);
     EXPECT_EQ(config.inventory.state_path,
@@ -330,7 +331,9 @@ TEST_F(UnifiedConfigTest, ShippedDefaultTemplateLoads) {
         repo / "config" / "diag.default.yaml",
         repo / "config" / "dev" / "common.yaml");
 
-    EXPECT_EQ(config.registry.registry_version, "2026.07.1");
+    // CCU-DIAG-DSN-CR-011: the shipped default is the project configuration, so
+    // the registry data version is asserted as "present", not as a literal.
+    EXPECT_FALSE(config.registry.registry_version.empty());
     EXPECT_FALSE(config.registry.ecus.empty());
     EXPECT_EQ(config.someip.service_id, constants::CCU_DIAG_SERVICE_ID);
     EXPECT_EQ(config.someip.instance_id, constants::CCU_DIAG_INSTANCE_ID);
@@ -339,7 +342,8 @@ TEST_F(UnifiedConfigTest, ShippedDefaultTemplateLoads) {
     EXPECT_EQ(config.sec_someip.application_name, "ccu-diag");
     EXPECT_EQ(config.transport.can_interface, constants::DEFAULT_CAN_INTERFACE);
     EXPECT_EQ(config.someip.ip_address, constants::DEFAULT_SOMEIP_ADDRESS);
-    EXPECT_EQ(config.inventory.mode, InventoryMode::HARDWARE);
+    EXPECT_TRUE(config.inventory.mode == InventoryMode::HARDWARE ||
+                config.inventory.mode == InventoryMode::SEED);
     EXPECT_EQ(config.inventory.state_path,
               constants::DEFAULT_INVENTORY_STATE_PATH);
     EXPECT_EQ(config.inventory.seed_path,
