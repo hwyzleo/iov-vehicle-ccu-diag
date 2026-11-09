@@ -110,8 +110,19 @@ diag:
       # seed 校验（ecuId 必须在此登记）与上报 source 字段。
       # TODO(待整车诊断规范确认)：logicalAddress / transport / readMethod /
       # dids 目前是占位值，切回 mode=hardware 前必须替换为真实值。
+      #
+      # 命名约束：ecuId 使用 MDM/VMD 的车载节点代码（vehicleNodeCode）口径，
+      # 而不是模块简称。车端上报的 ecuId 会原样进入云端 Canonical Inventory，
+      # OTA 用 ecuId 与 VMD 零件投影 deviceCode、活动升级对象 vehicleNodeCode
+      # 精确比对；用简称（TBOX/CCU/DCU_*）会导致设备清单零件关联 NOT_FOUND
+      # 且 OTA 任务匹配永远不成立。
+      # 映射（同一硬件的件号对齐，partNumber 一致）：
+      #   TBOX_5G            <- 原 TBOX         partNumber 00000001AA
+      #   DCU_COCKPIT_SA8295P<- 原 DCU_COCKPIT partNumber 00000004AA
+      #   CCU_GEN1           <- 原 CCU          partNumber 00000007AA
+      #   DCU_ADAS_GEN1      <- 原 DCU_ADAS     partNumber 00000010AA
       # ---------------------------------------------------------------------
-      - ecuId: "TBOX"
+      - ecuId: "TBOX_5G"
         logicalAddress: 0x10
         transport: "DoCAN"
         readMethod: "UDS_0x22"
@@ -129,7 +140,7 @@ diag:
             field: "serialNumber"
             encoding: "ASCII"
             length: 20
-      - ecuId: "CCU"
+      - ecuId: "CCU_GEN1"
         logicalAddress: 0x40
         transport: "DoCAN"
         readMethod: "UDS_0x22"
@@ -147,7 +158,7 @@ diag:
             field: "serialNumber"
             encoding: "ASCII"
             length: 20
-      - ecuId: "DCU_COCKPIT"
+      - ecuId: "DCU_COCKPIT_SA8295P"
         logicalAddress: 0x50
         transport: "DoCAN"
         readMethod: "UDS_0x22"
@@ -165,7 +176,7 @@ diag:
             field: "serialNumber"
             encoding: "ASCII"
             length: 20
-      - ecuId: "DCU_ADAS"
+      - ecuId: "DCU_ADAS_GEN1"
         logicalAddress: 0x60
         transport: "DoCAN"
         readMethod: "UDS_0x22"
